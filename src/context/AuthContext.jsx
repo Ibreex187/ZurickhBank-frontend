@@ -18,6 +18,7 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const isProduction = import.meta.env.PROD;
 
   useEffect(() => {
     const token = cookies.get('token');
@@ -52,7 +53,7 @@ export const AuthProvider = ({ children }) => {
           path: '/',
           maxAge: 60 * 60 * 24, // 1 day
           sameSite: 'lax',
-          // secure: true, // enable in production over HTTPS
+          secure: isProduction,
         });
         // optionally store minimal non-sensitive user info
         if (response.data.data.user) {
@@ -61,6 +62,7 @@ export const AuthProvider = ({ children }) => {
               path: '/',
               maxAge: 60 * 60 * 24,
               sameSite: 'lax',
+              secure: isProduction,
             });
           } catch {
             // ignore cookie set errors
