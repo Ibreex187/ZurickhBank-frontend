@@ -1,0 +1,636 @@
+import { useState, useEffect, useMemo } from 'react';
+import PropTypes from 'prop-types';
+import { useAuth } from '../context/AuthContext';
+import { useLocation } from 'react-router-dom';
+import {
+  Container, Card, Form, Button, Alert, Table, Row, Col,
+  Modal, Badge
+} from 'react-bootstrap';
+import ZurichBrand from '../components/ZurichBrand';
+import { renderSidebarNavLinks } from '../components/sidebarNavLinks';
+import {
+  depositToSavings,
+  withdrawFromSavings,
+  quickTransfer,
+  getSavingsOverview,
+  getSavingsHistory,
+  getSavingsInsights
+} from '../services/savingsService';
+
+const SavingsManagement = ({ styles }) => {
+  const { user, logout } = useAuth();
+  const isAdmin = user?.roles === 'admin' || user?.role === 'admin' || user?.isAdmin === true;
+
+  // State for savings data
+  const [savingsData, setSavingsData] = useState({
+    balances: { mainBalance: 0, savingsBalance: 0, totalBalance: 0 },
+    statistics: { totalDeposited: 0, totalWithdrawn: 0, netSavings: 0 },
+    accountInfo: {}
+  });
+  const [transactions, setTransactions] = useState([]);
+  const [insights, setInsights] = useState(null);
+  const [statsLastUpdated, setStatsLastUpdated] = useState(null);
+
+  // UI state
+  const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState({ type: '', text: '' });
+  const [showDepositModal, setShowDepositModal] = useState(false);
+  const [showWithdrawModal, setShowWithdrawModal] = useState(false);
+  const [showQuickTransferModal, setShowQuickTransferModal] = useState(false);
+
+  // Form data
+  const [depositAmount, setDepositAmount] = useState('');
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [quickTransferData, setQuickTransferData] = useState({
+    amount: '',
+    direction: 'to-savings'
+  });
+
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false); // mobile off-canvas state
+  const location = useLocation();
+
+  const savingsStatistics = useMemo(() => {
+    const stats = savingsData?.statistics || {};
+    const totalDeposited = Number(stats.totalDeposited ?? stats.totalDeposits ?? 0);
+    const totalWithdrawn = Number(stats.totalWithdrawn ?? stats.totalWithdraws ?? 0);
+    const netSavings = Number(stats.netSavings ?? (totalDeposited - totalWithdrawn));
+
+    return {
+      totalDeposited,
+      totalWithdrawn,
+      netSavings
+    };
+  }, [savingsData]);
+
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape' && sidebarOpen) setSidebarOpen(false);
+    };
+    const onResize = () => {
+      if (window.innerWidth > 768 && sidebarOpen) setSidebarOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('resize', onResize);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('resize', onResize);
+    };
+  }, [sidebarOpen]);
+
+  useEffect(() => {
+    fetchSavingsData();
+  }, []);
+
+  const fetchSavingsData = async () => {
+    setLoading(true);
+    try {
+      const [overviewRes, historyRes, insightsRes] = await Promise.all([
+        getSavingsOverview(),
+        getSavingsHistory({ limit: 10 }),
+        getSavingsInsights()
+      ]);
+
+      if (overviewRes.success) {
+        setSavingsData(overviewRes.data);
+        setStatsLastUpdated(new Date());
+      }
+
+      if (historyRes.success) {
+        setTransactions(historyRes.data.transactions || []);
+      }
+
+      if (insightsRes.success) {
+        setInsights(insightsRes.data);
+      }
+
+    } catch (error) {
+      console.error('Failed to fetch savings data:', error);
+      setMessage({
+        type: 'error',
+        text: 'Failed to load savings data'
+      });
+    }
+    setLoading(false);
+  };
+
+  const handleDeposit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const response = await depositToSavings(Number(depositAmount));
+      if (response.success) {
+        setMessage({
+          type: 'success',
+          text: response.message || 'Deposit successful!'
+        });
+        setDepositAmount('');
+        setShowDepositModal(false);
+        fetchSavingsData();
+      }
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Deposit failed'
+      });
+    }
+    setLoading(false);
+  };
+
+  const handleWithdraw = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const response = await withdrawFromSavings(Number(withdrawAmount));
+      if (response.success) {
+        setMessage({
+          type: 'success',
+          text: response.message || 'Withdrawal successful!'
+        });
+        setWithdrawAmount('');
+        setShowWithdrawModal(false);
+        fetchSavingsData();
+      }
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Withdrawal failed'
+      });
+    }
+    setLoading(false);
+  };
+
+  const handleQuickTransfer = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    try {
+      const response = await quickTransfer(
+        Number(quickTransferData.amount),
+        quickTransferData.direction
+      );
+      if (response.success) {
+        setMessage({
+          type: 'success',
+          text: response.message || 'Transfer successful!'
+        });
+        setQuickTransferData({ amount: '', direction: 'to-savings' });
+        setShowQuickTransferModal(false);
+        fetchSavingsData();
+      }
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Transfer failed'
+      });
+    }
+    setLoading(false);
+  };
+
+  return (
+    <>
+      {styles && <style>{styles}</style>}
+      <div className="fintech-dashboard savings-management">
+        {/* Sidebar */}
+        <div className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''} ${sidebarOpen ? 'open' : ''}`}>
+          <div className="sidebar-header">
+            <div className="brand">
+              <ZurichBrand showText={!sidebarCollapsed} className="sidebar-brand" />
+            </div>
+            <button
+              className="collapse-btn"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3,6V8H21V6H3M3,11H21V13H3V11M3,16H21V18H3V16Z" />
+              </svg>
+            </button>
+          </div>
+
+          <nav className="sidebar-nav">
+            <ul>
+              {renderSidebarNavLinks({
+                pathname: location.pathname,
+                sidebarCollapsed,
+                onNavClick: () => setSidebarOpen(false),
+                isAdmin,
+              })}
+            </ul>
+
+            <div className="sidebar-footer">
+              <button onClick={logout} className="logout-btn">
+                <svg className="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M16,17V14H9V10H16V7L21,12L16,17M14,2A2,2 0 0,1 16,4V6H14V4H5V20H14V18H16V20A2,2 0 0,1 14,22H5A2,2 0 0,1 3,20V4A2,2 0 0,1 5,2H14Z" />
+                </svg>
+                {!sidebarCollapsed && <span>Logout</span>}
+              </button>
+            </div>
+          </nav>
+        </div>
+
+        {/* Mobile overlay */}
+        <div className={`sidebar-overlay ${sidebarOpen ? 'active' : ''}`} onClick={() => setSidebarOpen(false)} />
+
+        {/* Main Content */}
+        <div className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+          {/* Header */}
+          <header className="main-header">
+            <div className="header-left">
+              <button
+                className="mobile-menu-btn"
+                aria-label="Toggle menu"
+                onClick={() => setSidebarOpen(prev => !prev)}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z" />
+                </svg>
+              </button>
+              <div>
+                <h1 className="page-title">Savings</h1>
+                <p className="page-subtitle">Build your financial future with smart savings</p>
+              </div>
+            </div>
+            <div className="header-right">
+              <div className="user-profile">
+                <div className="user-avatar">
+                  {(user?.firstName?.[0] || user?.userName?.[0] || 'U').toUpperCase()}
+                </div>
+                <div className="user-info">
+                  <span className="user-name">{user?.firstName} {user?.lastName}</span>
+                  <span className="user-role">Premium Member</span>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          <Container fluid className="px-lg-4 py-4">
+            {/* Header Section */}
+            <Row className="mb-4">
+              <Col>
+                <div className="d-flex justify-content-between align-items-center">
+                  <div>
+                    <h2 className="mb-1">Savings Management</h2>
+                    <p className="text-muted mb-0">Build your financial future with smart savings</p>
+                  </div>
+                  <div className="d-flex gap-2">
+                    <Button
+                      variant="success"
+                      onClick={() => setShowDepositModal(true)}
+                    >
+                      Deposit
+                    </Button>
+                    <Button
+                      variant="warning"
+                      onClick={() => setShowWithdrawModal(true)}
+                    >
+                      Withdraw
+                    </Button>
+                    <Button
+                      variant="info"
+                      onClick={() => setShowQuickTransferModal(true)}
+                    >
+                      Quick Transfer
+                    </Button>
+                  </div>
+                </div>
+              </Col>
+            </Row>
+
+            {message.text && (
+              <Alert
+                variant={message.type === 'success' ? 'success' : 'danger'}
+                className="mb-4"
+                onClose={() => setMessage({ type: '', text: '' })}
+                dismissible
+              >
+                {message.text}
+              </Alert>
+            )}
+
+            {/* Balances Overview */}
+            <Row className="g-4 mb-4">
+              <Col md={4}>
+                <Card className="border-0 shadow-sm premium-stat-card">
+                  <Card.Body>
+                    <div className="d-flex justify-content-between">
+                      <div>
+                        <h6 className="mb-0">Main Balance</h6>
+                        <h3 className="mb-0">₦{savingsData.balances.mainBalance?.toLocaleString() || 0}</h3>
+                      </div>
+                      <div className="align-self-center">
+                        <i className="fas fa-wallet fa-2x opacity-75"></i>
+                      </div>
+                    </div>
+                  </Card.Body>
+                </Card>
+              </Col>
+
+              <Col md={4}>
+                <Card className="border-0 shadow-sm premium-stat-card">
+                  <Card.Body>
+                    <div className="d-flex justify-content-between">
+                      <div>
+                        <h6 className="mb-0">Savings Balance</h6>
+                        <h3 className="mb-0">₦{savingsData.balances.savingsBalance?.toLocaleString() || 0}</h3>
+                      </div>
+                      <div className="align-self-center">
+                        <i className="fas fa-piggy-bank fa-2x opacity-75"></i>
+                      </div>
+                    </div>
+                  </Card.Body>
+                </Card>
+              </Col>
+
+              <Col md={4}>
+                <Card className="border-0 shadow-sm premium-stat-card">
+                  <Card.Body>
+                    <div className="d-flex justify-content-between">
+                      <div>
+                        <h6 className="mb-0">Total Wealth</h6>
+                        <h3 className="mb-0">₦{savingsData.balances.totalBalance?.toLocaleString() || 0}</h3>
+                      </div>
+                      <div className="align-self-center">
+                        <i className="fas fa-chart-line fa-2x opacity-75"></i>
+                      </div>
+                    </div>
+                  </Card.Body>
+                </Card>
+              </Col>
+            </Row>
+
+            {/* Statistics and Insights */}
+            <Row className="g-4 mb-4">
+              <Col md={6}>
+                <Card className="shadow-sm h-100">
+                  <Card.Header>
+                    <div className="d-flex justify-content-between align-items-center">
+                      <h5 className="mb-0">Savings Statistics</h5>
+                      <small className="text-muted">
+                        Last updated: {statsLastUpdated ? statsLastUpdated.toLocaleTimeString() : '—'}
+                      </small>
+                    </div>
+                  </Card.Header>
+                  <Card.Body>
+                    <div className="row text-center">
+                      <div className="col-4">
+                        <h6 className="text-muted">Total Deposited</h6>
+                        <h4 className="text-success">₦{savingsStatistics.totalDeposited.toLocaleString()}</h4>
+                      </div>
+                      <div className="col-4">
+                        <h6 className="text-muted">Total Withdrawn</h6>
+                        <h4 className="text-warning">₦{savingsStatistics.totalWithdrawn.toLocaleString()}</h4>
+                      </div>
+                      <div className="col-4">
+                        <h6 className="text-muted">Net Savings</h6>
+                        <h4 className="text-primary">₦{savingsStatistics.netSavings.toLocaleString()}</h4>
+                      </div>
+                    </div>
+                  </Card.Body>
+                </Card>
+              </Col>
+
+              <Col md={6}>
+                <Card className="shadow-sm h-100">
+                  <Card.Header>
+                    <h5 className="mb-0">Savings Health</h5>
+                  </Card.Header>
+                  <Card.Body>
+                    {insights ? (
+                      <>
+                        <div className="d-flex justify-content-between mb-3">
+                          <span>Savings Percentage:</span>
+                          <Badge bg="primary">{insights.currentStatus?.savingsPercentage}%</Badge>
+                        </div>
+                        <div className="d-flex justify-content-between mb-3">
+                          <span>Health Status:</span>
+                          <Badge bg={
+                            insights.currentStatus?.savingsHealthStatus === 'Excellent' ? 'success' :
+                              insights.currentStatus?.savingsHealthStatus === 'Good' ? 'primary' :
+                                insights.currentStatus?.savingsHealthStatus === 'Fair' ? 'warning' : 'danger'
+                          }>
+                            {insights.currentStatus?.savingsHealthStatus}
+                          </Badge>
+                        </div>
+                        {insights.recommendations?.length > 0 && (
+                          <div>
+                            <small className="text-muted">Recommendations:</small>
+                            <ul className="mb-0 mt-2">
+                              {insights.recommendations.slice(0, 2).map((rec, index) => (
+                                <li key={index} className="small">{rec}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </>
+                    ) : (
+                      <div className="text-center text-muted">
+                        <i className="fas fa-chart-pie fa-2x mb-2"></i>
+                        <p>Loading insights...</p>
+                      </div>
+                    )}
+                  </Card.Body>
+                </Card>
+              </Col>
+            </Row>
+
+            {/* Recent Transactions */}
+            <Card className="shadow-sm">
+              <Card.Header>
+                <h5 className="mb-0">Recent Transactions</h5>
+              </Card.Header>
+              <Card.Body>
+                {transactions.length === 0 ? (
+                  <div className="text-center py-5">
+                    <i className="fas fa-history fa-3x text-muted mb-3"></i>
+                    <h5 className="text-muted">No transactions yet</h5>
+                    <p className="text-muted">Start saving to see your transaction history</p>
+                  </div>
+                ) : (
+                  <div className="table-responsive">
+                    <Table hover>
+                      <thead className="table-light">
+                        <tr>
+                          <th>Date</th>
+                          <th>Type</th>
+                          <th>Amount</th>
+                          <th>Description</th>
+                          <th>Status</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {transactions.map((transaction) => (
+                          <tr key={transaction._id || transaction.transactionId}>
+                            <td>{new Date(transaction.createdAt).toLocaleDateString()}</td>
+                            <td>
+                              <Badge bg={transaction.type === 'deposit' ? 'success' : 'warning'}>
+                                {transaction.type}
+                              </Badge>
+                            </td>
+                            <td>₦{transaction.amount?.toLocaleString()}</td>
+                            <td>{transaction.description}</td>
+                            <td>
+                              <Badge bg={transaction.status === 'completed' ? 'success' : 'secondary'}>
+                                {transaction.status}
+                              </Badge>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </Table>
+                  </div>
+                )}
+              </Card.Body>
+            </Card>
+
+            {/* Deposit Modal */}
+            <Modal show={showDepositModal} onHide={() => setShowDepositModal(false)}>
+              <Modal.Header closeButton>
+                <Modal.Title>Deposit to Savings</Modal.Title>
+              </Modal.Header>
+              <Form onSubmit={handleDeposit}>
+                <Modal.Body>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Amount *</Form.Label>
+                    <Form.Control
+                      type="number"
+                      value={depositAmount}
+                      onChange={(e) => setDepositAmount(e.target.value)}
+                      placeholder="Enter amount to deposit"
+                      required
+                      min="0.01"
+                      max="1000000"
+                      step="0.01"
+                    />
+                    <Form.Text className="text-muted">
+                      Available Balance: ₦{savingsData.balances.mainBalance?.toLocaleString() || 0}
+                    </Form.Text>
+                  </Form.Group>
+                </Modal.Body>
+                <Modal.Footer>
+                  <Button variant="secondary" onClick={() => setShowDepositModal(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="success"
+                    type="submit"
+                    disabled={loading || !depositAmount}
+                  >
+                    {loading ? 'Processing...' : 'Deposit'}
+                  </Button>
+                </Modal.Footer>
+              </Form>
+            </Modal>
+
+            {/* Withdraw Modal */}
+            <Modal show={showWithdrawModal} onHide={() => setShowWithdrawModal(false)}>
+              <Modal.Header closeButton>
+                <Modal.Title>Withdraw from Savings</Modal.Title>
+              </Modal.Header>
+              <Form onSubmit={handleWithdraw}>
+                <Modal.Body>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Amount *</Form.Label>
+                    <Form.Control
+                      type="number"
+                      value={withdrawAmount}
+                      onChange={(e) => setWithdrawAmount(e.target.value)}
+                      placeholder="Enter amount to withdraw"
+                      required
+                      min="0.01"
+                      max={savingsData.balances.savingsBalance}
+                      step="0.01"
+                    />
+                    <Form.Text className="text-muted">
+                      Available Savings: ₦{savingsData.balances.savingsBalance?.toLocaleString() || 0}
+                    </Form.Text>
+                  </Form.Group>
+                </Modal.Body>
+                <Modal.Footer>
+                  <Button variant="secondary" onClick={() => setShowWithdrawModal(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="warning"
+                    type="submit"
+                    disabled={loading || !withdrawAmount}
+                  >
+                    {loading ? 'Processing...' : 'Withdraw'}
+                  </Button>
+                </Modal.Footer>
+              </Form>
+            </Modal>
+
+            {/* Quick Transfer Modal */}
+            <Modal show={showQuickTransferModal} onHide={() => setShowQuickTransferModal(false)}>
+              <Modal.Header closeButton>
+                <Modal.Title>Quick Transfer</Modal.Title>
+              </Modal.Header>
+              <Form onSubmit={handleQuickTransfer}>
+                <Modal.Body>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Transfer Direction *</Form.Label>
+                    <Form.Select
+                      value={quickTransferData.direction}
+                      onChange={(e) => setQuickTransferData({
+                        ...quickTransferData,
+                        direction: e.target.value
+                      })}
+                      required
+                    >
+                      <option value="to-savings">From Main to Savings</option>
+                      <option value="to-main">From Savings to Main</option>
+                    </Form.Select>
+                  </Form.Group>
+
+                  <Form.Group className="mb-3">
+                    <Form.Label>Amount *</Form.Label>
+                    <Form.Control
+                      type="number"
+                      value={quickTransferData.amount}
+                      onChange={(e) => setQuickTransferData({
+                        ...quickTransferData,
+                        amount: e.target.value
+                      })}
+                      placeholder="Enter transfer amount"
+                      required
+                      min="0.01"
+                      max="1000000"
+                      step="0.01"
+                    />
+                    <Form.Text className="text-muted">
+                      {quickTransferData.direction === 'to-savings'
+                        ? `Available: ₦${savingsData.balances.mainBalance?.toLocaleString() || 0}`
+                        : `Available: ₦${savingsData.balances.savingsBalance?.toLocaleString() || 0}`
+                      }
+                    </Form.Text>
+                  </Form.Group>
+                </Modal.Body>
+                <Modal.Footer>
+                  <Button variant="secondary" onClick={() => setShowQuickTransferModal(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    variant="info"
+                    type="submit"
+                    disabled={loading || !quickTransferData.amount}
+                  >
+                    {loading ? 'Processing...' : 'Transfer'}
+                  </Button>
+                </Modal.Footer>
+              </Form>
+            </Modal>
+          </Container>
+        </div>
+      </div>
+    </>
+  );
+};
+
+export default SavingsManagement;
+
+SavingsManagement.propTypes = {
+  styles: PropTypes.string,
+};

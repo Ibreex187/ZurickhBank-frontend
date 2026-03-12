@@ -1,0 +1,1088 @@
+import { useState, useEffect, useCallback } from 'react';
+import PropTypes from 'prop-types';
+import { useAuth } from '../context/AuthContext';
+import { useLocation } from 'react-router-dom';
+import ZurichBrand from '../components/ZurichBrand';
+import { renderSidebarNavLinks } from '../components/sidebarNavLinks';
+import {
+  getTransactionHistory,
+  getTransactionById,
+  resolveRecipientAccount,
+  transferFunds,
+  depositFunds,
+  withdrawFunds,
+  validateTransactionAmount,
+  validateAccountNumber
+} from '../services/transactionService';
+
+const Dashboard = ({ styles }) => {
+  const { user, logout, refreshUser } = useAuth();
+  const location = useLocation();
+  const isAdmin = user?.roles === 'admin' || user?.role === 'admin' || user?.isAdmin === true;
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [actionType, setActionType] = useState('');
+  const [amount, setAmount] = useState('');
+  const [description, setDescription] = useState('');
+  const [withdrawalMethod, setWithdrawalMethod] = useState('cash'); // 'cash', 'atm', or 'external'
+  const [externalBank, setExternalBank] = useState('');
+  const [externalAccount, setExternalAccount] = useState('');
+  const [atmPin, setAtmPin] = useState('');
+  const [receiverAccountNumber, setReceiverAccountNumber] = useState('');
+  const [receiverLookup, setReceiverLookup] = useState({
+    loading: false,
+    accountName: '',
+    resolvedAccountNumber: '',
+    error: ''
+  });
+  const [message, setMessage] = useState({ type: '', text: '' });
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false); // mobile off-canvas state
+
+  // Advanced filtering and pagination state
+  const [filters, setFilters] = useState({
+    type: 'all',
+    search: '',
+    searchBy: 'recipient',
+    startDate: '',
+    endDate: '',
+    minAmount: '',
+    maxAmount: ''
+  });
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 0,
+    totalTransactions: 0,
+    hasNextPage: false,
+    hasPrevPage: false,
+    limit: 10
+  });
+  const [showFilters, setShowFilters] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState(null);
+  const [showTransactionModal, setShowTransactionModal] = useState(false);
+  const [transactionDetailsLoading, setTransactionDetailsLoading] = useState(false);
+
+  // ...existing code...
+
+  // Close mobile sidebar when route changes
+  useEffect(() => {
+    setSidebarOpen(false);
+  }, [location.pathname]);
+
+  // Close mobile sidebar on Escape and auto-close on resize to larger screens
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key === 'Escape' && sidebarOpen) setSidebarOpen(false);
+    };
+    const onResize = () => {
+      if (window.innerWidth > 768 && sidebarOpen) setSidebarOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    window.addEventListener('resize', onResize);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      window.removeEventListener('resize', onResize);
+    };
+  }, [sidebarOpen]);
+
+  useEffect(() => {
+    const normalizedAccount = receiverAccountNumber.trim();
+
+    if (actionType !== 'transfer') {
+      setReceiverLookup({ loading: false, accountName: '', resolvedAccountNumber: '', error: '' });
+      return;
+    }
+
+    if (!normalizedAccount) {
+      setReceiverLookup({ loading: false, accountName: '', resolvedAccountNumber: '', error: '' });
+      return;
+    }
+
+    if (!/^\d{10}$/.test(normalizedAccount)) {
+      setReceiverLookup({ loading: false, accountName: '', resolvedAccountNumber: '', error: '' });
+      return;
+    }
+
+    let isActive = true;
+    setReceiverLookup({ loading: true, accountName: '', resolvedAccountNumber: '', error: '' });
+
+    const timer = setTimeout(async () => {
+      const response = await resolveRecipientAccount(normalizedAccount);
+
+      if (!isActive) return;
+
+      if (response.success) {
+        setReceiverLookup({
+          loading: false,
+          accountName: response.data?.accountName || '',
+          resolvedAccountNumber: normalizedAccount,
+          error: ''
+        });
+      } else {
+        setReceiverLookup({
+          loading: false,
+          accountName: '',
+          resolvedAccountNumber: '',
+          error: response.message || 'Unable to resolve recipient account'
+        });
+      }
+    }, 300);
+
+    return () => {
+      isActive = false;
+      clearTimeout(timer);
+    };
+  }, [receiverAccountNumber, actionType]);
+
+  // Handle filter changes
+  const handleFilterChange = (field, value) => {
+    setFilters(prev => ({ ...prev, [field]: value }));
+    setPagination(prev => ({ ...prev, currentPage: 1 })); // Reset to first page
+  };
+
+  // Handle pagination
+  const handlePageChange = (newPage) => {
+    setPagination(prev => ({ ...prev, currentPage: newPage }));
+  };
+
+  // Clear all filters
+  const handleClearFilters = () => {
+    setFilters({
+      type: 'all',
+      search: '',
+      searchBy: 'recipient',
+      startDate: '',
+      endDate: '',
+      minAmount: '',
+      maxAmount: ''
+    });
+    setPagination(prev => ({ ...prev, currentPage: 1 }));
+  };
+
+  // Export transactions to CSV
+  const handleExportTransactions = () => {
+    if (transactions.length === 0) {
+      setMessage({
+        type: 'error',
+        text: 'No transactions to export'
+      });
+      return;
+    }
+
+    const csvContent = [
+      ['Date', 'Type', 'Amount', 'Status', 'Transaction ID', 'Details'],
+      ...transactions.map(t => [
+        new Date(t.date).toLocaleDateString(),
+        t.type.toUpperCase(),
+        t.amount,
+        t.status,
+        t.transactionId,
+        t.type === 'transfer' ?
+          (t.sender?._id === user?._id ?
+            `To: ${t.receiver?.firstName} ${t.receiver?.lastName}` :
+            `From: ${t.sender?.firstName} ${t.sender?.lastName}`) :
+          ''
+      ])
+    ].map(row => row.join(',')).join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `transactions-${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
+    window.URL.revokeObjectURL(url);
+
+    setMessage({
+      type: 'success',
+      text: 'Transactions exported successfully'
+    });
+  };
+
+  // Show transaction details
+  const handleViewTransactionDetails = async (transaction) => {
+    setSelectedTransaction(transaction);
+    setShowTransactionModal(true);
+
+    if (!transaction?.transactionId) {
+      return;
+    }
+
+    setTransactionDetailsLoading(true);
+    try {
+      const response = await getTransactionById(transaction.transactionId);
+      if (response?.success && response?.data) {
+        setSelectedTransaction(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch transaction details:', error);
+    } finally {
+      setTransactionDetailsLoading(false);
+    }
+  };
+
+  const fetchTransactions = useCallback(async () => {
+    setLoading(true);
+    try {
+      const response = await getTransactionHistory({
+        page: pagination.currentPage,
+        limit: pagination.limit,
+        ...filters
+      });
+
+      if (response.success && response.data) {
+        setTransactions(response.data.transactions || []);
+        setPagination(prev => ({ ...prev, ...response.data.pagination }));
+      } else {
+        setTransactions([]);
+        setPagination(prev => ({
+          ...prev,
+          totalPages: 0,
+          totalTransactions: 0,
+          hasNextPage: false,
+          hasPrevPage: false
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch transactions:', error);
+      setTransactions([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [filters, pagination.currentPage, pagination.limit]);
+
+  useEffect(() => {
+    fetchTransactions();
+  }, [fetchTransactions]);
+
+  const handleTransaction = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage({ type: '', text: '' });
+
+    try {
+      // Validate amount
+      const amountValidation = validateTransactionAmount(amount);
+      if (amountValidation) {
+        throw new Error(amountValidation);
+      }
+
+      // Validate account number for transfer
+      if (actionType === 'transfer') {
+        const accountValidation = validateAccountNumber(receiverAccountNumber);
+        if (accountValidation) {
+          throw new Error(accountValidation);
+        }
+
+        if (receiverLookup.loading) {
+          throw new Error('Please wait while recipient account is being verified');
+        }
+
+        if (!receiverLookup.accountName) {
+          throw new Error(receiverLookup.error || 'Recipient account must be verified before transfer');
+        }
+      }
+
+      if (!actionType) {
+        throw new Error('Select a transaction type first.');
+      }
+
+      let response;
+
+      // Call the appropriate service function
+      switch (actionType) {
+        case 'transfer':
+          response = await transferFunds({
+            receiverAccountNumber,
+            amount: parseFloat(amount),
+            description: description.trim()
+          });
+          // Set a very specific success message mapped to the transaction type
+          if (response.success) {
+            response.message = 'Transfer completed successfully.';
+          }
+          break;
+        case 'deposit':
+          response = await depositFunds(parseFloat(amount));
+          if (response.success) {
+            response.message = 'Deposit completed successfully.';
+          }
+          break;
+        case 'withdraw':
+          response = await withdrawFunds(parseFloat(amount));
+          if (response.success) {
+            response.message = 'Withdrawal completed successfully.';
+          }
+          break;
+        default:
+          throw new Error('Invalid transaction type');
+      }
+
+      if (response.success) {
+        setMessage({
+          type: 'success',
+          text: response.message || 'Transaction completed successfully.',
+        });
+        setAmount('');
+        setDescription('');
+        setReceiverAccountNumber('');
+        setReceiverLookup({ loading: false, accountName: '', resolvedAccountNumber: '', error: '' });
+        setActionType('');
+        await fetchTransactions();
+        await refreshUser();
+      } else {
+        throw new Error(response.message || 'Transaction failed');
+      }
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || error.message || 'Transaction failed',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const isTransferSubmitDisabled =
+    loading ||
+    !actionType ||
+    (actionType === 'transfer' && (
+      receiverLookup.loading ||
+      !receiverLookup.accountName ||
+      receiverLookup.resolvedAccountNumber !== receiverAccountNumber.trim() ||
+      !!receiverLookup.error
+    )) ||
+    (actionType === 'withdraw' && (
+      (withdrawalMethod === 'atm' && atmPin.length < 4) ||
+      (withdrawalMethod === 'external' && (!externalBank || externalAccount.length < 10))
+    ));
+
+  return (
+    <>
+      {styles && <style>{styles}</style>}
+      <div className="fintech-dashboard">
+        {/* Sidebar */}
+        <div className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''} ${sidebarOpen ? 'open' : ''}`}>
+          <div className="sidebar-header">
+            <div className="brand">
+              <ZurichBrand showText={!sidebarCollapsed} className="sidebar-brand" />
+            </div>
+            <button
+              className="collapse-btn"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M3,6V8H21V6H3M3,11H21V13H3V11M3,16H21V18H3V16Z" />
+              </svg>
+            </button>
+          </div>
+
+          <nav className="sidebar-nav">
+            <ul>
+              {renderSidebarNavLinks({
+                pathname: location.pathname,
+                sidebarCollapsed,
+                onNavClick: () => setSidebarOpen(false),
+                isAdmin,
+              })}
+            </ul>
+
+            <div className="sidebar-footer">
+              <button onClick={logout} className="logout-btn">
+                <svg className="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M16,17V14H9V10H16V7L21,12L16,17M14,2A2,2 0 0,1 16,4V6H14V4H5V20H14V18H16V20A2,2 0 0,1 14,22H5A2,2 0 0,1 3,20V4A2,2 0 0,1 5,2H14Z" />
+                </svg>
+                {!sidebarCollapsed && <span>Logout</span>}
+              </button>
+            </div>
+          </nav>
+        </div>
+
+        {/* Mobile overlay - appears when sidebar is open on small screens */}
+        <div className={`sidebar-overlay ${sidebarOpen ? 'active' : ''}`} onClick={() => setSidebarOpen(false)} />
+
+        {/* Main Content */}
+        <div className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+          {/* Header */}
+          <header className="main-header">
+            <div className="header-left">
+              <button
+                className="mobile-menu-btn"
+                aria-label="Toggle menu"
+                onClick={() => setSidebarOpen(prev => !prev)}
+              >
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z" />
+                </svg>
+              </button>
+              <div>
+                <h1 className="page-title">Dashboard</h1>
+                <p className="page-subtitle">Welcome back, {user?.firstName || user?.userName}</p>
+              </div>
+            </div>
+            <div className="header-right">
+              <div className="user-profile">
+                <div className="user-avatar">
+                  {(user?.firstName?.[0] || user?.userName?.[0] || 'U').toUpperCase()}
+                </div>
+                <div className="user-info">
+                  <span className="user-name">{user?.firstName} {user?.lastName}</span>
+                  <span className="user-role">Premium Member</span>
+                </div>
+              </div>
+            </div>
+          </header>
+
+          {/* Balance Card */}
+          <div className="balance-section">
+            <div className="balance-card">
+              <div className="card-header">
+                <div className="card-title">
+                  <h3>Total Balance</h3>
+                  <span className="account-number">•••• {user?.accountNumber?.slice(-4)}</span>
+                </div>
+              </div>
+              <div className="balance-amount">
+                <span className="currency">₦</span>
+                <span className="amount">{user?.balance?.toLocaleString() || '0'}</span>
+              </div>
+              <div className="balance-change">
+                <span className="change positive">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M15,20H9V12H4.16L12,4.16L19.84,12H15V20Z" />
+                  </svg>
+                  +2.5%
+                </span>
+                <span className="change-period">vs last month</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="quick-actions">
+            <button className="cta-btn primary" onClick={() => {
+              setMessage({ type: '', text: '' });
+              setActionType('transfer');
+            }}>
+              <div className="btn-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M2,9V15H4.5L12,7.5L19.5,15H22V9L12,4L2,9Z" />
+                </svg>
+              </div>
+              <span>Send Money</span>
+            </button>
+            <button className="cta-btn secondary" onClick={() => {
+              setMessage({ type: '', text: '' });
+              setActionType('deposit');
+            }}>
+              <div className="btn-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M11,13H13V7H11M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />
+                </svg>
+              </div>
+              <span>Add Money</span>
+            </button>
+            <button className="cta-btn secondary" onClick={() => {
+              setMessage({ type: '', text: '' });
+              setActionType('withdraw');
+            }}>
+              <div className="btn-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M11,7V13H13V7H11M11,15V17H13V15H11Z" />
+                </svg>
+              </div>
+              <span>Withdraw</span>
+            </button>
+          </div>
+
+          {/* Transaction Modal */}
+          {actionType && (
+            <div className="transfer-modal-overlay">
+              <div className="transfer-modal-content">
+                <div className="transfer-modal-header">
+                  <h3>{actionType.charAt(0).toUpperCase() + actionType.slice(1)} Money</h3>
+                  <button
+                    className="close-modal-btn"
+                    onClick={() => {
+                      setActionType('');
+                      setDescription('');
+                      setAmount('');
+                      setReceiverAccountNumber('');
+                      setWithdrawalMethod('cash');
+                      setExternalBank('');
+                      setExternalAccount('');
+                      setAtmPin('');
+                      setMessage({ type: '', text: '' });
+                    }}
+                  >
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
+                    </svg>
+                  </button>
+                </div>
+
+                {message.text && (
+                  <div className={`transfer-alert ${message.type === 'success' ? 'success' : 'error'}`}>
+                    {message.text}
+                  </div>
+                )}
+
+                <form onSubmit={handleTransaction} className="transfer-form">
+                  {actionType === 'withdraw' && (
+                    <div className="transfer-method-selector">
+                      <label className="transfer-form-label">Withdrawal Method</label>
+                      <div className="method-cards-grid">
+                        <button
+                          type="button"
+                          className={`method-card ${withdrawalMethod === 'cash' ? 'active' : ''}`}
+                          onClick={() => setWithdrawalMethod('cash')}
+                        >
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M3,6H21V18H3V6M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9M7,8A2,2 0 0,1 5,10V14A2,2 0 0,1 7,16H17A2,2 0 0,1 19,14V10A2,2 0 0,1 17,8H7Z" />
+                          </svg>
+                          <span>Cash</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={`method-card ${withdrawalMethod === 'atm' ? 'active' : ''}`}
+                          onClick={() => setWithdrawalMethod('atm')}
+                        >
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M4,3H20A2,2 0 0,1 22,5V19A2,2 0 0,1 20,21H4A2,2 0 0,1 2,19V5A2,2 0 0,1 4,3M4,7V19H20V7H4M10,9H14V13H10V9M11,10V12H13V10H11M6,14H8V16H6V14M6,17H8V19H6V17M9,14H11V16H9V14M9,17H11V19H9V17M12,14H14V16H12V14M12,17H14V19H12V17M15,14H18V16H15V14M15,17H18V19H15V17Z" />
+                          </svg>
+                          <span>ATM</span>
+                        </button>
+                        <button
+                          type="button"
+                          className={`method-card ${withdrawalMethod === 'external' ? 'active' : ''}`}
+                          onClick={() => setWithdrawalMethod('external')}
+                        >
+                          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M11.5,1L2,6V8H21V6M16,10V17H19V10M2,22H21V19H2M10,10V17H13V10M4,10V17H7V10H4Z" />
+                          </svg>
+                          <span>Bank</span>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="transfer-form-group">
+                    <label className="transfer-form-label">Amount</label>
+                    <div className="transfer-input-group">
+                      <span className="transfer-input-prefix">₦</span>
+                      <input
+                        type="number"
+                        value={amount}
+                        onChange={(e) => setAmount(e.target.value)}
+                        placeholder="0.00"
+                        className="transfer-form-input"
+                        required
+                        min="1"
+                        step="0.01"
+                      />
+                    </div>
+                  </div>
+
+                  {actionType === 'transfer' && (
+                    <>
+                      <div className="transfer-form-group">
+                        <label className="transfer-form-label">Recipient Account Number</label>
+                        <input
+                          type="text"
+                          value={receiverAccountNumber}
+                          onChange={(e) => setReceiverAccountNumber(e.target.value)}
+                          placeholder="Enter 10-digit account number"
+                          className="transfer-form-input"
+                          required
+                          maxLength="10"
+                          minLength="10"
+                        />
+                        {receiverLookup.loading && (
+                          <small className="transfer-text-muted">Checking account name...</small>
+                        )}
+                        {!receiverLookup.loading && receiverLookup.accountName && (
+                          <small className="transfer-text-success">Recipient: {receiverLookup.accountName}</small>
+                        )}
+                        {!receiverLookup.loading && receiverLookup.error && receiverAccountNumber.trim().length === 10 && (
+                          <small className="transfer-text-danger">{receiverLookup.error}</small>
+                        )}
+                      </div>
+                      <div className="transfer-form-group">
+                        <label className="transfer-form-label">Description (Optional)</label>
+                        <textarea
+                          value={description}
+                          onChange={(e) => setDescription(e.target.value)}
+                          placeholder="What's this for?"
+                          className="transfer-form-textarea"
+                          rows="2"
+                          maxLength="200"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {actionType === 'withdraw' && withdrawalMethod === 'atm' && (
+                    <div className="transfer-form-group">
+                      <label className="transfer-form-label">ATM PIN</label>
+                      <input
+                        type="password"
+                        value={atmPin}
+                        onChange={(e) => setAtmPin(e.target.value.replace(/\D/g, '').substring(0, 4))}
+                        placeholder="••••"
+                        className="transfer-form-input"
+                        required
+                        maxLength="4"
+                      />
+                      <small className="transfer-text-muted">Enter a 4-digit PIN for verification.</small>
+                    </div>
+                  )}
+
+                  {actionType === 'withdraw' && withdrawalMethod === 'external' && (
+                    <>
+                      <div className="transfer-form-group">
+                        <label className="transfer-form-label">Destination Bank Name</label>
+                        <select
+                          value={externalBank}
+                          onChange={(e) => setExternalBank(e.target.value)}
+                          className="transfer-form-input"
+                          required
+                        >
+                          <option value="">Select a Bank...</option>
+                          <option value="chase">Chase Bank</option>
+                          <option value="bofa">Bank of America</option>
+                          <option value="wells">Wells Fargo</option>
+                          <option value="citi">Citibank</option>
+                          <option value="other">Other</option>
+                        </select>
+                      </div>
+                      <div className="transfer-form-group">
+                        <label className="transfer-form-label">Account Number</label>
+                        <input
+                          type="text"
+                          value={externalAccount}
+                          onChange={(e) => setExternalAccount(e.target.value.replace(/\D/g, ''))}
+                          placeholder="Enter account number"
+                          className="transfer-form-input"
+                          required
+                          minLength="5"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  <button
+                    type="submit"
+                    className="transfer-submit-btn"
+                    disabled={isTransferSubmitDisabled}
+                  >
+                    {loading ? (
+                      <div className="transfer-loading-wrapper">
+                        <div className="transfer-loading-spinner"></div>
+                        <span>Processing...</span>
+                      </div>
+                    ) : (
+                      `Confirm ${actionType.charAt(0).toUpperCase() + actionType.slice(1)}`
+                    )}
+                  </button>
+                </form>
+              </div>
+            </div>
+          )}
+
+          {/* Transactions Table */}
+          <div className="transactions-section">
+            <div className="section-header">
+              <h3>Transaction History</h3>
+              <div className="header-actions">
+                <button
+                  className="filter-toggle-btn"
+                  onClick={() => setShowFilters(!showFilters)}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M14,12V19.88C14.04,20.18 13.94,20.5 13.71,20.71C13.32,21.1 12.69,21.1 12.3,20.71L10.29,18.7C10.06,18.47 9.96,18.16 10,17.87V12H9.97L4.21,4.62C3.87,4.19 3.95,3.56 4.38,3.22C4.57,3.08 4.78,3 5,3V3H19V3C19.22,3 19.43,3.08 19.62,3.22C20.05,3.56 20.13,4.19 19.79,4.62L14.03,12H14Z" />
+                  </svg>
+                  {showFilters ? 'Hide Filters' : 'Show Filters'}
+                </button>
+                <button className="export-btn" onClick={handleExportTransactions}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
+                  </svg>
+                  Export ({pagination.totalTransactions})
+                </button>
+              </div>
+            </div>
+
+            {/* Advanced Filters */}
+            {showFilters && (
+              <div className="filters-panel">
+                <div className="filter-row">
+                  <div className="filter-group">
+                    <label>Type</label>
+                    <select
+                      value={filters.type}
+                      onChange={(e) => handleFilterChange('type', e.target.value)}
+                      className="filter-select"
+                    >
+                      <option value="all">All Types</option>
+                      <option value="deposit">Deposits</option>
+                      <option value="withdraw">Withdrawals</option>
+                      <option value="transfer">Transfers</option>
+                    </select>
+                  </div>
+
+                  <div className="filter-group">
+                    <label>Search</label>
+                    <div className="search-group">
+                      <input
+                        type="text"
+                        value={filters.search}
+                        onChange={(e) => handleFilterChange('search', e.target.value)}
+                        placeholder="Search transactions..."
+                        className="search-input"
+                      />
+                      <select
+                        value={filters.searchBy}
+                        onChange={(e) => handleFilterChange('searchBy', e.target.value)}
+                        className="search-type-select"
+                      >
+                        <option value="recipient">By Recipient</option>
+                        <option value="transactionId">By Transaction ID</option>
+                        <option value="amount">By Amount</option>
+                        <option value="all">All Fields</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="filter-row">
+                  <div className="filter-group">
+                    <label>Date Range</label>
+                    <div className="date-range">
+                      <input
+                        type="date"
+                        value={filters.startDate}
+                        onChange={(e) => handleFilterChange('startDate', e.target.value)}
+                        className="date-input"
+                      />
+                      <span className="date-separator">to</span>
+                      <input
+                        type="date"
+                        value={filters.endDate}
+                        onChange={(e) => handleFilterChange('endDate', e.target.value)}
+                        className="date-input"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="filter-group">
+                    <label>Amount Range</label>
+                    <div className="amount-range">
+                      <input
+                        type="number"
+                        value={filters.minAmount}
+                        onChange={(e) => handleFilterChange('minAmount', e.target.value)}
+                        placeholder="Min"
+                        className="amount-input"
+                        min="0"
+                        step="0.01"
+                      />
+                      <span className="amount-separator">-</span>
+                      <input
+                        type="number"
+                        value={filters.maxAmount}
+                        onChange={(e) => handleFilterChange('maxAmount', e.target.value)}
+                        placeholder="Max"
+                        className="amount-input"
+                        min="0"
+                        step="0.01"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="filter-actions">
+                    <button className="clear-filters-btn" onClick={handleClearFilters}>
+                      Clear All
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="table-container">
+              <table className="transactions-table">
+                <thead>
+                  <tr>
+                    <th>Transaction</th>
+                    <th>Type</th>
+                    <th>Amount</th>
+                    <th>Date</th>
+                    <th>Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {transactions.length === 0 ? (
+                    <tr>
+                      <td colSpan="5" className="empty-state">
+                        <div className="empty-content">
+                          <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M19,5V19H5V5H19Z" />
+                          </svg>
+                          <p>{filters.type === 'all' ? 'No transactions found' : `No ${filters.type} transactions found`}</p>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    transactions.map((transaction, index) => (
+                      <tr
+                        key={transaction._id || index}
+                        onClick={() => handleViewTransactionDetails(transaction)}
+                        style={{ cursor: 'pointer' }}
+                        title="Click to view details"
+                      >
+                        <td>
+                          <div className="transaction-info">
+                            <div className={`transaction-icon ${transaction.type}`}>
+                              {transaction.type === 'deposit' && (
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                  <path d="M11,13H13V7H11M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />
+                                </svg>
+                              )}
+                              {transaction.type === 'withdraw' && (
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                  <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M11,7V13H13V7H11M11,15V17H13V15H11Z" />
+                                </svg>
+                              )}
+                              {transaction.type === 'transfer' && (
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                                  <path d="M2,9V15H4.5L12,7.5L19.5,15H22V9L12,4L2,9Z" />
+                                </svg>
+                              )}
+                            </div>
+                            <div className="transaction-details">
+                              <span className="transaction-title">
+                                {transaction.type.charAt(0).toUpperCase() + transaction.type.slice(1)}
+                              </span>
+
+                              {/* Show transaction ID as subtitle for all transactions */}
+                              <span className="transaction-subtitle">
+                                ID: {transaction.transactionId}
+                              </span>
+
+                              {/* For transfers, show recipient info */}
+                              {transaction.type === 'transfer' && transaction.receiver?.accountNumber && (
+                                <span className="transaction-subtitle">
+                                  To: {transaction.receiver.firstName} {transaction.receiver.lastName} (•••• {transaction.receiver.accountNumber.slice(-4)})
+                                </span>
+                              )}
+
+                              {/* For received transfers, show sender info */}
+                              {transaction.type === 'transfer' && transaction.sender?._id !== user?._id && transaction.sender?.accountNumber && (
+                                <span className="transaction-subtitle">
+                                  From: {transaction.sender.firstName} {transaction.sender.lastName} (•••• {transaction.sender.accountNumber.slice(-4)})
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </td>
+                        <td>
+                          <span className={`type-badge ${transaction.type}`}>
+                            {transaction.type.toUpperCase()}
+                          </span>
+                        </td>
+                        <td>
+                          <span className={`amount ${
+                            // For withdrawals: always negative (money leaving account)
+                            transaction.type === 'withdraw' ||
+                              // For transfers: negative if current user is sender (money leaving)
+                              (transaction.type === 'transfer' && transaction.sender?._id?.toString() === user?._id)
+                              ? 'negative'
+                              : 'positive'
+                            }`}>
+                            {/* Show - for money leaving account, + for money coming in */}
+                            {transaction.type === 'withdraw' ||
+                              (transaction.type === 'transfer' && transaction.sender?._id?.toString() === user?._id)
+                              ? '-'
+                              : '+'}₦{transaction.amount?.toLocaleString()}
+                          </span>
+                        </td>
+                        <td className="date">
+                          {new Date(transaction.date).toLocaleDateString()}
+                        </td>
+                        <td>
+                          <span className={`status-badge ${transaction.status}`}>
+                            {transaction.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Controls */}
+            {pagination.totalPages > 1 && (
+              <div className="pagination">
+                <div className="pagination-info">
+                  <span>
+                    Showing {((pagination.currentPage - 1) * pagination.limit) + 1} -
+                    {Math.min(pagination.currentPage * pagination.limit, pagination.totalTransactions)}
+                    of {pagination.totalTransactions} transactions
+                  </span>
+                </div>
+
+                <div className="pagination-controls">
+                  <button
+                    className="pagination-btn"
+                    onClick={() => handlePageChange(pagination.currentPage - 1)}
+                    disabled={!pagination.hasPrevPage}
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M15.41,16.58L10.83,12L15.41,7.41L14,6L8,12L14,18L15.41,16.58Z" />
+                    </svg>
+                    Previous
+                  </button>
+
+                  <div className="page-numbers">
+                    {Array.from({ length: Math.min(5, pagination.totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (pagination.totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (pagination.currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (pagination.currentPage >= pagination.totalPages - 2) {
+                        pageNum = pagination.totalPages - 4 + i;
+                      } else {
+                        pageNum = pagination.currentPage - 2 + i;
+                      }
+
+                      return (
+                        <button
+                          key={pageNum}
+                          className={`page-btn ${pageNum === pagination.currentPage ? 'active' : ''}`}
+                          onClick={() => handlePageChange(pageNum)}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <button
+                    className="pagination-btn"
+                    onClick={() => handlePageChange(pagination.currentPage + 1)}
+                    disabled={!pagination.hasNextPage}
+                  >
+                    Next
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M8.59,16.58L13.17,12L8.59,7.41L10,6L16,12L10,18L8.59,16.58Z" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Transaction Details Modal */}
+        {showTransactionModal && selectedTransaction && (
+          <div className="modal-overlay" onClick={() => setShowTransactionModal(false)}>
+            <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-header">
+                <h4>Transaction Details</h4>
+                <button
+                  className="close-btn"
+                  onClick={() => setShowTransactionModal(false)}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="modal-body">
+                {transactionDetailsLoading && (
+                  <div className="mb-3 text-muted">Loading latest transaction details...</div>
+                )}
+                <div className="transaction-detail-grid">
+                  <div className="detail-item">
+                    <label>Transaction ID</label>
+                    <span>{selectedTransaction.transactionId}</span>
+                  </div>
+
+                  <div className="detail-item">
+                    <label>Type</label>
+                    <span className={`type-badge ${selectedTransaction.type}`}>
+                      {selectedTransaction.type.toUpperCase()}
+                    </span>
+                  </div>
+
+                  <div className="detail-item">
+                    <label>Amount</label>
+                    <span className={`amount ${selectedTransaction.type === 'withdraw' ||
+                      (selectedTransaction.type === 'transfer' && selectedTransaction.sender?._id?.toString() === user?._id)
+                      ? 'negative'
+                      : 'positive'
+                      }`}>
+                      {selectedTransaction.type === 'withdraw' ||
+                        (selectedTransaction.type === 'transfer' && selectedTransaction.sender?._id?.toString() === user?._id)
+                        ? '-'
+                        : '+'}₦{selectedTransaction.amount?.toLocaleString()}
+                    </span>
+                  </div>
+
+                  <div className="detail-item">
+                    <label>Status</label>
+                    <span className={`status-badge ${selectedTransaction.status}`}>
+                      {selectedTransaction.status}
+                    </span>
+                  </div>
+
+                  <div className="detail-item">
+                    <label>Date</label>
+                    <span>{new Date(selectedTransaction.date).toLocaleString()}</span>
+                  </div>
+
+                  {selectedTransaction.type === 'transfer' && selectedTransaction.sender && (
+                    <div className="detail-item">
+                      <label>From</label>
+                      <span>
+                        {selectedTransaction.sender.firstName} {selectedTransaction.sender.lastName}
+                        <br />
+                        <small>Account: •••• {selectedTransaction.sender.accountNumber?.slice(-4)}</small>
+                      </span>
+                    </div>
+                  )}
+
+                  {selectedTransaction.type === 'transfer' && selectedTransaction.receiver && (
+                    <div className="detail-item">
+                      <label>To</label>
+                      <span>
+                        {selectedTransaction.receiver.firstName} {selectedTransaction.receiver.lastName}
+                        <br />
+                        <small>Account: •••• {selectedTransaction.receiver.accountNumber?.slice(-4)}</small>
+                      </span>
+                    </div>
+                  )}
+
+                  {selectedTransaction.createdAt && (
+                    <div className="detail-item">
+                      <label>Created</label>
+                      <span>{new Date(selectedTransaction.createdAt).toLocaleString()}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    </>
+  );
+};
+
+export default Dashboard;
+
+Dashboard.propTypes = {
+  styles: PropTypes.string,
+};
