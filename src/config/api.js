@@ -1,7 +1,7 @@
 import axios from 'axios';
 import Cookies from 'universal-cookie';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:4040/api/v1';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://zurickh-bank.vercel.app/api/v1';
 
 const cookies = new Cookies();
 
