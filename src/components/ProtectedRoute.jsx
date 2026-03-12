@@ -1,6 +1,7 @@
 import { Navigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { useAuth } from '../context/AuthContext';
+import LoadingWatch from './LoadingWatch';
 
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -13,7 +14,7 @@ const ProtectedRoute = ({ children }) => {
         alignItems: 'center', 
         height: '100vh' 
       }}>
-        <h2>Loading...</h2>
+        <LoadingWatch />
       </div>
     );
   }

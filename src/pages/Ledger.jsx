@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ZurichBrand from '../components/ZurichBrand';
+import LoadingWatch from '../components/LoadingWatch';
 import { renderSidebarNavLinks } from '../components/sidebarNavLinks';
 import { DASHBOARD_STYLES } from './Dashboard.styles';
 import { getAccountStatement, getLedgerHistory } from '../services/ledgerService';
@@ -276,7 +277,7 @@ const Ledger = () => {
               </div>
 
               {loadingStatement ? (
-                <p>Loading statement...</p>
+                <LoadingWatch label="Loading statement..." minHeight="100px" />
               ) : (
                 <div className="dashboard-grid" style={{ marginBottom: '1rem' }}>
                   {(accounts || []).map((account) => (
@@ -313,7 +314,9 @@ const Ledger = () => {
                   <tbody>
                     {loadingHistory ? (
                       <tr>
-                        <td colSpan="6" className="text-center">Loading ledger history...</td>
+                        <td colSpan="6" className="text-center">
+                          <LoadingWatch label="Loading ledger history..." minHeight="90px" />
+                        </td>
                       </tr>
                     ) : entries.length === 0 ? (
                       <tr>

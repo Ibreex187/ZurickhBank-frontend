@@ -348,9 +348,10 @@ const Login = ({ styles }) => {
                               className="auth-submit-btn"
                               backgroundColor="var(--navy)"
                               fullWidth
-                              disabled={loading || isSubmitting}
+                              loading={loading || isSubmitting}
+                              loadingText="Signing in..."
                             >
-                              {loading ? 'Signing in...' : 'Sign In'}
+                              Sign In
                             </AppButton>
                           </Form>
                         )}
@@ -391,10 +392,11 @@ const Login = ({ styles }) => {
                             <AppButton
                               type="button"
                               backgroundColor="var(--navy)"
-                              disabled={forgotLoading}
+                              loading={forgotLoading}
+                              loadingText="Sending..."
                               onClick={handleRequestForgotOtp}
                             >
-                              {forgotLoading ? 'Sending...' : 'Send OTP'}
+                              Send OTP
                             </AppButton>
                           </div>
 
@@ -415,10 +417,11 @@ const Login = ({ styles }) => {
                                   <AppButton
                                     type="button"
                                     backgroundColor="var(--gold)"
-                                    disabled={forgotLoading}
+                                    loading={forgotLoading}
+                                    loadingText="Submitting OTP..."
                                     onClick={handleUnlockPasswordStep}
                                   >
-                                    {forgotLoading ? 'Submitting OTP...' : 'Submit OTP'}
+                                    Submit OTP
                                   </AppButton>
                                 </div>
                               )}
@@ -485,9 +488,10 @@ const Login = ({ styles }) => {
             <AppButton
               type="submit"
               backgroundColor="var(--gold)"
-              disabled={forgotLoading}
+              loading={forgotLoading}
+              loadingText="Submitting Reset..."
             >
-              {forgotLoading ? 'Submitting Reset...' : 'Submit Reset Password'}
+              Submit Reset Password
             </AppButton>
           </Modal.Footer>
         </BootstrapForm>

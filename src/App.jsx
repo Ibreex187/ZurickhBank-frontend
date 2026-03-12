@@ -11,6 +11,7 @@ import { SAVINGS_MANAGEMENT_STYLES } from './pages/SavingsManagement.styles';
 import { BENEFICIARY_MANAGEMENT_STYLES } from './pages/BeneficiaryManagement.styles';
 import { AUTH_STYLES } from './pages/Auth.styles';
 import { ADMIN_DASHBOARD_STYLES } from './pages/AdminDashboard.styles';
+import LoadingWatch from './components/LoadingWatch';
 import './App.css';
 
 const Login = lazy(() => import('./pages/Login'));
@@ -31,7 +32,7 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense fallback={<LoadingWatch />}>
           <Routes>
             <Route path="/" element={<Land styles={LANDING_STYLES} />} />
             <Route path="/login" element={<Login styles={AUTH_STYLES} />} />

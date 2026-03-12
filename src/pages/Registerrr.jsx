@@ -295,11 +295,10 @@ const Register = ({ styles }) => {
                             className="auth-submit-btn"
                             backgroundColor="var(--navy)"
                             fullWidth
-                            disabled={loading || isSubmitting}
+                            loading={loading || isSubmitting}
+                            loadingText="Creating Account..."
                           >
-                            {loading || isSubmitting
-                              ? '⏳ Creating Account…'
-                              : 'Create Account →'}
+                            Create Account →
                           </AppButton>
 
                           <p className="auth-terms">

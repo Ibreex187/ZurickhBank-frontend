@@ -1,4 +1,5 @@
 import PropTypes from 'prop-types';
+import { Watch } from 'react-loader-spinner';
 
 const BUTTON_SIZES = {
   sm: {
@@ -27,6 +28,8 @@ const AppButton = ({
   borderColor = 'transparent',
   fullWidth = false,
   size = 'md',
+  loading = false,
+  loadingText,
   ...rest
 }) => {
   const selectedSize = BUTTON_SIZES[size] || BUTTON_SIZES.md;
@@ -42,6 +45,10 @@ const AppButton = ({
     opacity: disabled ? 0.7 : 1,
     transition: 'all 0.2s ease',
     width: fullWidth ? '100%' : 'auto',
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: '8px',
     ...selectedSize,
   };
 
@@ -49,12 +56,24 @@ const AppButton = ({
     <button
       type={type}
       onClick={onClick}
-      disabled={disabled}
+      disabled={disabled || loading}
       className={className}
       style={{ ...baseStyle, ...style }}
       {...rest}
     >
-      {children}
+      {loading && (
+        <Watch
+          visible={true}
+          height="18"
+          width="18"
+          radius="24"
+          color={textColor}
+          ariaLabel="button-loading"
+          wrapperStyle={{}}
+          wrapperClass=""
+        />
+      )}
+      {loading ? (loadingText || children) : children}
     </button>
   );
 };
@@ -71,6 +90,8 @@ AppButton.propTypes = {
   borderColor: PropTypes.string,
   fullWidth: PropTypes.bool,
   size: PropTypes.oneOf(['sm', 'md', 'lg']),
+  loading: PropTypes.bool,
+  loadingText: PropTypes.string,
 };
 
 export default AppButton;

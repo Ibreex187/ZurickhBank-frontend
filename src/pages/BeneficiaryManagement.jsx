@@ -13,6 +13,7 @@ import {
   Modal
 } from 'react-bootstrap';
 import ZurichBrand from '../components/ZurichBrand';
+import LoadingWatch from '../components/LoadingWatch';
 import { renderSidebarNavLinks } from '../components/sidebarNavLinks';
 
 const BeneficiaryManagement = ({ styles }) => {
@@ -362,11 +363,7 @@ const BeneficiaryManagement = ({ styles }) => {
               </Card.Header>
               <Card.Body className="p-0">
                 {loading ? (
-                  <div className="text-center py-5">
-                    <div className="spinner-border text-primary" role="status">
-                      <span className="visually-hidden">Loading...</span>
-                    </div>
-                  </div>
+                  <LoadingWatch label="Loading beneficiaries..." minHeight="160px" />
                 ) : beneficiaries.length === 0 ? (
                   <div className="text-center py-5">
                     <i className="fas fa-address-book fa-3x text-muted mb-3"></i>

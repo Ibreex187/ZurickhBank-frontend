@@ -17,6 +17,7 @@ import {
 } from 'react-bootstrap';
 import AppButton from '../components/AppButton';
 import ZurichBrand from '../components/ZurichBrand';
+import LoadingWatch from '../components/LoadingWatch';
 import { renderSidebarNavLinks } from '../components/sidebarNavLinks';
 
 const InvestmentPlans = ({ styles }) => {
@@ -572,12 +573,7 @@ const InvestmentPlans = ({ styles }) => {
             </Row>
 
             {loading && availableStocks.length === 0 ? (
-              <div className="text-center py-5">
-                <div className="spinner-border text-primary" role="status">
-                  <span className="visually-hidden">Loading...</span>
-                </div>
-                <p className="mt-3 text-muted">Loading available stocks...</p>
-              </div>
+              <LoadingWatch label="Loading available stocks..." minHeight="180px" />
             ) : (
               <Row className="g-4">
                 {filteredStocks.length > 0 ? (
@@ -683,11 +679,7 @@ const InvestmentPlans = ({ styles }) => {
               </Card.Header>
               <Card.Body className="p-0">
                 {historyLoading ? (
-                  <div className="text-center py-4">
-                    <div className="spinner-border text-primary" role="status">
-                      <span className="visually-hidden">Loading...</span>
-                    </div>
-                  </div>
+                  <LoadingWatch label="Loading history..." minHeight="120px" />
                 ) : investmentHistory.length === 0 ? (
                   <div className="text-center py-4 text-muted">No investment history yet</div>
                 ) : (
@@ -729,11 +721,7 @@ const InvestmentPlans = ({ styles }) => {
               </Modal.Header>
               <Modal.Body>
                 {stockDetailsLoading ? (
-                  <div className="text-center py-3">
-                    <div className="spinner-border text-primary" role="status">
-                      <span className="visually-hidden">Loading...</span>
-                    </div>
-                  </div>
+                  <LoadingWatch label="Loading stock details..." minHeight="100px" />
                 ) : selectedStockDetails ? (
                   <>
                     <p><strong>Symbol:</strong> {selectedStockDetails.symbol}</p>

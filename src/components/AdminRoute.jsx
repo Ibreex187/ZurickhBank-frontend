@@ -1,6 +1,7 @@
 import { Navigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { useAuth } from '../context/AuthContext';
+import LoadingWatch from './LoadingWatch';
 
 const AdminRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -10,10 +11,7 @@ const AdminRoute = ({ children }) => {
     return (
       <div className="admin-loading-container">
         <div className="text-center py-5">
-          <div className="spinner-border text-primary mb-3" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
-          <h4>Checking admin access...</h4>
+          <LoadingWatch label="Checking admin access..." />
         </div>
       </div>
     );
