@@ -156,11 +156,12 @@ export const getTransactionSummary = async (options = {}) => {
 /**
  * Transfer funds to another account
  */
-export const transferFunds = async ({ receiverAccountNumber, amount, description }) => {
+export const transferFunds = async ({ receiverAccountNumber, amount, description, transactionPin }) => {
   try {
     const transferData = {
       receiverAccountNumber: receiverAccountNumber.toString().trim(),
-      amount: parseFloat(amount)
+      amount: parseFloat(amount),
+      transactionPin: String(transactionPin || '').trim()
     };
 
     // Add description if provided (though backend doesn't use it currently)
@@ -194,10 +195,11 @@ export const transferFunds = async ({ receiverAccountNumber, amount, description
 /**
  * Deposit funds to account
  */
-export const depositFunds = async (amount) => {
+export const depositFunds = async (amount, transactionPin) => {
   try {
     const depositData = {
-      amount: parseFloat(amount)
+      amount: parseFloat(amount),
+      transactionPin: String(transactionPin || '').trim()
     };
 
     const response = await api.post(TRANSACTION_ENDPOINTS.deposit, depositData);
@@ -226,10 +228,11 @@ export const depositFunds = async (amount) => {
 /**
  * Withdraw funds from account
  */
-export const withdrawFunds = async (amount) => {
+export const withdrawFunds = async (amount, transactionPin) => {
   try {
     const withdrawData = {
-      amount: parseFloat(amount)
+      amount: parseFloat(amount),
+      transactionPin: String(transactionPin || '').trim()
     };
 
     const response = await api.post(TRANSACTION_ENDPOINTS.withdraw, withdrawData);

@@ -12,9 +12,11 @@ import {
   getUserAccountSummary,
   updateUserProfile,
   changeUserPassword,
+  setUserTransactionPin,
   requestProfileUpdateOtp,
   validateProfileData,
-  validatePasswordData
+  validatePasswordData,
+  validateTransactionPinData
 } from '../services/profileService';
 
 const Profile = ({ styles }) => {
@@ -33,7 +35,8 @@ const Profile = ({ styles }) => {
     email: '',
     accountNumber: '',
     balance: 0,
-    savingsBalance: 0
+    savingsBalance: 0,
+    hasTransactionPin: false
   });
 
   // Account summary state
@@ -54,6 +57,13 @@ const Profile = ({ styles }) => {
     confirmPassword: ''
   });
   const [passwordErrors, setPasswordErrors] = useState({});
+  const [showPinForm, setShowPinForm] = useState(false);
+  const [pinData, setPinData] = useState({
+    currentPassword: '',
+    transactionPin: '',
+    confirmTransactionPin: ''
+  });
+  const [pinErrors, setPinErrors] = useState({});
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false); // mobile off-canvas state
@@ -88,6 +98,7 @@ const Profile = ({ styles }) => {
         accountNumber: user.accountNumber || '',
         balance: user.balance || 0,
         savingsBalance: user.savingsBalance || 0,
+        hasTransactionPin: Boolean(user.hasTransactionPin),
       };
       setProfileData(mappedUser);
       setEditFormData(mappedUser);
@@ -96,6 +107,18 @@ const Profile = ({ styles }) => {
     fetchProfileData();
     fetchAccountSummary();
   }, [user]);
+
+  useEffect(() => {
+    const tab = new URLSearchParams(location.search).get('tab');
+    const allowedTabs = new Set(['overview', 'personal', 'security']);
+
+    if (tab && allowedTabs.has(tab)) {
+      setActiveTab(tab);
+      if (tab === 'security' && !profileData.hasTransactionPin) {
+        setShowPinForm(true);
+      }
+    }
+  }, [location.search, profileData.hasTransactionPin]);
 
   const fetchProfileData = async () => {
     setLoading(true);
@@ -271,6 +294,58 @@ const Profile = ({ styles }) => {
       setMessage({
         type: 'error',
         text: 'Error changing password'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTransactionPinChange = (field, value) => {
+    const nextValue = field.includes('Pin') ? value.replace(/\D/g, '').slice(0, 4) : value;
+    setPinData(prev => ({ ...prev, [field]: nextValue }));
+
+    if (pinErrors[field]) {
+      setPinErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const handleSetTransactionPin = async (e) => {
+    e.preventDefault();
+
+    const validation = validateTransactionPinData(pinData);
+    if (!validation.isValid) {
+      setPinErrors(validation.errors);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await setUserTransactionPin(pinData);
+
+      if (response.success) {
+        setMessage({
+          type: 'success',
+          text: response.message || 'Transaction PIN updated successfully'
+        });
+        setPinData({
+          currentPassword: '',
+          transactionPin: '',
+          confirmTransactionPin: ''
+        });
+        setPinErrors({});
+        setShowPinForm(false);
+        await refreshUser();
+        await fetchProfileData();
+      } else {
+        setMessage({
+          type: 'error',
+          text: response.message || 'Failed to set transaction PIN'
+        });
+      }
+    } catch {
+      setMessage({
+        type: 'error',
+        text: 'Error setting transaction PIN'
       });
     } finally {
       setLoading(false);
@@ -655,6 +730,29 @@ const Profile = ({ styles }) => {
                               Change Password
                             </button>
                           </div>
+
+                          <div className="security-item" style={{ background: 'transparent', borderColor: 'rgba(255,255,255,0.1)' }}>
+                            <div className="security-icon" style={{ background: 'rgba(255,255,255,0.1)', color: 'var(--white)' }}>
+                              <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12,1A9,9 0 0,0 3,10V12A2,2 0 0,0 1,14V20A2,2 0 0,0 3,22H21A2,2 0 0,0 23,20V14A2,2 0 0,0 21,12V10A9,9 0 0,0 12,1M12,3A7,7 0 0,1 19,10V12H5V10A7,7 0 0,1 12,3M12,15A2,2 0 0,1 14,17A2,2 0 0,1 12,19A2,2 0 0,1 10,17A2,2 0 0,1 12,15Z" />
+                              </svg>
+                            </div>
+                            <div className="security-info">
+                              <h4 className="text-white">Transaction PIN</h4>
+                              <p style={{ color: 'rgba(255,255,255,0.7)' }}>
+                                {profileData.hasTransactionPin
+                                  ? 'Your transaction PIN is set and required for money movements.'
+                                  : 'Set your 4-digit transaction PIN to authorize transfers and savings actions.'}
+                              </p>
+                            </div>
+                            <button
+                              className="action-btn-custom ms-auto"
+                              onClick={() => setShowPinForm(true)}
+                              style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.2)' }}
+                            >
+                              {profileData.hasTransactionPin ? 'Update PIN' : 'Set PIN'}
+                            </button>
+                          </div>
                         </div>
                       ) : (
                         <form className="password-form" onSubmit={handleChangePassword}>
@@ -720,6 +818,74 @@ const Profile = ({ styles }) => {
                               style={{ background: 'var(--accent)', color: 'var(--navy)', borderColor: 'var(--accent)', fontWeight: 'bold' }}
                             >
                               {loading ? 'Changing...' : 'Change Password'}
+                            </button>
+                          </div>
+                        </form>
+                      )}
+
+                      {showPinForm && (
+                        <form className="password-form mt-4" onSubmit={handleSetTransactionPin}>
+                          <div className="form-group">
+                            <label style={{ color: 'var(--white)' }}>Current Password</label>
+                            <input
+                              type="password"
+                              value={pinData.currentPassword}
+                              onChange={(e) => handleTransactionPinChange('currentPassword', e.target.value)}
+                              className={`form-input ${pinErrors.currentPassword ? 'error' : ''}`}
+                              style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--white)', borderColor: 'rgba(255,255,255,0.1)' }}
+                              required
+                            />
+                            {pinErrors.currentPassword && <span className="error-text">{pinErrors.currentPassword}</span>}
+                          </div>
+
+                          <div className="form-group">
+                            <label style={{ color: 'var(--white)' }}>Transaction PIN</label>
+                            <input
+                              type="password"
+                              value={pinData.transactionPin}
+                              onChange={(e) => handleTransactionPinChange('transactionPin', e.target.value)}
+                              className={`form-input ${pinErrors.transactionPin ? 'error' : ''}`}
+                              style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--white)', borderColor: 'rgba(255,255,255,0.1)' }}
+                              maxLength={4}
+                              required
+                            />
+                            {pinErrors.transactionPin && <span className="error-text">{pinErrors.transactionPin}</span>}
+                          </div>
+
+                          <div className="form-group">
+                            <label style={{ color: 'var(--white)' }}>Confirm Transaction PIN</label>
+                            <input
+                              type="password"
+                              value={pinData.confirmTransactionPin}
+                              onChange={(e) => handleTransactionPinChange('confirmTransactionPin', e.target.value)}
+                              className={`form-input ${pinErrors.confirmTransactionPin ? 'error' : ''}`}
+                              style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--white)', borderColor: 'rgba(255,255,255,0.1)' }}
+                              maxLength={4}
+                              required
+                            />
+                            {pinErrors.confirmTransactionPin && <span className="error-text">{pinErrors.confirmTransactionPin}</span>}
+                          </div>
+
+                          <div className="form-actions mt-4">
+                            <button
+                              type="button"
+                              className="action-btn-custom"
+                              onClick={() => {
+                                setShowPinForm(false);
+                                setPinData({ currentPassword: '', transactionPin: '', confirmTransactionPin: '' });
+                                setPinErrors({});
+                              }}
+                              style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.2)' }}
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="submit"
+                              className="action-btn-custom"
+                              disabled={loading}
+                              style={{ background: 'var(--accent)', color: 'var(--navy)', borderColor: 'var(--accent)', fontWeight: 'bold' }}
+                            >
+                              {loading ? 'Saving...' : (profileData.hasTransactionPin ? 'Update PIN' : 'Set PIN')}
                             </button>
                           </div>
                         </form>

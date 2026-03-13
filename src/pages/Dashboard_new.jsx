@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { useAuth } from '../context/AuthContext';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import ZurichBrand from '../components/ZurichBrand';
 import { renderSidebarNavLinks } from '../components/sidebarNavLinks';
 import {
@@ -18,6 +18,7 @@ import {
 const Dashboard = ({ styles }) => {
   const { user, logout, refreshUser } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const isAdmin = user?.roles === 'admin' || user?.role === 'admin' || user?.isAdmin === true;
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -28,6 +29,7 @@ const Dashboard = ({ styles }) => {
   const [externalBank, setExternalBank] = useState('');
   const [externalAccount, setExternalAccount] = useState('');
   const [atmPin, setAtmPin] = useState('');
+  const [transactionPin, setTransactionPin] = useState('');
   const [receiverAccountNumber, setReceiverAccountNumber] = useState('');
   const [receiverLookup, setReceiverLookup] = useState({
     loading: false,
@@ -58,9 +60,22 @@ const Dashboard = ({ styles }) => {
     limit: 10
   });
   const [showFilters, setShowFilters] = useState(false);
+  const [showPinGuardModal, setShowPinGuardModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [transactionDetailsLoading, setTransactionDetailsLoading] = useState(false);
+  const hasTransactionPin = Boolean(user?.hasTransactionPin);
+
+  const openProtectedAction = (nextActionType) => {
+    setMessage({ type: '', text: '' });
+
+    if (!hasTransactionPin) {
+      setShowPinGuardModal(true);
+      return;
+    }
+
+    setActionType(nextActionType);
+  };
 
   // ...existing code...
 
@@ -287,6 +302,10 @@ const Dashboard = ({ styles }) => {
         throw new Error('Select a transaction type first.');
       }
 
+      if (!/^\d{4}$/.test(String(transactionPin || '').trim())) {
+        throw new Error('Enter a valid 4-digit transaction PIN.');
+      }
+
       let response;
 
       // Call the appropriate service function
@@ -295,7 +314,8 @@ const Dashboard = ({ styles }) => {
           response = await transferFunds({
             receiverAccountNumber,
             amount: parseFloat(amount),
-            description: description.trim()
+            description: description.trim(),
+            transactionPin
           });
           // Set a very specific success message mapped to the transaction type
           if (response.success) {
@@ -303,13 +323,13 @@ const Dashboard = ({ styles }) => {
           }
           break;
         case 'deposit':
-          response = await depositFunds(parseFloat(amount));
+          response = await depositFunds(parseFloat(amount), transactionPin);
           if (response.success) {
             response.message = 'Deposit completed successfully.';
           }
           break;
         case 'withdraw':
-          response = await withdrawFunds(parseFloat(amount));
+          response = await withdrawFunds(parseFloat(amount), transactionPin);
           if (response.success) {
             response.message = 'Withdrawal completed successfully.';
           }
@@ -326,6 +346,7 @@ const Dashboard = ({ styles }) => {
         setAmount('');
         setDescription('');
         setReceiverAccountNumber('');
+        setTransactionPin('');
         setReceiverLookup({ loading: false, accountName: '', resolvedAccountNumber: '', error: '' });
         setActionType('');
         await fetchTransactions();
@@ -355,7 +376,8 @@ const Dashboard = ({ styles }) => {
     (actionType === 'withdraw' && (
       (withdrawalMethod === 'atm' && atmPin.length < 4) ||
       (withdrawalMethod === 'external' && (!externalBank || externalAccount.length < 10))
-    ));
+    )) ||
+    transactionPin.trim().length !== 4;
 
   return (
     <>
@@ -458,12 +480,24 @@ const Dashboard = ({ styles }) => {
             </div>
           </div>
 
+          {!hasTransactionPin && (
+            <div className="transfer-alert error" style={{ marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem', width: '100%' }}>
+                <span>Set your transaction PIN to enable transfer, deposit, and withdrawal actions.</span>
+                <button
+                  type="button"
+                  className="clear-filters-btn"
+                  onClick={() => navigate('/profile?tab=security')}
+                >
+                  Set PIN
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Quick Actions */}
           <div className="quick-actions">
-            <button className="cta-btn primary" onClick={() => {
-              setMessage({ type: '', text: '' });
-              setActionType('transfer');
-            }}>
+            <button className="cta-btn primary" onClick={() => openProtectedAction('transfer')}>
               <div className="btn-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M2,9V15H4.5L12,7.5L19.5,15H22V9L12,4L2,9Z" />
@@ -471,10 +505,7 @@ const Dashboard = ({ styles }) => {
               </div>
               <span>Send Money</span>
             </button>
-            <button className="cta-btn secondary" onClick={() => {
-              setMessage({ type: '', text: '' });
-              setActionType('deposit');
-            }}>
+            <button className="cta-btn secondary" onClick={() => openProtectedAction('deposit')}>
               <div className="btn-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M11,13H13V7H11M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z" />
@@ -482,10 +513,7 @@ const Dashboard = ({ styles }) => {
               </div>
               <span>Add Money</span>
             </button>
-            <button className="cta-btn secondary" onClick={() => {
-              setMessage({ type: '', text: '' });
-              setActionType('withdraw');
-            }}>
+            <button className="cta-btn secondary" onClick={() => openProtectedAction('withdraw')}>
               <div className="btn-icon">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M12,2A10,10 0 0,1 22,12A10,10 0 0,1 12,22A10,10 0 0,1 2,12A10,10 0 0,1 12,2M11,7V13H13V7H11M11,15V17H13V15H11Z" />
@@ -494,6 +522,39 @@ const Dashboard = ({ styles }) => {
               <span>Withdraw</span>
             </button>
           </div>
+
+          {showPinGuardModal && (
+            <div className="transfer-modal-overlay">
+              <div className="transfer-modal-content">
+                <div className="transfer-modal-header">
+                  <h3>Transaction PIN Required</h3>
+                  <button
+                    className="close-modal-btn"
+                    onClick={() => setShowPinGuardModal(false)}
+                  >
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
+                    </svg>
+                  </button>
+                </div>
+                <div className="transfer-form-group" style={{ marginBottom: '1.2rem' }}>
+                  <p className="transfer-text-muted" style={{ margin: 0 }}>
+                    Set your 4-digit transaction PIN before you can perform transfer, deposit, or withdrawal actions.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  className="transfer-submit-btn"
+                  onClick={() => {
+                    setShowPinGuardModal(false);
+                    navigate('/profile?tab=security');
+                  }}
+                >
+                  Go to Security Settings
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Transaction Modal */}
           {actionType && (
@@ -512,6 +573,7 @@ const Dashboard = ({ styles }) => {
                       setExternalBank('');
                       setExternalAccount('');
                       setAtmPin('');
+                      setTransactionPin('');
                       setMessage({ type: '', text: '' });
                     }}
                   >
@@ -669,6 +731,20 @@ const Dashboard = ({ styles }) => {
                       </div>
                     </>
                   )}
+
+                  <div className="transfer-form-group">
+                    <label className="transfer-form-label">Transaction PIN</label>
+                    <input
+                      type="password"
+                      value={transactionPin}
+                      onChange={(e) => setTransactionPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                      placeholder="Enter 4-digit transaction PIN"
+                      className="transfer-form-input"
+                      required
+                      maxLength="4"
+                    />
+                    <small className="transfer-text-muted">Required to authorize this transaction.</small>
+                  </div>
 
                   <button
                     type="submit"

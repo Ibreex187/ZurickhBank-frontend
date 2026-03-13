@@ -13,9 +13,12 @@ const SAVINGS_ENDPOINTS = {
 /**
  * Deposit money to savings (from main balance)
  */
-export const depositToSavings = async (amount) => {
+export const depositToSavings = async (amount, transactionPin) => {
   try {
-    const response = await api.post(SAVINGS_ENDPOINTS.deposit, { amount });
+    const response = await api.post(SAVINGS_ENDPOINTS.deposit, {
+      amount,
+      transactionPin: String(transactionPin || '').trim()
+    });
     return response.data;
   } catch (error) {
     console.error('Failed to deposit to savings:', error);
@@ -26,9 +29,12 @@ export const depositToSavings = async (amount) => {
 /**
  * Withdraw money from savings (to main balance)
  */
-export const withdrawFromSavings = async (amount) => {
+export const withdrawFromSavings = async (amount, transactionPin) => {
   try {
-    const response = await api.post(SAVINGS_ENDPOINTS.withdraw, { amount });
+    const response = await api.post(SAVINGS_ENDPOINTS.withdraw, {
+      amount,
+      transactionPin: String(transactionPin || '').trim()
+    });
     return response.data;
   } catch (error) {
     console.error('Failed to withdraw from savings:', error);
@@ -40,11 +46,12 @@ export const withdrawFromSavings = async (amount) => {
  * Quick transfer between main and savings
  * direction: 'to-savings' or 'to-main'
  */
-export const quickTransfer = async (amount, direction) => {
+export const quickTransfer = async (amount, direction, transactionPin) => {
   try {
     const response = await api.post(SAVINGS_ENDPOINTS.quickTransfer, { 
       amount, 
-      direction 
+      direction,
+      transactionPin: String(transactionPin || '').trim()
     });
     return response.data;
   } catch (error) {

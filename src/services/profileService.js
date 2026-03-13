@@ -123,6 +123,38 @@ export const changeUserPassword = async (passwordData) => {
 };
 
 /**
+ * Set or update transaction PIN
+ */
+export const setUserTransactionPin = async (pinData) => {
+  try {
+    const payload = {
+      currentPassword: pinData.currentPassword,
+      transactionPin: String(pinData.transactionPin || '').trim(),
+      confirmTransactionPin: String(pinData.confirmTransactionPin || '').trim(),
+    };
+
+    const response = await api.post('/users/transaction-pin', payload);
+
+    if (response.data.success) {
+      return {
+        success: true,
+        data: response.data.data,
+        message: response.data.message
+      };
+    }
+
+    throw new Error(response.data.message || 'Failed to set transaction PIN');
+  } catch (error) {
+    console.error('Profile Service - setUserTransactionPin error:', error);
+    return {
+      success: false,
+      message: error.response?.data?.message || error.message || 'Failed to set transaction PIN',
+      error: error.response?.data
+    };
+  }
+};
+
+/**
  * Get user account statistics and summary
  * This function provides comprehensive user account information
  */
@@ -219,6 +251,33 @@ export const validatePasswordData = (passwordData) => {
     errors.newPassword = 'New password must be different from current password';
   }
   
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors
+  };
+};
+
+export const validateTransactionPinData = (pinData) => {
+  const errors = {};
+
+  if (!pinData.currentPassword) {
+    errors.currentPassword = 'Current password is required';
+  }
+
+  const pin = String(pinData.transactionPin || '').trim();
+  if (!pin) {
+    errors.transactionPin = 'Transaction PIN is required';
+  } else if (!/^\d{4}$/.test(pin)) {
+    errors.transactionPin = 'Transaction PIN must be exactly 4 digits';
+  }
+
+  const confirmPin = String(pinData.confirmTransactionPin || '').trim();
+  if (!confirmPin) {
+    errors.confirmTransactionPin = 'Confirm transaction PIN is required';
+  } else if (confirmPin !== pin) {
+    errors.confirmTransactionPin = 'Confirm transaction PIN must match transaction PIN';
+  }
+
   return {
     isValid: Object.keys(errors).length === 0,
     errors

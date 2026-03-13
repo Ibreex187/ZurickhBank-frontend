@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import { useAuth } from '../context/AuthContext';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Container, Card, Form, Button, Alert, Table, Row, Col,
   Modal, Badge
@@ -19,7 +19,9 @@ import {
 
 const SavingsManagement = ({ styles }) => {
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   const isAdmin = user?.roles === 'admin' || user?.role === 'admin' || user?.isAdmin === true;
+  const hasTransactionPin = Boolean(user?.hasTransactionPin);
 
   // State for savings data
   const [savingsData, setSavingsData] = useState({
@@ -37,10 +39,12 @@ const SavingsManagement = ({ styles }) => {
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showQuickTransferModal, setShowQuickTransferModal] = useState(false);
+  const [showPinGuardModal, setShowPinGuardModal] = useState(false);
 
   // Form data
   const [depositAmount, setDepositAmount] = useState('');
   const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [transactionPin, setTransactionPin] = useState('');
   const [quickTransferData, setQuickTransferData] = useState({
     amount: '',
     direction: 'to-savings'
@@ -86,6 +90,15 @@ const SavingsManagement = ({ styles }) => {
     fetchSavingsData();
   }, []);
 
+  const openSavingsAction = (openModal) => {
+    if (!hasTransactionPin) {
+      setShowPinGuardModal(true);
+      return;
+    }
+
+    openModal(true);
+  };
+
   const fetchSavingsData = async () => {
     setLoading(true);
     try {
@@ -122,13 +135,14 @@ const SavingsManagement = ({ styles }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await depositToSavings(Number(depositAmount));
+      const response = await depositToSavings(Number(depositAmount), transactionPin);
       if (response.success) {
         setMessage({
           type: 'success',
           text: response.message || 'Deposit successful!'
         });
         setDepositAmount('');
+        setTransactionPin('');
         setShowDepositModal(false);
         fetchSavingsData();
       }
@@ -145,13 +159,14 @@ const SavingsManagement = ({ styles }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const response = await withdrawFromSavings(Number(withdrawAmount));
+      const response = await withdrawFromSavings(Number(withdrawAmount), transactionPin);
       if (response.success) {
         setMessage({
           type: 'success',
           text: response.message || 'Withdrawal successful!'
         });
         setWithdrawAmount('');
+        setTransactionPin('');
         setShowWithdrawModal(false);
         fetchSavingsData();
       }
@@ -170,7 +185,8 @@ const SavingsManagement = ({ styles }) => {
     try {
       const response = await quickTransfer(
         Number(quickTransferData.amount),
-        quickTransferData.direction
+        quickTransferData.direction,
+        transactionPin
       );
       if (response.success) {
         setMessage({
@@ -178,6 +194,7 @@ const SavingsManagement = ({ styles }) => {
           text: response.message || 'Transfer successful!'
         });
         setQuickTransferData({ amount: '', direction: 'to-savings' });
+        setTransactionPin('');
         setShowQuickTransferModal(false);
         fetchSavingsData();
       }
@@ -278,19 +295,19 @@ const SavingsManagement = ({ styles }) => {
                   <div className="d-flex gap-2">
                     <Button
                       variant="success"
-                      onClick={() => setShowDepositModal(true)}
+                      onClick={() => openSavingsAction(setShowDepositModal)}
                     >
                       Deposit
                     </Button>
                     <Button
                       variant="warning"
-                      onClick={() => setShowWithdrawModal(true)}
+                      onClick={() => openSavingsAction(setShowWithdrawModal)}
                     >
                       Withdraw
                     </Button>
                     <Button
                       variant="info"
-                      onClick={() => setShowQuickTransferModal(true)}
+                      onClick={() => openSavingsAction(setShowQuickTransferModal)}
                     >
                       Quick Transfer
                     </Button>
@@ -307,6 +324,19 @@ const SavingsManagement = ({ styles }) => {
                 dismissible
               >
                 {message.text}
+              </Alert>
+            )}
+
+            {!hasTransactionPin && (
+              <Alert variant="warning" className="mb-4 d-flex align-items-center justify-content-between" style={{ gap: '0.75rem' }}>
+                <span>Set your transaction PIN to enable savings deposit, withdrawal, and quick transfer actions.</span>
+                <Button
+                  variant="outline-dark"
+                  size="sm"
+                  onClick={() => navigate('/profile?tab=security')}
+                >
+                  Set PIN
+                </Button>
               </Alert>
             )}
 
@@ -486,6 +516,30 @@ const SavingsManagement = ({ styles }) => {
             </Card>
 
             {/* Deposit Modal */}
+            <Modal show={showPinGuardModal} onHide={() => setShowPinGuardModal(false)} centered>
+              <Modal.Header closeButton>
+                <Modal.Title>Transaction PIN Required</Modal.Title>
+              </Modal.Header>
+              <Modal.Body>
+                Set your 4-digit transaction PIN before you can perform savings deposit, withdrawal, or quick transfer actions.
+              </Modal.Body>
+              <Modal.Footer>
+                <Button variant="secondary" onClick={() => setShowPinGuardModal(false)}>
+                  Close
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={() => {
+                    setShowPinGuardModal(false);
+                    navigate('/profile?tab=security');
+                  }}
+                >
+                  Go to Security Settings
+                </Button>
+              </Modal.Footer>
+            </Modal>
+
+            {/* Deposit Modal */}
             <Modal show={showDepositModal} onHide={() => setShowDepositModal(false)}>
               <Modal.Header closeButton>
                 <Modal.Title>Deposit to Savings</Modal.Title>
@@ -508,15 +562,30 @@ const SavingsManagement = ({ styles }) => {
                       Available Balance: ₦{savingsData.balances.mainBalance?.toLocaleString() || 0}
                     </Form.Text>
                   </Form.Group>
+
+                  <Form.Group className="mb-3">
+                    <Form.Label>Transaction PIN *</Form.Label>
+                    <Form.Control
+                      type="password"
+                      value={transactionPin}
+                      onChange={(e) => setTransactionPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                      placeholder="Enter 4-digit PIN"
+                      required
+                      maxLength={4}
+                    />
+                  </Form.Group>
                 </Modal.Body>
                 <Modal.Footer>
-                  <Button variant="secondary" onClick={() => setShowDepositModal(false)}>
+                  <Button variant="secondary" onClick={() => {
+                    setShowDepositModal(false);
+                    setTransactionPin('');
+                  }}>
                     Cancel
                   </Button>
                   <Button
                     variant="success"
                     type="submit"
-                    disabled={loading || !depositAmount}
+                    disabled={loading || !depositAmount || transactionPin.length !== 4}
                   >
                     {loading ? 'Processing...' : 'Deposit'}
                   </Button>
@@ -547,15 +616,30 @@ const SavingsManagement = ({ styles }) => {
                       Available Savings: ₦{savingsData.balances.savingsBalance?.toLocaleString() || 0}
                     </Form.Text>
                   </Form.Group>
+
+                  <Form.Group className="mb-3">
+                    <Form.Label>Transaction PIN *</Form.Label>
+                    <Form.Control
+                      type="password"
+                      value={transactionPin}
+                      onChange={(e) => setTransactionPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                      placeholder="Enter 4-digit PIN"
+                      required
+                      maxLength={4}
+                    />
+                  </Form.Group>
                 </Modal.Body>
                 <Modal.Footer>
-                  <Button variant="secondary" onClick={() => setShowWithdrawModal(false)}>
+                  <Button variant="secondary" onClick={() => {
+                    setShowWithdrawModal(false);
+                    setTransactionPin('');
+                  }}>
                     Cancel
                   </Button>
                   <Button
                     variant="warning"
                     type="submit"
-                    disabled={loading || !withdrawAmount}
+                    disabled={loading || !withdrawAmount || transactionPin.length !== 4}
                   >
                     {loading ? 'Processing...' : 'Withdraw'}
                   </Button>
@@ -607,15 +691,30 @@ const SavingsManagement = ({ styles }) => {
                       }
                     </Form.Text>
                   </Form.Group>
+
+                  <Form.Group className="mb-3">
+                    <Form.Label>Transaction PIN *</Form.Label>
+                    <Form.Control
+                      type="password"
+                      value={transactionPin}
+                      onChange={(e) => setTransactionPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
+                      placeholder="Enter 4-digit PIN"
+                      required
+                      maxLength={4}
+                    />
+                  </Form.Group>
                 </Modal.Body>
                 <Modal.Footer>
-                  <Button variant="secondary" onClick={() => setShowQuickTransferModal(false)}>
+                  <Button variant="secondary" onClick={() => {
+                    setShowQuickTransferModal(false);
+                    setTransactionPin('');
+                  }}>
                     Cancel
                   </Button>
                   <Button
                     variant="info"
                     type="submit"
-                    disabled={loading || !quickTransferData.amount}
+                    disabled={loading || !quickTransferData.amount || transactionPin.length !== 4}
                   >
                     {loading ? 'Processing...' : 'Transfer'}
                   </Button>
