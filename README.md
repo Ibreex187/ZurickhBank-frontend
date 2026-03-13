@@ -10,11 +10,16 @@ Currently, two official plugins are available:
 ## Backend API setup
 
 1. Copy `.env.example` to `.env`.
-2. Set `VITE_API_BASE_URL` to your backend API root.
+2. Set `VITE_API_BASE_URL` as your primary backend API root.
+3. (Optional) Set `VITE_API_FALLBACK_URL` as secondary backend root.
 
 Example:
 
-`VITE_API_BASE_URL=http://localhost:4040/api/v1`
+`VITE_API_BASE_URL=https://zurickh-bank.vercel.app/api/v1`
+
+`VITE_API_FALLBACK_URL=http://localhost:4040/api/v1`
+
+When a request fails with a network error or `5xx` response, the client automatically retries once against the fallback URL.
 
 The `BeneficiaryManagement` page now uses a dedicated service layer in `src/services/beneficiaryService.js`, which calls:
 

@@ -1,7 +1,27 @@
 import axios from 'axios';
 import Cookies from 'universal-cookie';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://zurickh-bank.vercel.app/api/v1';
+const LOCAL_API_URL = 'http://localhost:4040/api/v1';
+const VERCEL_API_URL = 'https://zurickh-bank.vercel.app/api/v1';
+
+const normalizeUrl = (url) => String(url || '').trim().replace(/\/+$/, '');
+
+const resolveApiUrls = () => {
+  const configuredBaseUrl = normalizeUrl(import.meta.env.VITE_API_BASE_URL);
+  const configuredFallbackUrl = normalizeUrl(import.meta.env.VITE_API_FALLBACK_URL);
+  const isLocalHost = ['localhost', '127.0.0.1', '::1'].includes(window.location.hostname);
+
+  const primaryUrl = configuredBaseUrl || (isLocalHost ? LOCAL_API_URL : VERCEL_API_URL);
+  let fallbackUrl = configuredFallbackUrl || (primaryUrl === LOCAL_API_URL ? VERCEL_API_URL : LOCAL_API_URL);
+
+  if (fallbackUrl === primaryUrl) {
+    fallbackUrl = primaryUrl === LOCAL_API_URL ? VERCEL_API_URL : LOCAL_API_URL;
+  }
+
+  return { primaryUrl, fallbackUrl };
+};
+
+const { primaryUrl: API_BASE_URL, fallbackUrl: API_FALLBACK_URL } = resolveApiUrls();
 
 const cookies = new Cookies();
 
@@ -30,6 +50,22 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
+    const originalRequest = error.config;
+    const status = error.response?.status;
+    const shouldRetryWithFallback =
+      originalRequest &&
+      API_FALLBACK_URL &&
+      !originalRequest._retryWithFallback &&
+      (!error.response || status >= 500);
+
+    if (shouldRetryWithFallback) {
+      originalRequest._retryWithFallback = true;
+      return api({
+        ...originalRequest,
+        baseURL: API_FALLBACK_URL,
+      });
+    }
+
     if (error.response?.status === 401) {
       const requestUrl = String(error.config?.url || '');
       const isPublicAuthRequest =
