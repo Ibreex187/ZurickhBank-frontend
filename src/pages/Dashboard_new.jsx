@@ -31,6 +31,59 @@ const setCookieValue = (name, value, days = 30) => {
   document.cookie = `${name}=${value}; expires=${expires}; path=/; SameSite=Lax`;
 };
 
+const formatDateForApi = (date) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const getMonthRange = (monthOffset = 0) => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + monthOffset;
+
+  const startDate = new Date(year, month, 1);
+  const endDate = new Date(year, month + 1, 0);
+
+  return {
+    startDate: formatDateForApi(startDate),
+    endDate: formatDateForApi(endDate),
+  };
+};
+
+const getSignedTransactionAmount = (transaction, currentUserId) => {
+  const amount = Number(transaction?.amount) || 0;
+  const type = String(transaction?.type || '').toLowerCase();
+
+  if (type === 'deposit') return amount;
+  if (type === 'withdraw') return -amount;
+
+  if (type === 'transfer') {
+    const senderId = String(transaction?.sender?._id || '');
+    const userId = String(currentUserId || '');
+
+    if (!senderId || !userId) return 0;
+    return senderId === userId ? -amount : amount;
+  }
+
+  return 0;
+};
+
+const getNetActivityAmount = (transactionList, currentUserId) => {
+  const settledStatuses = new Set(['completed', 'complete', 'successful', 'success']);
+
+  return (transactionList || []).reduce((total, transaction) => {
+    const status = String(transaction?.status || '').toLowerCase();
+
+    if (status && !settledStatuses.has(status)) {
+      return total;
+    }
+
+    return total + getSignedTransactionAmount(transaction, currentUserId);
+  }, 0);
+};
+
 const Dashboard = ({ styles }) => {
   const { user, logout, refreshUser } = useAuth();
   const location = useLocation();
@@ -86,6 +139,7 @@ const Dashboard = ({ styles }) => {
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [transactionDetailsLoading, setTransactionDetailsLoading] = useState(false);
+  const [balanceChangePercent, setBalanceChangePercent] = useState(0);
   const hasTransactionPin = Boolean(user?.hasTransactionPin);
 
   const openProtectedAction = (nextActionType) => {
@@ -292,9 +346,59 @@ const Dashboard = ({ styles }) => {
     }
   }, [filters, pagination.currentPage, pagination.limit]);
 
+  const fetchBalanceChange = useCallback(async () => {
+    try {
+      const currentMonthRange = getMonthRange(0);
+      const lastMonthRange = getMonthRange(-1);
+
+      const [currentMonthResponse, lastMonthResponse] = await Promise.all([
+        getTransactionHistory({
+          page: 1,
+          limit: 500,
+          startDate: currentMonthRange.startDate,
+          endDate: currentMonthRange.endDate,
+        }),
+        getTransactionHistory({
+          page: 1,
+          limit: 500,
+          startDate: lastMonthRange.startDate,
+          endDate: lastMonthRange.endDate,
+        }),
+      ]);
+
+      const currentMonthTransactions = currentMonthResponse?.data?.transactions || [];
+      const lastMonthTransactions = lastMonthResponse?.data?.transactions || [];
+
+      const currentMonthNet = getNetActivityAmount(currentMonthTransactions, user?._id);
+      const lastMonthNet = getNetActivityAmount(lastMonthTransactions, user?._id);
+
+      const base = Math.abs(lastMonthNet);
+      let computedPercent = 0;
+
+      if (base < 0.01) {
+        if (Math.abs(currentMonthNet) < 0.01) {
+          computedPercent = 0;
+        } else {
+          computedPercent = currentMonthNet > 0 ? 100 : -100;
+        }
+      } else {
+        computedPercent = ((currentMonthNet - lastMonthNet) / base) * 100;
+      }
+
+      setBalanceChangePercent(Number.isFinite(computedPercent) ? computedPercent : 0);
+    } catch (error) {
+      console.error('Failed to compute balance change:', error);
+      setBalanceChangePercent(0);
+    }
+  }, [user?._id]);
+
   useEffect(() => {
     fetchTransactions();
   }, [fetchTransactions]);
+
+  useEffect(() => {
+    fetchBalanceChange();
+  }, [fetchBalanceChange]);
 
   const handleTransaction = async (e) => {
     e.preventDefault();
@@ -376,6 +480,7 @@ const Dashboard = ({ styles }) => {
         setReceiverLookup({ loading: false, accountName: '', resolvedAccountNumber: '', error: '' });
         setActionType('');
         await fetchTransactions();
+        await fetchBalanceChange();
         await refreshUser();
       } else {
         throw new Error(response.message || 'Transaction failed');
@@ -404,6 +509,9 @@ const Dashboard = ({ styles }) => {
       (withdrawalMethod === 'external' && (!externalBank || externalAccount.length < 10))
     )) ||
     transactionPin.trim().length !== 4;
+
+  const balanceChangeDirection = balanceChangePercent > 0 ? 'positive' : balanceChangePercent < 0 ? 'negative' : 'neutral';
+  const formattedBalanceChange = `${balanceChangePercent > 0 ? '+' : ''}${balanceChangePercent.toFixed(1)}%`;
 
   return (
     <>
@@ -512,13 +620,19 @@ const Dashboard = ({ styles }) => {
                 <span className="amount">{showBalanceAmount ? (user?.balance?.toLocaleString() || '0') : '•••••••'}</span>
               </div>
               <div className="balance-change">
-                <span className="change positive">
+                <span className={`change ${balanceChangeDirection}`}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M15,20H9V12H4.16L12,4.16L19.84,12H15V20Z" />
+                    {balanceChangeDirection === 'negative' ? (
+                      <path d="M9,4H15V12H19.84L12,19.84L4.16,12H9V4Z" />
+                    ) : balanceChangeDirection === 'neutral' ? (
+                      <path d="M4,11H20V13H4V11Z" />
+                    ) : (
+                      <path d="M15,20H9V12H4.16L12,4.16L19.84,12H15V20Z" />
+                    )}
                   </svg>
-                  +2.5%
+                  {formattedBalanceChange}
                 </span>
-                <span className="change-period">vs last month</span>
+                <span className="change-period">vs last month activity</span>
               </div>
             </div>
           </div>

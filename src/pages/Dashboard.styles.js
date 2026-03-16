@@ -644,6 +644,14 @@ body {
   color: var(--success);
 }
 
+.change.negative {
+  color: var(--danger);
+}
+
+.change.neutral {
+  color: var(--text-muted);
+}
+
 .change-period {
   font-size: 13px;
   opacity: 0.8;
