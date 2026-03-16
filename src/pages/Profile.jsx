@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import ZurichBrand from '../components/ZurichBrand';
 import ProfileCard from '../components/ProfileCard';
 import ActionButtons from '../components/ActionButtons';
+import PasswordField from '../components/PasswordField';
 import { renderSidebarNavLinks } from '../components/sidebarNavLinks';
 import PROFILE_STYLES from './Profile.styles.js';
 import {
@@ -757,42 +758,51 @@ const Profile = ({ styles }) => {
                       ) : (
                         <form className="password-form" onSubmit={handleChangePassword}>
                           <div className="form-group">
-                            <label style={{ color: 'var(--white)' }}>Current Password</label>
-                            <input
-                              type="password"
+                            <PasswordField
+                              label="Current Password"
                               value={passwordData.currentPassword}
                               onChange={(e) => handlePasswordChange('currentPassword', e.target.value)}
-                              className={`form-input ${passwordErrors.currentPassword ? 'error' : ''}`}
+                              inputClassName="form-input"
+                              labelClassName=""
+                              isInvalid={!!passwordErrors.currentPassword}
+                              feedback={passwordErrors.currentPassword}
+                              feedbackClassName="error-text"
                               style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--white)', borderColor: 'rgba(255,255,255,0.1)' }}
+                              buttonStyle={{ color: 'var(--white)' }}
                               required
                             />
-                            {passwordErrors.currentPassword && <span className="error-text">{passwordErrors.currentPassword}</span>}
                           </div>
 
                           <div className="form-group">
-                            <label style={{ color: 'var(--white)' }}>New Password</label>
-                            <input
-                              type="password"
+                            <PasswordField
+                              label="New Password"
                               value={passwordData.newPassword}
                               onChange={(e) => handlePasswordChange('newPassword', e.target.value)}
-                              className={`form-input ${passwordErrors.newPassword ? 'error' : ''}`}
+                              inputClassName="form-input"
+                              labelClassName=""
+                              isInvalid={!!passwordErrors.newPassword}
+                              feedback={passwordErrors.newPassword}
+                              feedbackClassName="error-text"
                               style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--white)', borderColor: 'rgba(255,255,255,0.1)' }}
+                              buttonStyle={{ color: 'var(--white)' }}
                               required
                             />
-                            {passwordErrors.newPassword && <span className="error-text">{passwordErrors.newPassword}</span>}
                           </div>
 
                           <div className="form-group">
-                            <label style={{ color: 'var(--white)' }}>Confirm New Password</label>
-                            <input
-                              type="password"
+                            <PasswordField
+                              label="Confirm New Password"
                               value={passwordData.confirmPassword}
                               onChange={(e) => handlePasswordChange('confirmPassword', e.target.value)}
-                              className={`form-input ${passwordErrors.confirmPassword ? 'error' : ''}`}
+                              inputClassName="form-input"
+                              labelClassName=""
+                              isInvalid={!!passwordErrors.confirmPassword}
+                              feedback={passwordErrors.confirmPassword}
+                              feedbackClassName="error-text"
                               style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--white)', borderColor: 'rgba(255,255,255,0.1)' }}
+                              buttonStyle={{ color: 'var(--white)' }}
                               required
                             />
-                            {passwordErrors.confirmPassword && <span className="error-text">{passwordErrors.confirmPassword}</span>}
                           </div>
                           <div className="form-actions mt-4">
                             <button
@@ -826,44 +836,53 @@ const Profile = ({ styles }) => {
                       {showPinForm && (
                         <form className="password-form mt-4" onSubmit={handleSetTransactionPin}>
                           <div className="form-group">
-                            <label style={{ color: 'var(--white)' }}>Current Password</label>
-                            <input
-                              type="password"
+                            <PasswordField
+                              label="Current Password"
                               value={pinData.currentPassword}
                               onChange={(e) => handleTransactionPinChange('currentPassword', e.target.value)}
-                              className={`form-input ${pinErrors.currentPassword ? 'error' : ''}`}
+                              inputClassName="form-input"
+                              labelClassName=""
+                              isInvalid={!!pinErrors.currentPassword}
+                              feedback={pinErrors.currentPassword}
+                              feedbackClassName="error-text"
                               style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--white)', borderColor: 'rgba(255,255,255,0.1)' }}
+                              buttonStyle={{ color: 'var(--white)' }}
                               required
                             />
-                            {pinErrors.currentPassword && <span className="error-text">{pinErrors.currentPassword}</span>}
                           </div>
 
                           <div className="form-group">
-                            <label style={{ color: 'var(--white)' }}>Transaction PIN</label>
-                            <input
-                              type="password"
+                            <PasswordField
+                              label="Transaction PIN"
                               value={pinData.transactionPin}
                               onChange={(e) => handleTransactionPinChange('transactionPin', e.target.value)}
-                              className={`form-input ${pinErrors.transactionPin ? 'error' : ''}`}
+                              inputClassName="form-input"
+                              labelClassName=""
+                              isInvalid={!!pinErrors.transactionPin}
+                              feedback={pinErrors.transactionPin}
+                              feedbackClassName="error-text"
                               style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--white)', borderColor: 'rgba(255,255,255,0.1)' }}
+                              buttonStyle={{ color: 'var(--white)' }}
                               maxLength={4}
                               required
                             />
-                            {pinErrors.transactionPin && <span className="error-text">{pinErrors.transactionPin}</span>}
                           </div>
 
                           <div className="form-group">
-                            <label style={{ color: 'var(--white)' }}>Confirm Transaction PIN</label>
-                            <input
-                              type="password"
+                            <PasswordField
+                              label="Confirm Transaction PIN"
                               value={pinData.confirmTransactionPin}
                               onChange={(e) => handleTransactionPinChange('confirmTransactionPin', e.target.value)}
-                              className={`form-input ${pinErrors.confirmTransactionPin ? 'error' : ''}`}
+                              inputClassName="form-input"
+                              labelClassName=""
+                              isInvalid={!!pinErrors.confirmTransactionPin}
+                              feedback={pinErrors.confirmTransactionPin}
+                              feedbackClassName="error-text"
                               style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--white)', borderColor: 'rgba(255,255,255,0.1)' }}
+                              buttonStyle={{ color: 'var(--white)' }}
                               maxLength={4}
                               required
                             />
-                            {pinErrors.confirmTransactionPin && <span className="error-text">{pinErrors.confirmTransactionPin}</span>}
                           </div>
 
                           <div className="form-actions mt-4">

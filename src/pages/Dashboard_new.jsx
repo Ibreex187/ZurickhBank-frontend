@@ -3,6 +3,7 @@ import PropTypes from 'prop-types';
 import { useAuth } from '../context/AuthContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import ZurichBrand from '../components/ZurichBrand';
+import PasswordField from '../components/PasswordField';
 import { renderSidebarNavLinks } from '../components/sidebarNavLinks';
 import {
   getTransactionHistory,
@@ -685,13 +686,14 @@ const Dashboard = ({ styles }) => {
 
                   {actionType === 'withdraw' && withdrawalMethod === 'atm' && (
                     <div className="transfer-form-group">
-                      <label className="transfer-form-label">ATM PIN</label>
-                      <input
-                        type="password"
+                      <PasswordField
+                        label="ATM PIN"
+                        labelClassName="transfer-form-label"
+                        inputClassName="transfer-form-input"
+                        groupClassName=""
                         value={atmPin}
                         onChange={(e) => setAtmPin(e.target.value.replace(/\D/g, '').substring(0, 4))}
                         placeholder="••••"
-                        className="transfer-form-input"
                         required
                         maxLength="4"
                       />
@@ -733,13 +735,14 @@ const Dashboard = ({ styles }) => {
                   )}
 
                   <div className="transfer-form-group">
-                    <label className="transfer-form-label">Transaction PIN</label>
-                    <input
-                      type="password"
+                    <PasswordField
+                      label="Transaction PIN"
+                      labelClassName="transfer-form-label"
+                      inputClassName="transfer-form-input"
+                      groupClassName=""
                       value={transactionPin}
                       onChange={(e) => setTransactionPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
                       placeholder="Enter 4-digit transaction PIN"
-                      className="transfer-form-input"
                       required
                       maxLength="4"
                     />

@@ -9,6 +9,7 @@ import {
 import { Formik, Form, Field } from 'formik';
 import { useAuth } from '../context/AuthContext';
 import AppButton from '../components/AppButton';
+import PasswordField from '../components/PasswordField';
 import ZurichBrand from '../components/ZurichBrand';
 
 /* ─── Validation ──────────────────────────── */
@@ -258,13 +259,19 @@ const Register = ({ styles }) => {
                             icon="✉"
                           />
 
-                          <InputField
-                            name="password"
-                            type="password"
-                            label="Password"
-                            placeholder="Min. 6 characters"
-                            icon="🔒"
-                          />
+                          <Field name="password">
+                            {({ field, meta }) => (
+                              <PasswordField
+                                {...field}
+                                label="Password"
+                                placeholder="Min. 6 characters"
+                                icon="🔒"
+                                inputWrapperClassName="input-wrap"
+                                isInvalid={meta.touched && !!meta.error}
+                                feedback={meta.touched ? meta.error : null}
+                              />
+                            )}
+                          </Field>
 
                           {/* Password strength hint */}
                           <div

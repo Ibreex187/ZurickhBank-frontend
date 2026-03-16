@@ -7,6 +7,7 @@ import {
   Modal, Badge
 } from 'react-bootstrap';
 import ZurichBrand from '../components/ZurichBrand';
+import PasswordField from '../components/PasswordField';
 import { renderSidebarNavLinks } from '../components/sidebarNavLinks';
 import {
   depositToSavings,
@@ -563,17 +564,16 @@ const SavingsManagement = ({ styles }) => {
                     </Form.Text>
                   </Form.Group>
 
-                  <Form.Group className="mb-3">
-                    <Form.Label>Transaction PIN *</Form.Label>
-                    <Form.Control
-                      type="password"
+                  <PasswordField
+                    label="Transaction PIN *"
+                    labelClassName="form-label"
+                    groupClassName="mb-3"
                       value={transactionPin}
                       onChange={(e) => setTransactionPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
                       placeholder="Enter 4-digit PIN"
                       required
                       maxLength={4}
-                    />
-                  </Form.Group>
+                  />
                 </Modal.Body>
                 <Modal.Footer>
                   <Button variant="secondary" onClick={() => {
@@ -617,17 +617,16 @@ const SavingsManagement = ({ styles }) => {
                     </Form.Text>
                   </Form.Group>
 
-                  <Form.Group className="mb-3">
-                    <Form.Label>Transaction PIN *</Form.Label>
-                    <Form.Control
-                      type="password"
+                  <PasswordField
+                    label="Transaction PIN *"
+                    labelClassName="form-label"
+                    groupClassName="mb-3"
                       value={transactionPin}
                       onChange={(e) => setTransactionPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
                       placeholder="Enter 4-digit PIN"
                       required
                       maxLength={4}
-                    />
-                  </Form.Group>
+                  />
                 </Modal.Body>
                 <Modal.Footer>
                   <Button variant="secondary" onClick={() => {
@@ -692,17 +691,16 @@ const SavingsManagement = ({ styles }) => {
                     </Form.Text>
                   </Form.Group>
 
-                  <Form.Group className="mb-3">
-                    <Form.Label>Transaction PIN *</Form.Label>
-                    <Form.Control
-                      type="password"
+                  <PasswordField
+                    label="Transaction PIN *"
+                    labelClassName="form-label"
+                    groupClassName="mb-3"
                       value={transactionPin}
                       onChange={(e) => setTransactionPin(e.target.value.replace(/\D/g, '').slice(0, 4))}
                       placeholder="Enter 4-digit PIN"
                       required
                       maxLength={4}
-                    />
-                  </Form.Group>
+                  />
                 </Modal.Body>
                 <Modal.Footer>
                   <Button variant="secondary" onClick={() => {

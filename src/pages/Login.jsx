@@ -5,6 +5,7 @@ import { Container, Row, Col, Form as BootstrapForm, Card, Alert, Modal, Offcanv
 import { Formik, Form, Field } from 'formik';
 import { useAuth } from '../context/AuthContext';
 import AppButton from '../components/AppButton';
+import PasswordField from '../components/PasswordField';
 import ZurichBrand from '../components/ZurichBrand';
 import { requestForgotPasswordOtp, verifyForgotPasswordOtp, resetForgotPassword } from '../services/authService';
 
@@ -336,12 +337,17 @@ const Login = ({ styles }) => {
                               placeholder="Enter your email"
                             />
 
-                            <CustomField
-                              name="password"
-                              type="password"
-                              label="Password"
-                              placeholder="Enter your password"
-                            />
+                            <Field name="password">
+                              {({ field, meta }) => (
+                                <PasswordField
+                                  {...field}
+                                  label="Password"
+                                  placeholder="Enter your password"
+                                  isInvalid={meta.touched && !!meta.error}
+                                  feedback={meta.touched ? meta.error : null}
+                                />
+                              )}
+                            </Field>
 
                             <AppButton
                               type="submit"
@@ -458,31 +464,25 @@ const Login = ({ styles }) => {
           }}
         >
           <Modal.Body>
-            <BootstrapForm.Group className="mb-2">
-              <BootstrapForm.Label>New Password</BootstrapForm.Label>
-              <BootstrapForm.Control
-                type="password"
-                value={forgotData.newPassword}
-                onChange={(e) => handleForgotInputChange('newPassword', e.target.value)}
-                placeholder="Enter new password"
-              />
-            </BootstrapForm.Group>
+            <PasswordField
+              label="New Password"
+              groupClassName="mb-2"
+              value={forgotData.newPassword}
+              onChange={(e) => handleForgotInputChange('newPassword', e.target.value)}
+              placeholder="Enter new password"
+              resetWhen={showResetPasswordModal && otpStepUnlocked}
+            />
 
-            <BootstrapForm.Group className="mb-3">
-              <BootstrapForm.Label>Confirm New Password</BootstrapForm.Label>
-              <BootstrapForm.Control
-                type="password"
-                value={forgotData.confirmPassword}
-                onChange={(e) => handleForgotInputChange('confirmPassword', e.target.value)}
-                placeholder="Confirm new password"
-                isInvalid={showPasswordMismatch}
-              />
-              {showPasswordMismatch && (
-                <BootstrapForm.Control.Feedback type="invalid">
-                  Passwords do not match
-                </BootstrapForm.Control.Feedback>
-              )}
-            </BootstrapForm.Group>
+            <PasswordField
+              label="Confirm New Password"
+              groupClassName="mb-3"
+              value={forgotData.confirmPassword}
+              onChange={(e) => handleForgotInputChange('confirmPassword', e.target.value)}
+              placeholder="Confirm new password"
+              isInvalid={showPasswordMismatch}
+              feedback={showPasswordMismatch ? 'Passwords do not match' : null}
+              resetWhen={showResetPasswordModal && otpStepUnlocked}
+            />
           </Modal.Body>
           <Modal.Footer>
             <AppButton
