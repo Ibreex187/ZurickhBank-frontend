@@ -43,9 +43,14 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const login = async (email, password) => {
+  const login = async (username, password) => {
     try {
-      const response = await api.post('/auth/login', { email, password });
+      const normalizedUserName = String(username || '').trim();
+      const response = await api.post('/auth/login', {
+        userName: normalizedUserName,
+        username: normalizedUserName,
+        password,
+      });
       if (response.data?.success) {
         // store token in cookie so it can be read by api client
         const token = response.data.data.token;

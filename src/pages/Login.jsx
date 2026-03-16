@@ -105,17 +105,15 @@ const Login = ({ styles }) => {
   }, []);
 
   const initialValues = {
-    email: '',
+    username: '',
     password: ''
   };
 
   const validate = (values) => {
     const errors = {};
 
-    if (!values.email) {
-      errors.email = 'Email is required';
-    } else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(values.email)) {
-      errors.email = 'Invalid email address';
+    if (!values.username) {
+      errors.username = 'Username is required';
     }
 
     if (!values.password) {
@@ -128,7 +126,7 @@ const Login = ({ styles }) => {
     setLoading(true);
     setError('');
     try {
-      await login(values.email, values.password); // AuthContext will set cookie
+      await login(values.username, values.password); // AuthContext will set cookie
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Login failed. Please try again.');
@@ -279,7 +277,7 @@ const Login = ({ styles }) => {
   //   setError('');
 
   //   try {
-  //     await login(values.email, values.password);
+  //     await login(values.username, values.password);
   //     navigate('/dashboard');
   //   } catch (err) {
   //     setError(err.response?.data?.message || 'Login failed. Please try again.');
@@ -331,10 +329,10 @@ const Login = ({ styles }) => {
                         {({ isSubmitting }) => (
                           <Form>
                             <CustomField
-                              name="email"
-                              type="email"
-                              label="Email"
-                              placeholder="Enter your email"
+                              name="username"
+                              type="text"
+                              label="Username"
+                              placeholder="Enter your username"
                             />
 
                             <Field name="password">
