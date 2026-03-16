@@ -285,14 +285,14 @@ ${DASHBOARD_STYLES}
 .profile-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-  gap: var(--space-xl);
+  gap: calc(var(--space-xl) + 6px);
   margin-bottom: var(--space-2xl);
 }
 
 .profile-card {
   background: var(--white);
   border-radius: var(--radius-md);
-  padding: var(--space-xl);
+  padding: calc(var(--space-xl) + 6px);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border-light);
   transition: var(--transition);
@@ -301,6 +301,61 @@ ${DASHBOARD_STYLES}
 .profile-card:hover {
   box-shadow: var(--shadow-md);
   transform: translateY(-4px);
+}
+
+.account-summary .card-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.account-summary .balance-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.account-summary .balance-item {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  padding: var(--space-sm) 0 var(--space-md);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.account-summary .balance-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.account-summary .balance-item .label {
+  margin: 0;
+}
+
+.account-summary .balance-item .value {
+  font-size: clamp(1.05rem, 1.2vw, 1.25rem);
+  line-height: 1.2;
+}
+
+.account-summary .account-details {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-md);
+}
+
+.account-summary .account-details .detail-item {
+  padding: var(--space-lg);
+}
+
+.account-summary .account-details .detail-item .label {
+  display: block;
+  margin-bottom: var(--space-sm);
+}
+
+.account-summary .account-details .detail-item .value {
+  display: block;
+  line-height: 1.35;
 }
 
 .card-header {
@@ -710,7 +765,8 @@ ${DASHBOARD_STYLES}
     padding: var(--space-lg);
   }
 
-  .profile-header {
+  .profile-header,
+  .profile-card {
     padding: var(--space-xl);
   }
 
@@ -730,6 +786,16 @@ ${DASHBOARD_STYLES}
   .tab-button {
     padding: var(--space-md) var(--space-sm);
     font-size: var(--font-sizes-xs);
+  }
+
+  .account-summary .balance-item {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .account-summary .account-details {
+    grid-template-columns: 1fr;
   }
 }
 `;
