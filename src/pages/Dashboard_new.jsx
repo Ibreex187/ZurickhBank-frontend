@@ -16,6 +16,21 @@ import {
   validateAccountNumber
 } from '../services/transactionService';
 
+const BALANCE_VISIBILITY_COOKIE = 'dashboard_balance_visible';
+
+const getCookieValue = (name) => {
+  const cookieEntry = document.cookie
+    .split('; ')
+    .find((item) => item.startsWith(`${name}=`));
+
+  return cookieEntry ? cookieEntry.split('=')[1] : null;
+};
+
+const setCookieValue = (name, value, days = 30) => {
+  const expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toUTCString();
+  document.cookie = `${name}=${value}; expires=${expires}; path=/; SameSite=Lax`;
+};
+
 const Dashboard = ({ styles }) => {
   const { user, logout, refreshUser } = useAuth();
   const location = useLocation();
@@ -41,6 +56,12 @@ const Dashboard = ({ styles }) => {
   const [message, setMessage] = useState({ type: '', text: '' });
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false); // mobile off-canvas state
+  const [showBalanceAmount, setShowBalanceAmount] = useState(() => {
+    const savedPreference = getCookieValue(BALANCE_VISIBILITY_COOKIE);
+    if (savedPreference === 'true') return true;
+    if (savedPreference === 'false') return false;
+    return false;
+  });
 
   // Advanced filtering and pagination state
   const [filters, setFilters] = useState({
@@ -84,6 +105,10 @@ const Dashboard = ({ styles }) => {
   useEffect(() => {
     setSidebarOpen(false);
   }, [location.pathname]);
+
+  useEffect(() => {
+    setCookieValue(BALANCE_VISIBILITY_COOKIE, String(showBalanceAmount));
+  }, [showBalanceAmount]);
 
   // Close mobile sidebar on Escape and auto-close on resize to larger screens
   useEffect(() => {
@@ -464,10 +489,27 @@ const Dashboard = ({ styles }) => {
                   <h3>Total Balance</h3>
                   <span className="account-number">•••• {user?.accountNumber?.slice(-4)}</span>
                 </div>
+                <button
+                  type="button"
+                  className="balance-visibility-btn"
+                  onClick={() => setShowBalanceAmount((prev) => !prev)}
+                  aria-label={showBalanceAmount ? 'Hide balance amount' : 'Show balance amount'}
+                >
+                  {showBalanceAmount ? (
+                    <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                      <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z" />
+                    </svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+                      <path d="M13.359 11.238l1.494 1.494a.5.5 0 0 1-.707.707l-1.57-1.57A8.7 8.7 0 0 1 8 13.5C3 13.5 0 8 0 8a16 16 0 0 1 2.249-2.993L.146 2.854a.5.5 0 1 1 .708-.708l14 14a.5.5 0 0 1-.708.708zM11.297 9.176l-1.56-1.56a2 2 0 0 1-2.56-2.56l-1.56-1.56C4.409 4.228 3.34 5.25 2.545 6.372A13 13 0 0 0 1.173 8c.411.697 1.069 1.652 1.959 2.543C4.42 11.832 6.179 13 8 13c1.518 0 2.85-.647 3.929-1.762l-.632-.632z" />
+                      <path d="M10.523 7.695l-2.218-2.218a2 2 0 0 1 2.218 2.218m4.474.305a13 13 0 0 1-.672 1.104l-1.03-1.03q.175-.284.31-.565c-.411-.696-1.07-1.651-1.96-2.542C10.58 4.168 8.82 3 7 3q-.607 0-1.175.138l-.858-.859A7.1 7.1 0 0 1 7 2.5c5 0 8 5.5 8 5.5" />
+                    </svg>
+                  )}
+                </button>
               </div>
               <div className="balance-amount">
                 <span className="currency">₦</span>
-                <span className="amount">{user?.balance?.toLocaleString() || '0'}</span>
+                <span className="amount">{showBalanceAmount ? (user?.balance?.toLocaleString() || '0') : '•••••••'}</span>
               </div>
               <div className="balance-change">
                 <span className="change positive">
