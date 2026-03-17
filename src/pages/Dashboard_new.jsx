@@ -5,6 +5,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import ZurichBrand from '../components/ZurichBrand';
 import PasswordField from '../components/PasswordField';
 import LoadingWatch from '../components/LoadingWatch';
+import AppButton from '../components/AppButton';
 import { renderSidebarNavLinks } from '../components/sidebarNavLinks';
 import {
   getTransactionHistory,
@@ -906,20 +907,16 @@ const Dashboard = ({ styles }) => {
                     <small className="transfer-text-muted">Required to authorize this transaction.</small>
                   </div>
 
-                  <button
+                  <AppButton
                     type="submit"
                     className="transfer-submit-btn"
                     disabled={isTransferSubmitDisabled}
+                    loading={loading}
+                    loadingText="Processing..."
+                    backgroundColor="var(--navy)"
                   >
-                    {loading ? (
-                      <div className="transfer-loading-wrapper">
-                        <div className="transfer-loading-spinner"></div>
-                        <span>Processing...</span>
-                      </div>
-                    ) : (
-                      `Confirm ${actionType.charAt(0).toUpperCase() + actionType.slice(1)}`
-                    )}
-                  </button>
+                    {`Confirm ${actionType.charAt(0).toUpperCase() + actionType.slice(1)}`}
+                  </AppButton>
                 </form>
               </div>
             </div>
@@ -1045,6 +1042,9 @@ const Dashboard = ({ styles }) => {
             )}
 
             <div className="table-container">
+              {loading ? (
+                <LoadingWatch label="Loading transactions..." minHeight="200px" />
+              ) : (
               <table className="transactions-table">
                 <thead>
                   <tr>
@@ -1154,6 +1154,7 @@ const Dashboard = ({ styles }) => {
                   )}
                 </tbody>
               </table>
+              )}
             </div>
 
             {/* Pagination Controls */}
