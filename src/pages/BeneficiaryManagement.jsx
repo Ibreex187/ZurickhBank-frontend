@@ -34,6 +34,7 @@ const BeneficiaryManagement = ({ styles }) => {
   });
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [selectedBeneficiary, setSelectedBeneficiary] = useState(null);
+  const [transferLoading, setTransferLoading] = useState(false);
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false); // mobile off-canvas state
@@ -172,7 +173,32 @@ const BeneficiaryManagement = ({ styles }) => {
 
   const handleTransfer = async (e) => {
     e.preventDefault();
-    setLoading(true);
+
+    if (!selectedBeneficiary?.accountNumber) {
+      setMessage({
+        type: 'error',
+        text: 'Recipient details are missing. Please close and reopen transfer modal.'
+      });
+      return;
+    }
+
+    if (!transferData.amount || Number(transferData.amount) <= 0) {
+      setMessage({
+        type: 'error',
+        text: 'Enter a valid transfer amount.'
+      });
+      return;
+    }
+
+    if (String(transferData.transactionPin || '').trim().length !== 4) {
+      setMessage({
+        type: 'error',
+        text: 'Enter your 4-digit transaction PIN.'
+      });
+      return;
+    }
+
+    setTransferLoading(true);
     try {
       const data = await transferToBeneficiary({
         receiverAccountNumber: selectedBeneficiary.accountNumber,
@@ -200,8 +226,9 @@ const BeneficiaryManagement = ({ styles }) => {
         type: 'error',
         text: error.response?.data?.message || 'Transfer failed'
       });
+    } finally {
+      setTransferLoading(false);
     }
-    setLoading(false);
   };
 
   return (
@@ -531,9 +558,9 @@ const BeneficiaryManagement = ({ styles }) => {
                   <Button
                     variant="primary"
                     type="submit"
-                    disabled={loading || !transferData.amount || transferData.transactionPin.length !== 4}
+                    disabled={transferLoading || !transferData.amount || transferData.transactionPin.length !== 4}
                   >
-                    {loading ? 'Processing...' : 'Transfer'}
+                    {transferLoading ? 'Processing...' : 'Transfer'}
                   </Button>
                 </Modal.Footer>
               </Form>
