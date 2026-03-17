@@ -12,6 +12,7 @@ import {
   getNotificationPreferences,
   updateNotificationPreferences,
 } from '../services/notificationService';
+import { publishUnreadNotifications } from '../utils/notificationEvents';
 
 const CATEGORY_OPTIONS = [
   { label: 'All Categories', value: '' },
@@ -102,8 +103,10 @@ const Notifications = ({ styles }) => {
 
       if (response?.success) {
         const data = response?.data || {};
+        const nextUnreadCount = Number(data?.unreadCount) || 0;
         setNotifications(data?.notifications || []);
-        setUnreadCount(Number(data?.unreadCount) || 0);
+        setUnreadCount(nextUnreadCount);
+        publishUnreadNotifications(nextUnreadCount);
         setPagination(data?.pagination || {
           currentPage: 1,
           totalPages: 0,
@@ -114,6 +117,7 @@ const Notifications = ({ styles }) => {
       } else {
         setNotifications([]);
         setUnreadCount(0);
+        publishUnreadNotifications(0);
       }
     } catch (fetchError) {
       setError(fetchError?.response?.data?.message || 'Failed to fetch notifications');

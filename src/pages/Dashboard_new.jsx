@@ -9,6 +9,11 @@ import AppButton from '../components/AppButton';
 import { renderSidebarNavLinks } from '../components/sidebarNavLinks';
 import { getPremiumStatus } from '../utils/premiumStatus';
 import {
+  NOTIFICATIONS_UNREAD_UPDATED_EVENT,
+  readStoredUnreadNotifications,
+  publishUnreadNotifications,
+} from '../utils/notificationEvents';
+import {
   getTransactionHistory,
   getTransactionById,
   resolveRecipientAccount,
@@ -145,7 +150,7 @@ const Dashboard = ({ styles }) => {
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [transactionDetailsLoading, setTransactionDetailsLoading] = useState(false);
   const [balanceChangePercent, setBalanceChangePercent] = useState(0);
-  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [unreadNotifications, setUnreadNotifications] = useState(() => readStoredUnreadNotifications());
   const [transferModalSession, setTransferModalSession] = useState(0);
   const hasTransactionPin = Boolean(user?.hasTransactionPin);
   const transactionSuccessTimeoutRef = useRef(null);
@@ -469,9 +474,12 @@ const Dashboard = ({ styles }) => {
       const response = await getUnreadNotificationCount();
 
       if (response?.success) {
-        setUnreadNotifications(Number(response?.data?.unreadCount) || 0);
+        const nextUnreadCount = Number(response?.data?.unreadCount) || 0;
+        setUnreadNotifications(nextUnreadCount);
+        publishUnreadNotifications(nextUnreadCount);
       } else {
         setUnreadNotifications(0);
+        publishUnreadNotifications(0);
       }
     } catch (error) {
       console.error('Failed to fetch unread notifications:', error);
@@ -490,6 +498,20 @@ const Dashboard = ({ styles }) => {
   useEffect(() => {
     fetchUnreadNotifications();
   }, [fetchUnreadNotifications]);
+
+  useEffect(() => {
+    const onUnreadNotificationsUpdated = (event) => {
+      const nextUnreadCount = Number(event?.detail?.unreadCount);
+      if (Number.isFinite(nextUnreadCount) && nextUnreadCount >= 0) {
+        setUnreadNotifications(nextUnreadCount);
+      }
+    };
+
+    window.addEventListener(NOTIFICATIONS_UNREAD_UPDATED_EVENT, onUnreadNotificationsUpdated);
+    return () => {
+      window.removeEventListener(NOTIFICATIONS_UNREAD_UPDATED_EVENT, onUnreadNotificationsUpdated);
+    };
+  }, []);
 
   const handleTransaction = async (e) => {
     e.preventDefault();
