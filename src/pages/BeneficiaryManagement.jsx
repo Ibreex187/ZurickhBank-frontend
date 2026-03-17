@@ -29,7 +29,8 @@ const BeneficiaryManagement = ({ styles }) => {
   const [transferData, setTransferData] = useState({
     beneficiaryId: '',
     amount: '',
-    description: ''
+    description: '',
+    transactionPin: '',
   });
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [selectedBeneficiary, setSelectedBeneficiary] = useState(null);
@@ -163,7 +164,8 @@ const BeneficiaryManagement = ({ styles }) => {
     setTransferData({
       beneficiaryId: beneficiary._id,
       amount: '',
-      description: ''
+      description: '',
+      transactionPin: '',
     });
     setShowTransferModal(true);
   };
@@ -175,7 +177,8 @@ const BeneficiaryManagement = ({ styles }) => {
       const data = await transferToBeneficiary({
         receiverAccountNumber: selectedBeneficiary.accountNumber,
         amount: parseFloat(transferData.amount),
-        description: transferData.description
+        description: transferData.description,
+        transactionPin: transferData.transactionPin,
       });
 
       if (data.success) {
@@ -186,7 +189,8 @@ const BeneficiaryManagement = ({ styles }) => {
         setTransferData({
           beneficiaryId: '',
           amount: '',
-          description: ''
+          description: '',
+          transactionPin: '',
         });
         setShowTransferModal(false);
         setSelectedBeneficiary(null);
@@ -502,6 +506,23 @@ const BeneficiaryManagement = ({ styles }) => {
                       placeholder="Payment description..."
                     />
                   </Form.Group>
+
+                  <Form.Group className="mb-3">
+                    <Form.Label>Transaction PIN *</Form.Label>
+                    <Form.Control
+                      type="password"
+                      value={transferData.transactionPin}
+                      onChange={(e) => {
+                        const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 4);
+                        setTransferData({ ...transferData, transactionPin: digitsOnly });
+                      }}
+                      placeholder="Enter 4-digit PIN"
+                      required
+                      maxLength="4"
+                      pattern="[0-9]{4}"
+                      title="Transaction PIN must be exactly 4 digits"
+                    />
+                  </Form.Group>
                 </Modal.Body>
                 <Modal.Footer>
                   <Button variant="secondary" onClick={() => setShowTransferModal(false)}>
@@ -510,7 +531,7 @@ const BeneficiaryManagement = ({ styles }) => {
                   <Button
                     variant="primary"
                     type="submit"
-                    disabled={loading || !transferData.amount}
+                    disabled={loading || !transferData.amount || transferData.transactionPin.length !== 4}
                   >
                     {loading ? 'Processing...' : 'Transfer'}
                   </Button>

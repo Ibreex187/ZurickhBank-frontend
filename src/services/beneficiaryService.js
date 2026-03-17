@@ -84,12 +84,13 @@ export const removeBeneficiary = async (beneficiaryId) => {
 };
 
 // Transfer money to a beneficiary
-export const transferToBeneficiary = async ({ receiverAccountNumber, amount, description }) => {
+export const transferToBeneficiary = async ({ receiverAccountNumber, amount, description, transactionPin }) => {
   try {
     const transferData = {
       receiverAccountNumber: receiverAccountNumber.toString().trim(),
       amount: parseFloat(amount),
-      description: description || ''
+      description: description || '',
+      transactionPin: String(transactionPin || '').trim(),
     };
 
     const response = await api.post('/transactions/transfer', transferData);
