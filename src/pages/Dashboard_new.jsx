@@ -18,6 +18,7 @@ import {
   validateTransactionAmount,
   validateAccountNumber
 } from '../services/transactionService';
+import { getUnreadNotificationCount } from '../services/notificationService';
 
 const BALANCE_VISIBILITY_COOKIE = 'dashboard_balance_visible';
 
@@ -144,6 +145,7 @@ const Dashboard = ({ styles }) => {
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [transactionDetailsLoading, setTransactionDetailsLoading] = useState(false);
   const [balanceChangePercent, setBalanceChangePercent] = useState(0);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [transferModalSession, setTransferModalSession] = useState(0);
   const hasTransactionPin = Boolean(user?.hasTransactionPin);
   const transactionSuccessTimeoutRef = useRef(null);
@@ -462,6 +464,21 @@ const Dashboard = ({ styles }) => {
     }
   }, [user?._id]);
 
+  const fetchUnreadNotifications = useCallback(async () => {
+    try {
+      const response = await getUnreadNotificationCount();
+
+      if (response?.success) {
+        setUnreadNotifications(Number(response?.data?.unreadCount) || 0);
+      } else {
+        setUnreadNotifications(0);
+      }
+    } catch (error) {
+      console.error('Failed to fetch unread notifications:', error);
+      setUnreadNotifications(0);
+    }
+  }, []);
+
   useEffect(() => {
     fetchTransactions();
   }, [fetchTransactions]);
@@ -469,6 +486,10 @@ const Dashboard = ({ styles }) => {
   useEffect(() => {
     fetchBalanceChange();
   }, [fetchBalanceChange]);
+
+  useEffect(() => {
+    fetchUnreadNotifications();
+  }, [fetchUnreadNotifications]);
 
   const handleTransaction = async (e) => {
     e.preventDefault();
@@ -654,6 +675,14 @@ const Dashboard = ({ styles }) => {
               </div>
             </div>
             <div className="header-right">
+              <button type="button" className="notifications-btn" aria-label="Unread notifications">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M12,22A2,2 0 0,0 14,20H10A2,2 0 0,0 12,22M18,16V11A6,6 0 0,0 12,5A6,6 0 0,0 6,11V16L4,18V19H20V18L18,16Z" />
+                </svg>
+                {unreadNotifications > 0 && (
+                  <span className="notifications-badge">{unreadNotifications > 99 ? '99+' : unreadNotifications}</span>
+                )}
+              </button>
               <div className="user-profile">
                 <div className="user-avatar">
                   {(user?.firstName?.[0] || user?.userName?.[0] || 'U').toUpperCase()}
