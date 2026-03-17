@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useAuth } from '../context/AuthContext';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -144,7 +144,29 @@ const Dashboard = ({ styles }) => {
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [transactionDetailsLoading, setTransactionDetailsLoading] = useState(false);
   const [balanceChangePercent, setBalanceChangePercent] = useState(0);
+  const [transferModalSession, setTransferModalSession] = useState(0);
   const hasTransactionPin = Boolean(user?.hasTransactionPin);
+  const transactionSuccessTimeoutRef = useRef(null);
+  const receiverAccountInputRef = useRef(null);
+
+  const closeTransactionModal = useCallback(() => {
+    if (transactionSuccessTimeoutRef.current) {
+      clearTimeout(transactionSuccessTimeoutRef.current);
+      transactionSuccessTimeoutRef.current = null;
+    }
+
+    setActionType('');
+    setDescription('');
+    setAmount('');
+    setReceiverAccountNumber('');
+    setWithdrawalMethod('cash');
+    setExternalBank('');
+    setExternalAccount('');
+    setAtmPin('');
+    setTransactionPin('');
+    setReceiverLookup({ loading: false, accountName: '', resolvedAccountNumber: '', error: '' });
+    setMessage({ type: '', text: '' });
+  }, []);
 
   const openProtectedAction = (nextActionType) => {
     setMessage({ type: '', text: '' });
@@ -152,6 +174,21 @@ const Dashboard = ({ styles }) => {
     if (!hasTransactionPin) {
       setShowPinGuardModal(true);
       return;
+    }
+
+    setAmount('');
+    setDescription('');
+    setTransactionPin('');
+
+    if (nextActionType !== 'transfer') {
+      setReceiverAccountNumber('');
+      setReceiverLookup({ loading: false, accountName: '', resolvedAccountNumber: '', error: '' });
+    }
+
+    if (nextActionType === 'transfer') {
+      setTransferModalSession((prev) => prev + 1);
+      setReceiverAccountNumber('');
+      setReceiverLookup({ loading: false, accountName: '', resolvedAccountNumber: '', error: '' });
     }
 
     setActionType(nextActionType);
@@ -171,6 +208,31 @@ const Dashboard = ({ styles }) => {
   useEffect(() => {
     getPremiumStatus().then(setPremiumStatus);
   }, []);
+
+  useEffect(() => () => {
+    if (transactionSuccessTimeoutRef.current) {
+      clearTimeout(transactionSuccessTimeoutRef.current);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (actionType !== 'transfer') {
+      return;
+    }
+
+    setReceiverAccountNumber('');
+    setReceiverLookup({ loading: false, accountName: '', resolvedAccountNumber: '', error: '' });
+
+    const frameId = window.requestAnimationFrame(() => {
+      if (receiverAccountInputRef.current) {
+        receiverAccountInputRef.current.value = '';
+      }
+    });
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+    };
+  }, [actionType, transferModalSession]);
 
   // Close mobile sidebar on Escape and auto-close on resize to larger screens
   useEffect(() => {
@@ -486,10 +548,17 @@ const Dashboard = ({ styles }) => {
         setReceiverAccountNumber('');
         setTransactionPin('');
         setReceiverLookup({ loading: false, accountName: '', resolvedAccountNumber: '', error: '' });
-        setActionType('');
         await fetchTransactions();
         await fetchBalanceChange();
         await refreshUser();
+
+        if (transactionSuccessTimeoutRef.current) {
+          clearTimeout(transactionSuccessTimeoutRef.current);
+        }
+
+        transactionSuccessTimeoutRef.current = setTimeout(() => {
+          closeTransactionModal();
+        }, 4000);
       } else {
         throw new Error(response.message || 'Transaction failed');
       }
@@ -731,18 +800,7 @@ const Dashboard = ({ styles }) => {
                   <h3>{actionType.charAt(0).toUpperCase() + actionType.slice(1)} Money</h3>
                   <button
                     className="close-modal-btn"
-                    onClick={() => {
-                      setActionType('');
-                      setDescription('');
-                      setAmount('');
-                      setReceiverAccountNumber('');
-                      setWithdrawalMethod('cash');
-                      setExternalBank('');
-                      setExternalAccount('');
-                      setAtmPin('');
-                      setTransactionPin('');
-                      setMessage({ type: '', text: '' });
-                    }}
+                    onClick={closeTransactionModal}
                   >
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
                       <path d="M19,6.41L17.59,5L12,10.59L6.41,5L5,6.41L10.59,12L5,17.59L6.41,19L12,13.41L17.59,19L19,17.59L13.41,12L19,6.41Z" />
@@ -817,14 +875,24 @@ const Dashboard = ({ styles }) => {
                       <div className="transfer-form-group">
                         <label className="transfer-form-label">Recipient Account Number</label>
                         <input
+                          key={`receiver-account-${transferModalSession}`}
+                          ref={receiverAccountInputRef}
                           type="text"
                           value={receiverAccountNumber}
-                          onChange={(e) => setReceiverAccountNumber(e.target.value)}
+                          onChange={(e) => setReceiverAccountNumber(e.target.value.replace(/\D/g, '').slice(0, 10))}
                           placeholder="Enter 10-digit account number"
                           className="transfer-form-input"
                           required
                           maxLength="10"
                           minLength="10"
+                          autoComplete="new-password"
+                          name={`receiver-account-number-${transferModalSession}`}
+                          id={`receiver-account-number-${transferModalSession}`}
+                          autoCorrect="off"
+                          autoCapitalize="off"
+                          spellCheck={false}
+                          data-lpignore="true"
+                          inputMode="numeric"
                         />
                         {receiverLookup.loading && (
                           <small className="transfer-text-muted">Checking account name...</small>
