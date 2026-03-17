@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useLocation, useNavigate } from 'react-router-dom';
 import ZurichBrand from '../components/ZurichBrand';
 import PasswordField from '../components/PasswordField';
+import LoadingWatch from '../components/LoadingWatch';
 import { renderSidebarNavLinks } from '../components/sidebarNavLinks';
 import {
   getTransactionHistory,
@@ -1237,7 +1238,7 @@ const Dashboard = ({ styles }) => {
 
               <div className="modal-body">
                 {transactionDetailsLoading && (
-                  <div className="mb-3 text-muted">Loading latest transaction details...</div>
+                  <LoadingWatch label="Loading latest transaction details..." minHeight="80px" />
                 )}
                 <div className="transaction-detail-grid">
                   <div className="detail-item">

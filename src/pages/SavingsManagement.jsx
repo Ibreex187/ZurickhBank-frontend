@@ -8,6 +8,7 @@ import {
 } from 'react-bootstrap';
 import ZurichBrand from '../components/ZurichBrand';
 import PasswordField from '../components/PasswordField';
+import LoadingWatch from '../components/LoadingWatch';
 import { renderSidebarNavLinks } from '../components/sidebarNavLinks';
 import {
   depositToSavings,
@@ -457,10 +458,7 @@ const SavingsManagement = ({ styles }) => {
                         )}
                       </>
                     ) : (
-                      <div className="text-center text-muted">
-                        <i className="fas fa-chart-pie fa-2x mb-2"></i>
-                        <p>Loading insights...</p>
-                      </div>
+                      <LoadingWatch label="Loading insights..." minHeight="120px" />
                     )}
                   </Card.Body>
                 </Card>

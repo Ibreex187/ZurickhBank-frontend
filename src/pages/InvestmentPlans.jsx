@@ -466,19 +466,13 @@ const InvestmentPlans = ({ styles }) => {
                       textColor="#151e31"
                       borderColor="#151e31"
                       onClick={() => fetchMyPortfolio(true)}
-                      disabled={loading}
+                      loading={loading}
+                      loadingText="Refreshing..."
                     >
-                      {loading ? (
-                        <>
-                          <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
-                          Refreshing...
-                        </>
-                      ) : (
-                        <>
-                          <i className="fas fa-sync-alt me-1"></i>
-                          Refresh
-                        </>
-                      )}
+                      <>
+                        <i className="fas fa-sync-alt me-1"></i>
+                        Refresh
+                      </>
                     </AppButton>
                   </div>
                 </Card.Header>
