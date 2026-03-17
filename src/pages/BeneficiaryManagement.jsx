@@ -415,11 +415,11 @@ const BeneficiaryManagement = ({ styles }) => {
                       <tbody>
                         {beneficiaries.map((beneficiary) => (
                           <tr key={beneficiary._id}>
-                            <td>
+                            <td className="beneficiary-text-cell">
                               <strong>{beneficiary.firstName} {beneficiary.lastName}</strong>
                             </td>
-                            <td>{beneficiary.userName}</td>
-                            <td className="font-monospace">{beneficiary.accountNumber}</td>
+                            <td className="beneficiary-text-cell">{beneficiary.userName}</td>
+                            <td className="font-monospace beneficiary-account-cell">{beneficiary.accountNumber}</td>
                             <td>
                               <Button
                                 variant="outline-primary"
@@ -501,8 +501,8 @@ const BeneficiaryManagement = ({ styles }) => {
                     <Card className="mb-3 bg-light">
                       <Card.Body className="py-2">
                         <small className="text-muted">Recipient Details:</small>
-                        <p className="mb-1"><strong>{selectedBeneficiary.firstName} {selectedBeneficiary.lastName}</strong></p>
-                        <p className="mb-0 text-muted">@{selectedBeneficiary.userName} • {selectedBeneficiary.accountNumber}</p>
+                        <p className="mb-1 beneficiary-text-cell"><strong>{selectedBeneficiary.firstName} {selectedBeneficiary.lastName}</strong></p>
+                        <p className="mb-0 text-muted beneficiary-text-cell">@{selectedBeneficiary.userName} • {selectedBeneficiary.accountNumber}</p>
                       </Card.Body>
                     </Card>
                   )}

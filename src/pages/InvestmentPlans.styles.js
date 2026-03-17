@@ -76,6 +76,10 @@ ${DASHBOARD_STYLES}
 
 .premium-stat-card h3 {
   font-weight: var(--font-weight-bold);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  font-variant-numeric: tabular-nums;
 }
 
 .premium-stat-card i {
@@ -162,6 +166,21 @@ ${DASHBOARD_STYLES}
   padding: var(--space-lg);
   color: var(--text-main);
   font-size: var(--font-sizes-sm);
+  max-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.investment-plans .investment-text-cell {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.investment-plans .investment-amount-cell {
+  font-variant-numeric: tabular-nums;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 /* Progress Bars */
@@ -350,6 +369,12 @@ ${DASHBOARD_STYLES}
   .investment-plans .table thead th,
   .investment-plans .table tbody td {
     padding: var(--space-md);
+  }
+
+  .premium-stat-card h3,
+  .investment-plans .card h2 {
+    font-size: clamp(1.05rem, 4.8vw, 1.45rem);
+    line-height: 1.25;
   }
 
   .investment-plans .btn {

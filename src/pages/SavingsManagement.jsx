@@ -497,14 +497,14 @@ const SavingsManagement = ({ styles }) => {
                       <tbody>
                         {transactions.map((transaction) => (
                           <tr key={transaction._id || transaction.transactionId}>
-                            <td>{new Date(transaction.createdAt).toLocaleDateString()}</td>
+                            <td className="savings-text-cell">{new Date(transaction.createdAt).toLocaleDateString()}</td>
                             <td>
                               <Badge bg={transaction.type === 'deposit' ? 'success' : 'warning'}>
                                 {transaction.type}
                               </Badge>
                             </td>
-                            <td>₦{transaction.amount?.toLocaleString()}</td>
-                            <td>{transaction.description}</td>
+                            <td className="savings-amount-cell">₦{transaction.amount?.toLocaleString()}</td>
+                            <td className="savings-text-cell">{transaction.description}</td>
                             <td>
                               <Badge bg={transaction.status === 'completed' ? 'success' : 'secondary'}>
                                 {transaction.status}

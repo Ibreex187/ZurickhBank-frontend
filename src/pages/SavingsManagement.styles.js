@@ -66,6 +66,10 @@ ${DASHBOARD_STYLES}
 
 .premium-stat-card h3 {
   font-weight: var(--font-weight-bold);
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  font-variant-numeric: tabular-nums;
 }
 
 .premium-stat-card i {
@@ -147,6 +151,21 @@ ${DASHBOARD_STYLES}
   padding: var(--space-lg);
   color: var(--text-main);
   font-size: var(--font-sizes-sm);
+  max-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.savings-management .savings-text-cell {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.savings-management .savings-amount-cell {
+  font-variant-numeric: tabular-nums;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 /* Progress Bars */
@@ -389,6 +408,12 @@ ${DASHBOARD_STYLES}
   .savings-management .table thead th,
   .savings-management .table tbody td {
     padding: var(--space-md);
+  }
+
+  .premium-stat-card h3,
+  .savings-management .card h4 {
+    font-size: clamp(1.05rem, 4.8vw, 1.35rem);
+    line-height: 1.25;
   }
 
   .savings-management .btn {

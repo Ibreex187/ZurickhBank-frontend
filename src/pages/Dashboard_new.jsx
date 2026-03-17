@@ -1207,7 +1207,7 @@ const Dashboard = ({ styles }) => {
                         style={{ cursor: 'pointer' }}
                         title="Click to view details"
                       >
-                        <td>
+                        <td className="dashboard-text-cell">
                           <div className="transaction-info">
                             <div className={`transaction-icon ${transaction.type}`}>
                               {transaction.type === 'deposit' && (
@@ -1252,13 +1252,13 @@ const Dashboard = ({ styles }) => {
                             </div>
                           </div>
                         </td>
-                        <td>
+                        <td className="dashboard-text-cell">
                           <span className={`type-badge ${transaction.type}`}>
                             {transaction.type.toUpperCase()}
                           </span>
                         </td>
-                        <td>
-                          <span className={`amount ${
+                        <td className="dashboard-amount-cell">
+                          <span className={`amount dashboard-amount-cell ${
                             // For withdrawals: always negative (money leaving account)
                             transaction.type === 'withdraw' ||
                               // For transfers: negative if current user is sender (money leaving)
@@ -1273,10 +1273,10 @@ const Dashboard = ({ styles }) => {
                               : '+'}₦{transaction.amount?.toLocaleString()}
                           </span>
                         </td>
-                        <td className="date">
+                        <td className="date dashboard-text-cell">
                           {new Date(transaction.date).toLocaleDateString()}
                         </td>
-                        <td>
+                        <td className="dashboard-text-cell">
                           <span className={`status-badge ${transaction.status}`}>
                             {transaction.status}
                           </span>

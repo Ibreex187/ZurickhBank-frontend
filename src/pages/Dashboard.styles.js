@@ -22,6 +22,7 @@ body {
   display: flex;
   min-height: 100vh;
   background: var(--silver-light);
+  min-width: 0;
 }
 
 .sidebar {
@@ -144,6 +145,7 @@ body {
   display: flex;
   align-items: center;
   gap: var(--space-md);
+  min-width: 0;
 }
 
 .notifications-btn {
@@ -775,6 +777,7 @@ body {
 .balance-amount {
   display: flex;
   align-items: baseline;
+  flex-wrap: wrap;
   gap: 6px;
   margin-bottom: var(--space-md);
 }
@@ -789,6 +792,10 @@ body {
   font-size: clamp(30px, 4vw, 44px);
   font-weight: 800;
   line-height: 1;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  font-variant-numeric: tabular-nums;
 }
 
 .balance-change {
@@ -1340,6 +1347,8 @@ body {
 
 .table-container {
   margin: var(--space-lg) var(--space-xl) var(--space-xl);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .transactions-table {
@@ -1355,11 +1364,15 @@ body {
   color: var(--navy);
   border-bottom: 1px solid var(--border-light);
   background: var(--silver-light);
+  min-width: 0;
 }
 
 .transactions-table tbody td {
   padding: var(--space-md);
   border-bottom: 1px solid var(--border-light);
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .transactions-table tbody tr:hover {
@@ -1400,6 +1413,7 @@ body {
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 
 .transaction-title {
@@ -1410,6 +1424,20 @@ body {
 .transaction-subtitle {
   font-size: 12px;
   color: var(--text-muted);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.dashboard-text-cell {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.dashboard-amount-cell {
+  font-variant-numeric: tabular-nums;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .type-badge,
@@ -1456,11 +1484,21 @@ body {
 .amount.positive {
   color: var(--success);
   font-weight: 700;
+  max-width: 100%;
+  display: inline-block;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  font-variant-numeric: tabular-nums;
 }
 
 .amount.negative {
   color: var(--danger);
   font-weight: 700;
+  max-width: 100%;
+  display: inline-block;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  font-variant-numeric: tabular-nums;
 }
 
 .date {
@@ -1565,6 +1603,25 @@ body {
   color: var(--text-main);
   font-size: 13px;
   font-weight: 600;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.ledger-cell-text {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.ledger-cell-amount {
+  font-variant-numeric: tabular-nums;
+  max-width: 100%;
+  display: inline-block;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.ledger-statement-line {
+  margin-bottom: var(--space-sm);
 }
 
 @keyframes spin {
@@ -1700,6 +1757,33 @@ body {
     gap: var(--space-md);
   }
 
+  .header-left,
+  .user-profile,
+  .user-info {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .page-title {
+    font-size: 22px;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+  }
+
+  .user-name,
+  .user-role {
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  .balance-amount .currency {
+    font-size: 20px;
+  }
+
+  .balance-amount .amount {
+    font-size: clamp(24px, 8vw, 34px);
+  }
+
   /* Mobile menu button - visible on small screens */
   .mobile-menu-btn {
     display: inline-flex;
@@ -1765,6 +1849,15 @@ body {
   .table thead th,
   .table tbody td {
     padding: var(--space-sm) var(--space-md);
+  }
+
+  .transactions-table {
+    min-width: 640px;
+  }
+
+  .ledger-statement-line {
+    font-size: var(--font-sizes-sm);
+    line-height: 1.4;
   }
 
   .modal-content {

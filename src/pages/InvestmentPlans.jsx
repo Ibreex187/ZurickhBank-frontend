@@ -498,21 +498,21 @@ const InvestmentPlans = ({ styles }) => {
                       <tbody>
                         {investments.map((investment) => (
                           <tr key={investment._id}>
-                            <td>
+                            <td className="investment-text-cell">
                               <strong>{investment.planName}</strong>
                               <br />
                               <small className="text-muted">{investment.symbol}</small>
                             </td>
-                            <td>{(investment.quantity || 0).toLocaleString()}</td>
-                            <td>₦{(investment.averagePrice || 0).toLocaleString()}</td>
-                            <td>₦{(investment.currentPrice || 0).toLocaleString()}</td>
-                            <td>
-                              <span className="fw-bold">
+                            <td className="investment-amount-cell">{(investment.quantity || 0).toLocaleString()}</td>
+                            <td className="investment-amount-cell">₦{(investment.averagePrice || 0).toLocaleString()}</td>
+                            <td className="investment-amount-cell">₦{(investment.currentPrice || 0).toLocaleString()}</td>
+                            <td className="investment-amount-cell">
+                              <span className="fw-bold investment-amount-cell">
                                 ₦{(investment.currentValue || 0).toLocaleString()}
                               </span>
                             </td>
-                            <td>
-                              <span className={`fw-bold ${getProfitColor(investment.profitLoss)}`}>
+                            <td className="investment-amount-cell">
+                              <span className={`fw-bold investment-amount-cell ${getProfitColor(investment.profitLoss)}`}>
                                 ₦{(investment.profitLoss || 0).toLocaleString()}
                                 {investment.profitLossPercent && (
                                   <small className="d-block">
@@ -696,10 +696,10 @@ const InvestmentPlans = ({ styles }) => {
                       <tbody>
                         {investmentHistory.map((item) => (
                           <tr key={item._id}>
-                            <td>{new Date(item.purchaseDate || item.createdAt || Date.now()).toLocaleDateString()}</td>
-                            <td>{item.stockSymbol}</td>
-                            <td>{Number(item.quantity || 0).toLocaleString()}</td>
-                            <td>₦{Number(item.totalInvested || 0).toLocaleString()}</td>
+                            <td className="investment-text-cell">{new Date(item.purchaseDate || item.createdAt || Date.now()).toLocaleDateString()}</td>
+                            <td className="investment-text-cell">{item.stockSymbol}</td>
+                            <td className="investment-amount-cell">{Number(item.quantity || 0).toLocaleString()}</td>
+                            <td className="investment-amount-cell">₦{Number(item.totalInvested || 0).toLocaleString()}</td>
                             <td>
                               <Badge bg={item.status === 'active' ? 'success' : 'secondary'}>
                                 {item.status || 'unknown'}

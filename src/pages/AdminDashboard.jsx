@@ -342,13 +342,13 @@ const AdminDashboard = ({ styles }) => {
                               {transaction.type?.toUpperCase()}
                             </Badge>
                           </td>
-                          <td>₦{Number(transaction.amount || 0).toLocaleString()}</td>
-                          <td>
+                          <td className="amount-cell">₦{Number(transaction.amount || 0).toLocaleString()}</td>
+                          <td className="party-cell">
                             {transaction.sender
                               ? `${transaction.sender.firstName || ''} ${transaction.sender.lastName || ''} (${transaction.sender.accountNumber || 'N/A'})`
                               : 'N/A'}
                           </td>
-                          <td>
+                          <td className="party-cell">
                             {transaction.receiver
                               ? `${transaction.receiver.firstName || ''} ${transaction.receiver.lastName || ''} (${transaction.receiver.accountNumber || 'N/A'})`
                               : 'N/A'}

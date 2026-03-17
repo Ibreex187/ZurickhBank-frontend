@@ -282,12 +282,12 @@ const Ledger = () => {
                 <div className="dashboard-grid" style={{ marginBottom: '1rem' }}>
                   {(accounts || []).map((account) => (
                     <div className="dashboard-card" key={account.accountType}>
-                      <h4 style={{ marginBottom: '0.75rem' }}>{account.accountType}</h4>
-                      <p>Opening: {formatCurrency(account.openingBalance)}</p>
-                      <p>Debits: {formatCurrency(account.totalDebits)}</p>
-                      <p>Credits: {formatCurrency(account.totalCredits)}</p>
-                      <p>Net: {formatCurrency(account.netMovement)}</p>
-                      <p>Closing: {formatCurrency(account.closingBalance)}</p>
+                      <h4 className="ledger-cell-text" style={{ marginBottom: '0.75rem' }}>{account.accountType}</h4>
+                      <p className="ledger-statement-line">Opening: <span className="ledger-cell-amount">{formatCurrency(account.openingBalance)}</span></p>
+                      <p className="ledger-statement-line">Debits: <span className="ledger-cell-amount">{formatCurrency(account.totalDebits)}</span></p>
+                      <p className="ledger-statement-line">Credits: <span className="ledger-cell-amount">{formatCurrency(account.totalCredits)}</span></p>
+                      <p className="ledger-statement-line">Net: <span className="ledger-cell-amount">{formatCurrency(account.netMovement)}</span></p>
+                      <p className="ledger-statement-line">Closing: <span className="ledger-cell-amount">{formatCurrency(account.closingBalance)}</span></p>
                     </div>
                   ))}
                 </div>
@@ -325,12 +325,12 @@ const Ledger = () => {
                     ) : (
                       entries.map((entry) => (
                         <tr key={entry._id}>
-                          <td>{entry.description || '-'}</td>
-                          <td>{entry.referenceType}</td>
-                          <td>{entry.accountType}</td>
-                          <td>{formatCurrency(entry.debit)}</td>
-                          <td>{formatCurrency(entry.credit)}</td>
-                          <td>{formatDateTime(entry.createdAt)}</td>
+                          <td className="ledger-cell-text">{entry.description || '-'}</td>
+                          <td className="ledger-cell-text">{entry.referenceType}</td>
+                          <td className="ledger-cell-text">{entry.accountType}</td>
+                          <td className="ledger-cell-amount">{formatCurrency(entry.debit)}</td>
+                          <td className="ledger-cell-amount">{formatCurrency(entry.credit)}</td>
+                          <td className="ledger-cell-text">{formatDateTime(entry.createdAt)}</td>
                         </tr>
                       ))
                     )}
