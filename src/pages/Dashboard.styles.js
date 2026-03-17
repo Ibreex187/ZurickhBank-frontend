@@ -157,7 +157,7 @@ body {
   border-radius: 999px;
   background: var(--white);
   color: var(--navy);
-  cursor: default;
+  cursor: pointer;
 }
 
 .notifications-badge {
@@ -175,6 +175,134 @@ body {
   align-items: center;
   justify-content: center;
   padding: 0 5px;
+}
+
+.notification-status {
+  border-radius: 999px;
+  padding: 6px 10px;
+  background: var(--silver-light);
+  color: var(--text-muted);
+  border: 1px solid var(--border-light);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.notification-status.unread {
+  color: var(--danger);
+  border-color: rgba(220, 38, 38, 0.2);
+  background: var(--danger-light);
+}
+
+.notifications-controls {
+  background: var(--white);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-lg);
+  margin-bottom: 1rem;
+}
+
+.filter-actions {
+  display: flex;
+  align-items: end;
+  gap: var(--space-sm);
+  margin-left: auto;
+}
+
+.notification-category {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 3px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid var(--border-light);
+  color: var(--navy);
+  background: var(--silver-light);
+}
+
+.notification-debit {
+  color: var(--danger);
+  border-color: rgba(220, 38, 38, 0.2);
+  background: var(--danger-light);
+}
+
+.notification-credit {
+  color: var(--success);
+  border-color: rgba(5, 150, 105, 0.2);
+  background: var(--success-light);
+}
+
+.notification-transfer,
+.notification-security {
+  color: var(--accent-dark);
+  border-color: rgba(30, 64, 175, 0.2);
+  background: var(--accent-soft);
+}
+
+.mark-read-btn {
+  border: 1px solid var(--border-rich);
+  background: var(--white);
+  color: var(--navy);
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.mark-read-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.notification-read-tag {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.preferences-grid {
+  display: grid;
+  gap: var(--space-md);
+  padding: var(--space-lg);
+}
+
+.preference-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: var(--space-md) var(--space-lg);
+}
+
+.preference-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.preference-subtitle {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.preference-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.preference-toggle input {
+  width: 16px;
+  height: 16px;
 }
 
 /* Cards: more breathing room and subtle border */

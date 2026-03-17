@@ -22,6 +22,7 @@ const BeneficiaryManagement = lazy(() => import('./pages/BeneficiaryManagement')
 const InvestmentPlans = lazy(() => import('./pages/InvestmentPlans'));
 const SavingsManagement = lazy(() => import('./pages/SavingsManagement'));
 const Ledger = lazy(() => import('./pages/Ledger'));
+const Notifications = lazy(() => import('./pages/Notifications'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Land = lazy(() => import('./pages/Land'));
 
@@ -79,6 +80,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Ledger />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/notifications"
+              element={
+                <ProtectedRoute>
+                  <Notifications styles={DASHBOARD_STYLES} />
                 </ProtectedRoute>
               }
             />

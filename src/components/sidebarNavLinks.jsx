@@ -26,6 +26,11 @@ const NAV_ITEMS = [
     label: 'Ledger',
     iconPath: 'M6,2A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2H6M6,4H13V9H18V20H6V4M8,12H16V14H8V12M8,16H13V18H8V16',
   },
+  {
+    path: '/notifications',
+    label: 'Notifications',
+    iconPath: 'M12,22A2,2 0 0,0 14,20H10A2,2 0 0,0 12,22M18,16V11A6,6 0 0,0 12,5A6,6 0 0,0 6,11V16L4,18V19H20V18L18,16Z',
+  },
 ];
 
 const ADMIN_ITEM = {

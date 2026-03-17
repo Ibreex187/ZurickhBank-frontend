@@ -675,7 +675,12 @@ const Dashboard = ({ styles }) => {
               </div>
             </div>
             <div className="header-right">
-              <button type="button" className="notifications-btn" aria-label="Unread notifications">
+              <button
+                type="button"
+                className="notifications-btn"
+                aria-label="Open notifications"
+                onClick={() => navigate('/notifications')}
+              >
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <path d="M12,22A2,2 0 0,0 14,20H10A2,2 0 0,0 12,22M18,16V11A6,6 0 0,0 12,5A6,6 0 0,0 6,11V16L4,18V19H20V18L18,16Z" />
                 </svg>
