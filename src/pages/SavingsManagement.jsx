@@ -10,6 +10,7 @@ import ZurichBrand from '../components/ZurichBrand';
 import PasswordField from '../components/PasswordField';
 import LoadingWatch from '../components/LoadingWatch';
 import { renderSidebarNavLinks } from '../components/sidebarNavLinks';
+import { getPremiumStatus } from '../utils/premiumStatus';
 import {
   depositToSavings,
   withdrawFromSavings,
@@ -34,6 +35,7 @@ const SavingsManagement = ({ styles }) => {
   const [transactions, setTransactions] = useState([]);
   const [insights, setInsights] = useState(null);
   const [statsLastUpdated, setStatsLastUpdated] = useState(null);
+  const [premiumStatus, setPremiumStatus] = useState({ isPremium: false });
 
   // UI state
   const [loading, setLoading] = useState(false);
@@ -90,6 +92,7 @@ const SavingsManagement = ({ styles }) => {
 
   useEffect(() => {
     fetchSavingsData();
+    getPremiumStatus().then(setPremiumStatus);
   }, []);
 
   const openSavingsAction = (openModal) => {
@@ -279,7 +282,9 @@ const SavingsManagement = ({ styles }) => {
                 </div>
                 <div className="user-info">
                   <span className="user-name">{user?.firstName} {user?.lastName}</span>
-                  <span className="user-role">Premium Member</span>
+                  <span className="user-role">
+                    {premiumStatus.isPremium ? '⭐ Premium Member' : 'Standard Member'}
+                  </span>
                 </div>
               </div>
             </div>

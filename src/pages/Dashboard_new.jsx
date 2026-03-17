@@ -7,6 +7,7 @@ import PasswordField from '../components/PasswordField';
 import LoadingWatch from '../components/LoadingWatch';
 import AppButton from '../components/AppButton';
 import { renderSidebarNavLinks } from '../components/sidebarNavLinks';
+import { getPremiumStatus } from '../utils/premiumStatus';
 import {
   getTransactionHistory,
   getTransactionById,
@@ -93,6 +94,7 @@ const Dashboard = ({ styles }) => {
   const isAdmin = user?.roles === 'admin' || user?.role === 'admin' || user?.isAdmin === true;
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [premiumStatus, setPremiumStatus] = useState({ isPremium: false });
   const [actionType, setActionType] = useState('');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
@@ -165,6 +167,10 @@ const Dashboard = ({ styles }) => {
   useEffect(() => {
     setCookieValue(BALANCE_VISIBILITY_COOKIE, String(showBalanceAmount));
   }, [showBalanceAmount]);
+
+  useEffect(() => {
+    getPremiumStatus().then(setPremiumStatus);
+  }, []);
 
   // Close mobile sidebar on Escape and auto-close on resize to larger screens
   useEffect(() => {
@@ -585,7 +591,9 @@ const Dashboard = ({ styles }) => {
                 </div>
                 <div className="user-info">
                   <span className="user-name">{user?.firstName} {user?.lastName}</span>
-                  <span className="user-role">Premium Member</span>
+                  <span className="user-role">
+                    {premiumStatus.isPremium ? '⭐ Premium Member' : 'Standard Member'}
+                  </span>
                 </div>
               </div>
             </div>

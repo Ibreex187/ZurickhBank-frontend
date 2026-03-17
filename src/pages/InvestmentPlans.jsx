@@ -19,6 +19,7 @@ import AppButton from '../components/AppButton';
 import ZurichBrand from '../components/ZurichBrand';
 import LoadingWatch from '../components/LoadingWatch';
 import { renderSidebarNavLinks } from '../components/sidebarNavLinks';
+import { getPremiumStatus } from '../utils/premiumStatus';
 
 const InvestmentPlans = ({ styles }) => {
   const { user, logout, refreshUser } = useAuth();
@@ -40,6 +41,7 @@ const InvestmentPlans = ({ styles }) => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [investmentHistory, setInvestmentHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [premiumStatus, setPremiumStatus] = useState({ isPremium: false });
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false); // mobile off-canvas state
@@ -68,6 +70,7 @@ const InvestmentPlans = ({ styles }) => {
     fetchAvailableStocks();
     fetchMyPortfolio();
     fetchInvestmentHistoryData();
+    getPremiumStatus().then(setPremiumStatus);
   }, []);
 
   const filteredStocks = availableStocks.filter(stock =>
@@ -357,7 +360,9 @@ const InvestmentPlans = ({ styles }) => {
                 </div>
                 <div className="user-info">
                   <span className="user-name">{user?.firstName} {user?.lastName}</span>
-                  <span className="user-role">Premium Member</span>
+                  <span className="user-role">
+                    {premiumStatus.isPremium ? '⭐ Premium Member' : 'Standard Member'}
+                  </span>
                 </div>
               </div>
             </div>
