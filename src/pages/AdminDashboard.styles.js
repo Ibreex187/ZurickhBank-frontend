@@ -165,13 +165,6 @@ ${DASHBOARD_STYLES}
   color: var(--navy);
 }
 
-/* Admin Badge specifically on header */
-.badge-admin {
-  background-color: var(--warning-light, #FEF3C7) !important;
-  color: var(--warning) !important;
-  letter-spacing: 1px;
-}
-
 /* Forms Filters */
 .admin-dashboard-page .form-control,
 .admin-dashboard-page .form-select {
