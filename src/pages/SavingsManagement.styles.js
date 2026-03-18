@@ -545,9 +545,8 @@ ${DASHBOARD_STYLES}
     border: none !important;
     padding: var(--space-xs) 0 !important;
     max-width: 100%;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
 
   .savings-recent-transactions-table td::before {
