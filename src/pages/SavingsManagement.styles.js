@@ -524,27 +524,27 @@ ${DASHBOARD_STYLES}
   .savings-recent-transactions-table tbody,
   .savings-recent-transactions-table tr,
   .savings-recent-transactions-table td {
-    display: block;
-    width: 100%;
+    display: block !important;
+    width: 100% !important;
   }
 
   .savings-recent-transactions-table tbody {
-    display: grid;
+    display: grid !important;
     gap: var(--space-md);
   }
 
   .savings-recent-transactions-table tr {
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-md);
+    border: 1px solid var(--border-light) !important;
+    border-radius: var(--radius-md) !important;
     background: var(--white);
-    padding: var(--space-md);
+    padding: var(--space-md) !important;
     box-shadow: var(--shadow-sm);
   }
 
   .savings-recent-transactions-table td {
     border: none !important;
     padding: var(--space-xs) 0 !important;
-    max-width: 100%;
+    max-width: 100% !important;
     overflow-wrap: anywhere;
     word-break: break-word;
   }
@@ -592,6 +592,13 @@ ${DASHBOARD_STYLES}
 
   .stat-card {
     padding: var(--space-lg);
+  }
+
+  .savings-recent-transactions-table td,
+  .savings-recent-transactions-table .savings-text-cell,
+  .savings-recent-transactions-table .savings-amount-cell {
+    white-space: normal !important;
+    overflow: visible !important;
   }
 }
 `;
