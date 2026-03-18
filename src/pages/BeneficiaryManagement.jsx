@@ -359,7 +359,7 @@ const BeneficiaryManagement = ({ styles }) => {
                 </div>
                 <div className="user-info">
                   <span className="user-name">{user?.firstName} {user?.lastName}</span>
-                  <span className="user-role premium">Premium Member</span>
+                  <span className="user-role premium">Premium Account</span>
                 </div>
               </div>
             </div>

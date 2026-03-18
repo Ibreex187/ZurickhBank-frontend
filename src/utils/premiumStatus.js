@@ -1,7 +1,7 @@
 import api from '../config/api';
 
 /**
- * Fetch the user's premium membership status from the backend.
+ * Fetch the user's premium account status from the backend.
  * The backend calculates this from live transaction, savings,
  * investment and beneficiary data.
  * @returns {Promise<{ isPremium: boolean, qualifications: Object, metrics: Object }>}

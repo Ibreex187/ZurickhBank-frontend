@@ -361,7 +361,7 @@ const InvestmentPlans = ({ styles }) => {
                 <div className="user-info">
                   <span className="user-name">{user?.firstName} {user?.lastName}</span>
                   <span className={`user-role ${premiumStatus.isPremium ? 'premium' : 'standard'}`}>
-                    {premiumStatus.isPremium ? 'Premium Member' : 'Standard Member'}
+                    {premiumStatus.isPremium ? 'Premium Account' : 'Standard Account'}
                   </span>
                 </div>
               </div>

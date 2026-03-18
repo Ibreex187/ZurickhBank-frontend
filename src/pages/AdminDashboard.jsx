@@ -191,7 +191,7 @@ const AdminDashboard = ({ styles }) => {
                 </div>
                 <div className="user-info">
                   <span className="user-name">{user?.firstName || user?.userName}</span>
-                  <span className="user-role admin">System Administrator</span>
+                  <span className="user-role admin">Admin Account</span>
                 </div>
               </div>
             </div>
