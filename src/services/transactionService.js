@@ -5,9 +5,46 @@ const TRANSACTION_ENDPOINTS = {
   transfer: '/transactions/transfer',
   deposit: '/transactions/deposit',
   withdraw: '/transactions/withdraw',
+  limits: '/transactions/limits',
   history: '/transactions/history',
   summary: '/transactions/history/summary',
   getById: '/transactions/history/:transactionId'
+};
+
+/**
+ * Get transaction limits and usage snapshot for current user
+ */
+export const getTransactionLimits = async (operation) => {
+  try {
+    const params = new URLSearchParams();
+    if (operation) {
+      params.append('operation', String(operation).trim().toLowerCase());
+    }
+
+    const url = params.toString()
+      ? `${TRANSACTION_ENDPOINTS.limits}?${params.toString()}`
+      : TRANSACTION_ENDPOINTS.limits;
+
+    const response = await api.get(url);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching transaction limits:', error);
+
+    const errorMessage = error.response?.data?.message || 'Failed to fetch transaction limits';
+    const errorData = {
+      success: false,
+      message: errorMessage,
+      data: null
+    };
+
+    if (error.response?.data?.success === false) {
+      throw error;
+    } else {
+      const formattedError = new Error(errorMessage);
+      formattedError.response = { data: errorData };
+      throw formattedError;
+    }
+  }
 };
 
 export const resolveRecipientAccount = async (accountNumber) => {

@@ -8,6 +8,7 @@ import {
   removeBeneficiary,
   transferToBeneficiary,
 } from '../services/beneficiaryService';
+import { getTransactionLimits } from '../services/transactionService';
 import {
   Container, Card, Form, Button, Alert, Table, Row, Col,
   Modal
@@ -15,6 +16,19 @@ import {
 import ZurichBrand from '../components/ZurichBrand';
 import LoadingWatch from '../components/LoadingWatch';
 import { renderSidebarNavLinks } from '../components/sidebarNavLinks';
+
+const getLimitSeverity = (bucket) => {
+  const limit = Number(bucket?.limit || 0);
+  const remaining = Number(bucket?.remaining || 0);
+
+  if (!Number.isFinite(limit) || limit <= 0) return 'normal';
+  if (!Number.isFinite(remaining) || remaining <= 0) return 'danger';
+
+  const ratio = remaining / limit;
+  if (ratio <= 0.1) return 'danger';
+  if (ratio <= 0.25) return 'warning';
+  return 'normal';
+};
 
 const BeneficiaryManagement = ({ styles }) => {
   const { user, logout } = useAuth();
@@ -35,6 +49,8 @@ const BeneficiaryManagement = ({ styles }) => {
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [selectedBeneficiary, setSelectedBeneficiary] = useState(null);
   const [transferLoading, setTransferLoading] = useState(false);
+  const [transferLimits, setTransferLimits] = useState(null);
+  const [limitsLoading, setLimitsLoading] = useState(false);
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false); // mobile off-canvas state
@@ -62,6 +78,43 @@ const BeneficiaryManagement = ({ styles }) => {
   useEffect(() => {
     fetchBeneficiaries();
   }, []);
+
+  useEffect(() => {
+    if (!showTransferModal) {
+      setTransferLimits(null);
+      return;
+    }
+
+    let isActive = true;
+
+    const fetchTransferLimits = async () => {
+      setLimitsLoading(true);
+      try {
+        const response = await getTransactionLimits('transfer');
+        if (!isActive) return;
+
+        if (response?.success && response?.data) {
+          setTransferLimits(response.data);
+        } else {
+          setTransferLimits(null);
+        }
+      } catch (error) {
+        if (isActive) {
+          setTransferLimits(null);
+        }
+      } finally {
+        if (isActive) {
+          setLimitsLoading(false);
+        }
+      }
+    };
+
+    fetchTransferLimits();
+
+    return () => {
+      isActive = false;
+    };
+  }, [showTransferModal]);
 
   const validateAccountNumber = (accountNumber) => {
     const normalizedAccountNumber = accountNumber?.toString().replace(/\D/g, '');
@@ -231,6 +284,11 @@ const BeneficiaryManagement = ({ styles }) => {
     }
   };
 
+  const transferOperationLimits = transferLimits?.operations?.transfer;
+  const formatCurrencyValue = (value) => `₦${Number(value || 0).toLocaleString()}`;
+  const transferDailySeverity = getLimitSeverity(transferOperationLimits?.daily);
+  const transferMonthlySeverity = getLimitSeverity(transferOperationLimits?.monthly);
+
   return (
     <>
       {styles && <style>{styles}</style>}
@@ -301,7 +359,7 @@ const BeneficiaryManagement = ({ styles }) => {
                 </div>
                 <div className="user-info">
                   <span className="user-name">{user?.firstName} {user?.lastName}</span>
-                  <span className="user-role">Premium Member</span>
+                  <span className="user-role premium">Premium Member</span>
                 </div>
               </div>
             </div>
@@ -506,6 +564,27 @@ const BeneficiaryManagement = ({ styles }) => {
                       </Card.Body>
                     </Card>
                   )}
+
+                  {limitsLoading ? (
+                    <div className="beneficiary-limit-panel mb-3">
+                      <p className="beneficiary-limit-muted mb-0">Loading transfer limits...</p>
+                    </div>
+                  ) : transferOperationLimits ? (
+                    <div className="beneficiary-limit-panel mb-3">
+                      <div className="beneficiary-limit-header">
+                        <span className="beneficiary-limit-title">Transfer Limits</span>
+                        <span className="beneficiary-limit-tier">Tier: {transferLimits?.tier || 'unverified'}</span>
+                      </div>
+                      <p className={`beneficiary-limit-line ${transferDailySeverity}`}>
+                        Daily Remaining:
+                        <strong>{formatCurrencyValue(transferOperationLimits?.daily?.remaining)}</strong>
+                      </p>
+                      <p className={`beneficiary-limit-line ${transferMonthlySeverity} mb-0`}>
+                        Monthly Remaining:
+                        <strong>{formatCurrencyValue(transferOperationLimits?.monthly?.remaining)}</strong>
+                      </p>
+                    </div>
+                  ) : null}
 
                   <Form.Group className="mb-3">
                     <Form.Label>Amount *</Form.Label>

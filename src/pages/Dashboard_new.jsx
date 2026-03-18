@@ -16,6 +16,7 @@ import {
 import {
   getTransactionHistory,
   getTransactionById,
+  getTransactionLimits,
   resolveRecipientAccount,
   transferFunds,
   depositFunds,
@@ -93,6 +94,21 @@ const getNetActivityAmount = (transactionList, currentUserId) => {
   }, 0);
 };
 
+const formatCurrencyValue = (value) => `₦${Number(value || 0).toLocaleString()}`;
+
+const getLimitSeverity = (bucket) => {
+  const limit = Number(bucket?.limit || 0);
+  const remaining = Number(bucket?.remaining || 0);
+
+  if (!Number.isFinite(limit) || limit <= 0) return 'normal';
+  if (!Number.isFinite(remaining) || remaining <= 0) return 'danger';
+
+  const ratio = remaining / limit;
+  if (ratio <= 0.1) return 'danger';
+  if (ratio <= 0.25) return 'warning';
+  return 'normal';
+};
+
 const Dashboard = ({ styles }) => {
   const { user, logout, refreshUser } = useAuth();
   const location = useLocation();
@@ -149,6 +165,8 @@ const Dashboard = ({ styles }) => {
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [transactionDetailsLoading, setTransactionDetailsLoading] = useState(false);
+  const [transactionLimits, setTransactionLimits] = useState(null);
+  const [limitsLoading, setLimitsLoading] = useState(false);
   const [balanceChangePercent, setBalanceChangePercent] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(() => readStoredUnreadNotifications());
   const [transferModalSession, setTransferModalSession] = useState(0);
@@ -487,6 +505,23 @@ const Dashboard = ({ styles }) => {
     }
   }, []);
 
+  const fetchTransactionLimits = useCallback(async () => {
+    setLimitsLoading(true);
+    try {
+      const response = await getTransactionLimits();
+      if (response?.success && response?.data) {
+        setTransactionLimits(response.data);
+      } else {
+        setTransactionLimits(null);
+      }
+    } catch (error) {
+      console.error('Failed to fetch transaction limits:', error);
+      setTransactionLimits(null);
+    } finally {
+      setLimitsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchTransactions();
   }, [fetchTransactions]);
@@ -498,6 +533,10 @@ const Dashboard = ({ styles }) => {
   useEffect(() => {
     fetchUnreadNotifications();
   }, [fetchUnreadNotifications]);
+
+  useEffect(() => {
+    fetchTransactionLimits();
+  }, [fetchTransactionLimits]);
 
   useEffect(() => {
     const onUnreadNotificationsUpdated = (event) => {
@@ -593,6 +632,7 @@ const Dashboard = ({ styles }) => {
         setReceiverLookup({ loading: false, accountName: '', resolvedAccountNumber: '', error: '' });
         await fetchTransactions();
         await fetchBalanceChange();
+        await fetchTransactionLimits();
         await refreshUser();
 
         if (transactionSuccessTimeoutRef.current) {
@@ -632,6 +672,14 @@ const Dashboard = ({ styles }) => {
 
   const balanceChangeDirection = balanceChangePercent > 0 ? 'positive' : balanceChangePercent < 0 ? 'negative' : 'neutral';
   const formattedBalanceChange = `${balanceChangePercent > 0 ? '+' : ''}${balanceChangePercent.toFixed(1)}%`;
+  const activeLimitOperation = actionType === 'transfer' || actionType === 'withdraw' ? actionType : null;
+  const activeOperationLimits = activeLimitOperation ? transactionLimits?.operations?.[activeLimitOperation] : null;
+  const withdrawDailySeverity = getLimitSeverity(transactionLimits?.operations?.withdraw?.daily);
+  const withdrawMonthlySeverity = getLimitSeverity(transactionLimits?.operations?.withdraw?.monthly);
+  const transferDailySeverity = getLimitSeverity(transactionLimits?.operations?.transfer?.daily);
+  const transferMonthlySeverity = getLimitSeverity(transactionLimits?.operations?.transfer?.monthly);
+  const activeDailySeverity = getLimitSeverity(activeOperationLimits?.daily);
+  const activeMonthlySeverity = getLimitSeverity(activeOperationLimits?.monthly);
 
   return (
     <>
@@ -716,8 +764,8 @@ const Dashboard = ({ styles }) => {
                 </div>
                 <div className="user-info">
                   <span className="user-name">{user?.firstName} {user?.lastName}</span>
-                  <span className="user-role">
-                    {premiumStatus.isPremium ? '⭐ Premium Member' : 'Standard Member'}
+                  <span className={`user-role ${premiumStatus.isPremium ? 'premium' : 'standard'}`}>
+                    {premiumStatus.isPremium ? 'Premium Member' : 'Standard Member'}
                   </span>
                 </div>
               </div>
@@ -815,6 +863,30 @@ const Dashboard = ({ styles }) => {
             </button>
           </div>
 
+          <div className="limits-overview">
+            <div className="limits-overview-header">
+              <h3>Transaction Limits</h3>
+              <span className="tier-chip">Tier: {transactionLimits?.tier || 'unverified'}</span>
+            </div>
+
+            {limitsLoading ? (
+              <p className="limits-muted">Loading current limits...</p>
+            ) : (
+              <div className="limits-grid">
+                <div className="limit-card">
+                  <h4>Withdraw</h4>
+                  <p className={`limit-line ${withdrawDailySeverity}`}>Daily Remaining: <strong>{formatCurrencyValue(transactionLimits?.operations?.withdraw?.daily?.remaining)}</strong></p>
+                  <p className={`limit-line ${withdrawMonthlySeverity}`}>Monthly Remaining: <strong>{formatCurrencyValue(transactionLimits?.operations?.withdraw?.monthly?.remaining)}</strong></p>
+                </div>
+                <div className="limit-card">
+                  <h4>Transfer</h4>
+                  <p className={`limit-line ${transferDailySeverity}`}>Daily Remaining: <strong>{formatCurrencyValue(transactionLimits?.operations?.transfer?.daily?.remaining)}</strong></p>
+                  <p className={`limit-line ${transferMonthlySeverity}`}>Monthly Remaining: <strong>{formatCurrencyValue(transactionLimits?.operations?.transfer?.monthly?.remaining)}</strong></p>
+                </div>
+              </div>
+            )}
+          </div>
+
           {showPinGuardModal && (
             <div className="transfer-modal-overlay">
               <div className="transfer-modal-content">
@@ -871,6 +943,13 @@ const Dashboard = ({ styles }) => {
                 )}
 
                 <form onSubmit={handleTransaction} className="transfer-form">
+                  {activeOperationLimits && (
+                    <div className="limit-inline-note">
+                      <span className={activeDailySeverity}>{activeLimitOperation === 'transfer' ? 'Transfer' : 'Withdraw'} Daily Remaining: <strong>{formatCurrencyValue(activeOperationLimits?.daily?.remaining)}</strong></span>
+                      <span className={activeMonthlySeverity}>{activeLimitOperation === 'transfer' ? 'Transfer' : 'Withdraw'} Monthly Remaining: <strong>{formatCurrencyValue(activeOperationLimits?.monthly?.remaining)}</strong></span>
+                    </div>
+                  )}
+
                   {actionType === 'withdraw' && (
                     <div className="transfer-method-selector">
                       <label className="transfer-form-label">Withdrawal Method</label>

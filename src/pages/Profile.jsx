@@ -427,7 +427,7 @@ const Profile = ({ styles }) => {
                 </div>
                 <div className="user-info">
                   <span className="user-name">{profileData.firstName} {profileData.lastName}</span>
-                  <span className="user-role">Premium Member</span>
+                  <span className="user-role premium">Premium Member</span>
                 </div>
               </div>
             </div>

@@ -186,13 +186,12 @@ const AdminDashboard = ({ styles }) => {
             </div>
             <div className="header-right">
               <div className="user-profile">
-                <Badge bg="warning" text="dark" className="me-3 align-self-center badge-admin">ADMIN</Badge>
                 <div className="user-avatar" style={{ background: '#ffc107', color: '#000' }}>
                   {(user?.firstName?.[0] || user?.userName?.[0] || 'A').toUpperCase()}
                 </div>
                 <div className="user-info">
                   <span className="user-name">{user?.firstName || user?.userName}</span>
-                  <span className="user-role">System Administrator</span>
+                  <span className="user-role admin">System Administrator</span>
                 </div>
               </div>
             </div>

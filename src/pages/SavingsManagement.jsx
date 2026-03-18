@@ -19,6 +19,20 @@ import {
   getSavingsHistory,
   getSavingsInsights
 } from '../services/savingsService';
+import { getTransactionLimits } from '../services/transactionService';
+
+const getLimitSeverity = (bucket) => {
+  const limit = Number(bucket?.limit || 0);
+  const remaining = Number(bucket?.remaining || 0);
+
+  if (!Number.isFinite(limit) || limit <= 0) return 'normal';
+  if (!Number.isFinite(remaining) || remaining <= 0) return 'danger';
+
+  const ratio = remaining / limit;
+  if (ratio <= 0.1) return 'danger';
+  if (ratio <= 0.25) return 'warning';
+  return 'normal';
+};
 
 const SavingsManagement = ({ styles }) => {
   const { user, logout } = useAuth();
@@ -44,6 +58,8 @@ const SavingsManagement = ({ styles }) => {
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showQuickTransferModal, setShowQuickTransferModal] = useState(false);
   const [showPinGuardModal, setShowPinGuardModal] = useState(false);
+  const [withdrawLimits, setWithdrawLimits] = useState(null);
+  const [withdrawLimitsLoading, setWithdrawLimitsLoading] = useState(false);
 
   // Form data
   const [depositAmount, setDepositAmount] = useState('');
@@ -94,6 +110,43 @@ const SavingsManagement = ({ styles }) => {
     fetchSavingsData();
     getPremiumStatus().then(setPremiumStatus);
   }, []);
+
+  useEffect(() => {
+    if (!showWithdrawModal) {
+      setWithdrawLimits(null);
+      return;
+    }
+
+    let isActive = true;
+
+    const fetchWithdrawLimits = async () => {
+      setWithdrawLimitsLoading(true);
+      try {
+        const response = await getTransactionLimits('withdraw');
+        if (!isActive) return;
+
+        if (response?.success && response?.data) {
+          setWithdrawLimits(response.data);
+        } else {
+          setWithdrawLimits(null);
+        }
+      } catch (error) {
+        if (isActive) {
+          setWithdrawLimits(null);
+        }
+      } finally {
+        if (isActive) {
+          setWithdrawLimitsLoading(false);
+        }
+      }
+    };
+
+    fetchWithdrawLimits();
+
+    return () => {
+      isActive = false;
+    };
+  }, [showWithdrawModal]);
 
   const openSavingsAction = (openModal) => {
     if (!hasTransactionPin) {
@@ -212,6 +265,11 @@ const SavingsManagement = ({ styles }) => {
     setLoading(false);
   };
 
+  const formatCurrencyValue = (value) => `₦${Number(value || 0).toLocaleString()}`;
+  const withdrawOperationLimits = withdrawLimits?.operations?.withdraw;
+  const withdrawDailySeverity = getLimitSeverity(withdrawOperationLimits?.daily);
+  const withdrawMonthlySeverity = getLimitSeverity(withdrawOperationLimits?.monthly);
+
   return (
     <>
       {styles && <style>{styles}</style>}
@@ -282,8 +340,8 @@ const SavingsManagement = ({ styles }) => {
                 </div>
                 <div className="user-info">
                   <span className="user-name">{user?.firstName} {user?.lastName}</span>
-                  <span className="user-role">
-                    {premiumStatus.isPremium ? '⭐ Premium Member' : 'Standard Member'}
+                  <span className={`user-role ${premiumStatus.isPremium ? 'premium' : 'standard'}`}>
+                    {premiumStatus.isPremium ? 'Premium Member' : 'Standard Member'}
                   </span>
                 </div>
               </div>
@@ -603,6 +661,27 @@ const SavingsManagement = ({ styles }) => {
               </Modal.Header>
               <Form onSubmit={handleWithdraw}>
                 <Modal.Body>
+                  {withdrawLimitsLoading ? (
+                    <div className="savings-limit-panel mb-3">
+                      <p className="savings-limit-muted mb-0">Loading withdrawal limits...</p>
+                    </div>
+                  ) : withdrawOperationLimits ? (
+                    <div className="savings-limit-panel mb-3">
+                      <div className="savings-limit-header">
+                        <span className="savings-limit-title">Withdrawal Limits</span>
+                        <span className="savings-limit-tier">Tier: {withdrawLimits?.tier || 'unverified'}</span>
+                      </div>
+                      <p className={`savings-limit-line ${withdrawDailySeverity}`}>
+                        Daily Remaining:
+                        <strong>{formatCurrencyValue(withdrawOperationLimits?.daily?.remaining)}</strong>
+                      </p>
+                      <p className={`savings-limit-line ${withdrawMonthlySeverity} mb-0`}>
+                        Monthly Remaining:
+                        <strong>{formatCurrencyValue(withdrawOperationLimits?.monthly?.remaining)}</strong>
+                      </p>
+                    </div>
+                  ) : null}
+
                   <Form.Group className="mb-3">
                     <Form.Label>Amount *</Form.Label>
                     <Form.Control
