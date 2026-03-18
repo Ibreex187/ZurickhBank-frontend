@@ -76,10 +76,15 @@ ${DASHBOARD_STYLES}
 
 .premium-stat-card h3 {
   font-weight: var(--font-weight-bold);
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-variant-numeric: tabular-nums;
+}
+
+.investment-plans .premium-stat-card .d-flex {
+  gap: var(--space-md);
+  flex-wrap: wrap;
 }
 
 .premium-stat-card i {
@@ -125,6 +130,11 @@ ${DASHBOARD_STYLES}
   padding: var(--space-xl);
 }
 
+.investment-plans .investment-plan-card .card-header,
+.investment-plans .investment-plan-card .card-body {
+  min-width: 0;
+}
+
 .investment-plans .card {
   border-radius: var(--radius-md);
 }
@@ -134,6 +144,11 @@ ${DASHBOARD_STYLES}
   overflow: hidden;
   margin-bottom: 0;
   background: var(--white);
+}
+
+.investment-plans .table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .investment-plans .table thead th {
@@ -167,20 +182,23 @@ ${DASHBOARD_STYLES}
   color: var(--text-main);
   font-size: var(--font-sizes-sm);
   max-width: 0;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .investment-plans .investment-text-cell {
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .investment-plans .investment-amount-cell {
   font-variant-numeric: tabular-nums;
   max-width: 100%;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Progress Bars */
@@ -371,10 +389,19 @@ ${DASHBOARD_STYLES}
     padding: var(--space-md);
   }
 
+  .investment-plans .table {
+    min-width: 620px;
+  }
+
   .premium-stat-card h3,
   .investment-plans .card h2 {
     font-size: clamp(1.05rem, 4.8vw, 1.45rem);
     line-height: 1.25;
+  }
+
+  .investment-plans .investment-plan-card .card-header,
+  .investment-plans .investment-plan-card .card-body {
+    padding: var(--space-lg);
   }
 
   .investment-plans .btn {

@@ -822,8 +822,9 @@ body {
   font-weight: 800;
   line-height: 1;
   max-width: 100%;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-variant-numeric: tabular-nums;
 }
 
@@ -940,8 +941,9 @@ body {
 
 .limit-line strong {
   font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-align: right;
 }
 
@@ -975,8 +977,9 @@ body {
 }
 
 .limit-inline-note span {
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .limit-inline-note strong {
@@ -1518,8 +1521,9 @@ body {
   padding: var(--space-md);
   border-bottom: 1px solid var(--border-light);
   min-width: 0;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .transactions-table tbody tr:hover {
@@ -1571,20 +1575,23 @@ body {
 .transaction-subtitle {
   font-size: 12px;
   color: var(--text-muted);
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dashboard-text-cell {
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .dashboard-amount-cell {
   font-variant-numeric: tabular-nums;
   max-width: 100%;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .type-badge,
@@ -1631,20 +1638,18 @@ body {
 .amount.positive {
   color: var(--success);
   font-weight: 700;
-  max-width: 100%;
-  display: inline-block;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-variant-numeric: tabular-nums;
 }
 
 .amount.negative {
   color: var(--danger);
   font-weight: 700;
-  max-width: 100%;
-  display: inline-block;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1750,21 +1755,22 @@ body {
   color: var(--text-main);
   font-size: 13px;
   font-weight: 600;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ledger-cell-text {
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ledger-cell-amount {
   font-variant-numeric: tabular-nums;
-  max-width: 100%;
-  display: inline-block;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .ledger-statement-line {
@@ -1919,8 +1925,9 @@ body {
 
   .user-name,
   .user-role {
-    overflow-wrap: anywhere;
-    word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   }
 
   .balance-amount .currency {

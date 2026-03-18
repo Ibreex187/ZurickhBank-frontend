@@ -47,10 +47,15 @@ ${DASHBOARD_STYLES}
 
 .premium-stat-card h2 {
   font-weight: var(--font-weight-bold);
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-variant-numeric: tabular-nums;
+}
+
+.admin-dashboard-page .premium-stat-card .d-flex {
+  gap: var(--space-md);
+  flex-wrap: wrap;
 }
 
 .premium-stat-card i {
@@ -64,6 +69,11 @@ ${DASHBOARD_STYLES}
   margin-bottom: 0;
   background: var(--white);
   border: 1px solid var(--border-light);
+}
+
+.admin-dashboard-page .table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .admin-dashboard-page .table thead th {
@@ -93,8 +103,9 @@ ${DASHBOARD_STYLES}
   color: var(--text-main);
   font-size: var(--font-sizes-sm);
   max-width: 0;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .admin-dashboard-page .amount-cell {
@@ -103,8 +114,9 @@ ${DASHBOARD_STYLES}
 }
 
 .admin-dashboard-page .party-cell {
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Customizing Badges with Theme Tokens */
@@ -215,6 +227,16 @@ ${DASHBOARD_STYLES}
   .admin-dashboard-inner {
     padding: var(--space-lg) !important;
     padding-bottom: var(--space-xl) !important;
+  }
+
+  .admin-dashboard-page .d-flex.justify-content-between.align-items-center.mb-3 {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: var(--space-sm);
+  }
+
+  .admin-dashboard-page .table {
+    min-width: 620px;
   }
 
   .premium-stat-card h2 {

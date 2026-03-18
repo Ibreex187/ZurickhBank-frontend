@@ -82,8 +82,9 @@ ${DASHBOARD_STYLES}
 .premium-stat-card h3 {
   font-weight: var(--font-weight-bold);
   max-width: 100%;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-variant-numeric: tabular-nums;
 }
 
@@ -154,20 +155,23 @@ ${DASHBOARD_STYLES}
   color: var(--text-main);
   font-size: var(--font-sizes-sm);
   max-width: 0;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .beneficiary-management .beneficiary-text-cell {
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .beneficiary-management .beneficiary-account-cell {
   font-variant-numeric: tabular-nums;
   max-width: 100%;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .beneficiary-management .table-action {
@@ -375,6 +379,8 @@ ${DASHBOARD_STYLES}
   margin: 0;
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
   gap: var(--space-sm);
   color: var(--text-main);
   font-size: var(--font-sizes-sm);
@@ -385,10 +391,17 @@ ${DASHBOARD_STYLES}
 }
 
 .beneficiary-limit-line strong {
+  min-width: 0;
   font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-align: right;
+}
+
+.beneficiary-management .table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .beneficiary-limit-line.warning strong {
@@ -536,6 +549,10 @@ ${DASHBOARD_STYLES}
     padding: var(--space-md);
   }
 
+  .beneficiary-management .table {
+    min-width: 620px;
+  }
+
   .premium-stat-card h3 {
     font-size: clamp(1.05rem, 4.8vw, 1.35rem);
     line-height: 1.25;
@@ -554,6 +571,15 @@ ${DASHBOARD_STYLES}
 
   .table-action {
     flex-direction: column;
+  }
+
+  .beneficiary-card {
+    padding: var(--space-lg);
+  }
+
+  .beneficiary-actions {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .beneficiary-limit-header {

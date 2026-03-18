@@ -529,7 +529,7 @@ const SavingsManagement = ({ styles }) => {
             </Row>
 
             {/* Recent Transactions */}
-            <Card className="shadow-sm">
+            <Card className="shadow-sm savings-recent-transactions-card">
               <Card.Header>
                 <h5 className="mb-0">Recent Transactions</h5>
               </Card.Header>
@@ -541,8 +541,8 @@ const SavingsManagement = ({ styles }) => {
                     <p className="text-muted">Start saving to see your transaction history</p>
                   </div>
                 ) : (
-                  <div className="table-responsive">
-                    <Table hover>
+                  <div className="table-responsive savings-recent-transactions-table-wrap">
+                    <Table hover className="savings-recent-transactions-table">
                       <thead className="table-light">
                         <tr>
                           <th>Date</th>
@@ -555,15 +555,15 @@ const SavingsManagement = ({ styles }) => {
                       <tbody>
                         {transactions.map((transaction) => (
                           <tr key={transaction._id || transaction.transactionId}>
-                            <td className="savings-text-cell">{new Date(transaction.createdAt).toLocaleDateString()}</td>
-                            <td>
+                            <td className="savings-text-cell" data-label="Date">{new Date(transaction.createdAt).toLocaleDateString()}</td>
+                            <td data-label="Type">
                               <Badge bg={transaction.type === 'deposit' ? 'success' : 'warning'}>
                                 {transaction.type}
                               </Badge>
                             </td>
-                            <td className="savings-amount-cell">₦{transaction.amount?.toLocaleString()}</td>
-                            <td className="savings-text-cell">{transaction.description}</td>
-                            <td>
+                            <td className="savings-amount-cell" data-label="Amount">₦{transaction.amount?.toLocaleString()}</td>
+                            <td className="savings-text-cell" data-label="Description">{transaction.description}</td>
+                            <td data-label="Status">
                               <Badge bg={transaction.status === 'completed' ? 'success' : 'secondary'}>
                                 {transaction.status}
                               </Badge>

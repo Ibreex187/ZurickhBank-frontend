@@ -66,10 +66,15 @@ ${DASHBOARD_STYLES}
 
 .premium-stat-card h3 {
   font-weight: var(--font-weight-bold);
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-variant-numeric: tabular-nums;
+}
+
+.savings-management .premium-stat-card .d-flex {
+  gap: var(--space-md);
+  flex-wrap: wrap;
 }
 
 .premium-stat-card i {
@@ -121,6 +126,18 @@ ${DASHBOARD_STYLES}
   background: var(--white);
 }
 
+.savings-management .table-responsive {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.savings-recent-transactions-card .card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-sm);
+}
+
 .savings-management .table thead th {
   border: none;
   font-weight: var(--font-weight-semibold);
@@ -152,20 +169,23 @@ ${DASHBOARD_STYLES}
   color: var(--text-main);
   font-size: var(--font-sizes-sm);
   max-width: 0;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .savings-management .savings-text-cell {
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .savings-management .savings-amount-cell {
   font-variant-numeric: tabular-nums;
   max-width: 100%;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Progress Bars */
@@ -347,6 +367,8 @@ ${DASHBOARD_STYLES}
   margin: 0;
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
   gap: var(--space-sm);
   color: var(--text-main);
   font-size: var(--font-sizes-sm);
@@ -357,9 +379,11 @@ ${DASHBOARD_STYLES}
 }
 
 .savings-limit-line strong {
+  min-width: 0;
   font-variant-numeric: tabular-nums;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
   text-align: right;
 }
 
@@ -435,6 +459,11 @@ ${DASHBOARD_STYLES}
   font-size: var(--font-sizes-2xl);
   font-weight: var(--font-weight-bold);
   color: var(--navy);
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
 }
 
 .stat-change {
@@ -475,6 +504,72 @@ ${DASHBOARD_STYLES}
     padding: var(--space-md);
   }
 
+  .savings-management .table {
+    min-width: 620px;
+  }
+
+  .savings-recent-transactions-table {
+    min-width: 0 !important;
+  }
+
+  .savings-recent-transactions-table-wrap {
+    overflow: visible;
+  }
+
+  .savings-recent-transactions-table thead {
+    display: none;
+  }
+
+  .savings-recent-transactions-table,
+  .savings-recent-transactions-table tbody,
+  .savings-recent-transactions-table tr,
+  .savings-recent-transactions-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .savings-recent-transactions-table tbody {
+    display: grid;
+    gap: var(--space-md);
+  }
+
+  .savings-recent-transactions-table tr {
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-md);
+    background: var(--white);
+    padding: var(--space-md);
+    box-shadow: var(--shadow-sm);
+  }
+
+  .savings-recent-transactions-table td {
+    border: none !important;
+    padding: var(--space-xs) 0 !important;
+    max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  }
+
+  .savings-recent-transactions-table td::before {
+    content: attr(data-label);
+    display: block;
+    color: var(--text-muted);
+    font-size: var(--font-sizes-xs);
+    font-weight: var(--font-weight-semibold);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 2px;
+  }
+
+  .savings-recent-transactions-table .savings-amount-cell {
+    font-size: var(--font-sizes-sm);
+  }
+
+  .savings-recent-transactions-table .badge {
+    width: fit-content;
+    max-width: 100%;
+  }
+
   .premium-stat-card h3,
   .savings-management .card h4 {
     font-size: clamp(1.05rem, 4.8vw, 1.35rem);
@@ -494,6 +589,10 @@ ${DASHBOARD_STYLES}
   .savings-limit-line {
     flex-direction: column;
     align-items: flex-start;
+  }
+
+  .stat-card {
+    padding: var(--space-lg);
   }
 }
 `;

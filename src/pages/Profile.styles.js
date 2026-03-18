@@ -79,6 +79,8 @@ ${DASHBOARD_STYLES}
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: var(--space-md);
+  flex-wrap: wrap;
 }
 
 .nav-left {
@@ -123,6 +125,8 @@ ${DASHBOARD_STYLES}
   display: flex;
   align-items: center;
   gap: var(--space-md);
+  min-width: 0;
+  max-width: 100%;
 }
 
 .user-avatar {
@@ -149,6 +153,9 @@ ${DASHBOARD_STYLES}
   font-weight: var(--font-weight-semibold);
   color: var(--navy);
   font-size: var(--font-sizes-base);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Main Container */
@@ -221,6 +228,9 @@ ${DASHBOARD_STYLES}
   font-size: var(--font-sizes-2xl);
   font-weight: var(--font-weight-bold);
   color: var(--navy);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .profile-email {
@@ -229,6 +239,9 @@ ${DASHBOARD_STYLES}
   display: flex;
   align-items: center;
   gap: var(--space-sm);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .profile-status {
@@ -258,6 +271,8 @@ ${DASHBOARD_STYLES}
   background: var(--white);
   padding: 0 var(--space-xl);
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .tab-button {
@@ -336,6 +351,11 @@ ${DASHBOARD_STYLES}
 .account-summary .balance-item .value {
   font-size: clamp(1.05rem, 1.2vw, 1.25rem);
   line-height: 1.2;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
 }
 
 .account-summary .account-details {
@@ -772,6 +792,19 @@ ${DASHBOARD_STYLES}
 
   .nav-container {
     padding: 0 var(--space-lg);
+    align-items: flex-start;
+  }
+
+  .nav-left,
+  .nav-right,
+  .user-info {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .nav-left {
+    flex-wrap: wrap;
+    gap: var(--space-md);
   }
 
   .page-title {
@@ -781,6 +814,7 @@ ${DASHBOARD_STYLES}
   .profile-tabs {
     gap: var(--space-md);
     padding: 0 var(--space-lg);
+    flex-wrap: nowrap;
   }
 
   .tab-button {
@@ -792,6 +826,18 @@ ${DASHBOARD_STYLES}
     align-items: flex-start;
     flex-direction: column;
     gap: var(--space-sm);
+  }
+
+  .profile-avatar {
+    width: 96px;
+    height: 96px;
+    font-size: var(--font-sizes-3xl);
+  }
+
+  .profile-name,
+  .profile-email {
+    text-align: center;
+    justify-content: center;
   }
 
   .account-summary .account-details {
