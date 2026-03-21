@@ -60,6 +60,13 @@ export const THEME = {
     lg: '0 10px 15px -3px rgba(15, 15, 17, 0.1), 0 4px 6px -2px rgba(15, 15, 17, 0.05)',
     xl: '0 20px 25px -5px rgba(15, 15, 17, 0.1), 0 10px 10px -5px rgba(15, 15, 17, 0.04)',
   },
+
+  breakpoints: {
+    tablet: '1024px',
+    mobileLg: '768px',
+    mobile: '480px',
+    mobileSm: '375px',
+  },
 };
 
 // converts our theme values into CSS variables that we can use in <style> tags
@@ -110,6 +117,11 @@ export const THEME_CSS_VARIABLES = `
   --shadow-md: ${THEME.shadows.md};
   --shadow-lg: ${THEME.shadows.lg};
   --shadow-xl: ${THEME.shadows.xl};
+
+  --bp-tablet: ${THEME.breakpoints.tablet};
+  --bp-mobile-lg: ${THEME.breakpoints.mobileLg};
+  --bp-mobile: ${THEME.breakpoints.mobile};
+  --bp-mobile-sm: ${THEME.breakpoints.mobileSm};
 
   --font-family: 'Inter', sans-serif;
   --font-weight-medium: 500;
