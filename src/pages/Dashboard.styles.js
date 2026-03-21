@@ -585,7 +585,7 @@ body {
   max-width: 600px;
   width: 90%;
   box-shadow: var(--shadow-xl);
-  margin: auto;
+  margin: 0 auto;
 }
 
 .modal-header {
@@ -1173,7 +1173,7 @@ body {
   animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   position: relative;
   overflow: visible;
-  margin: auto;
+  margin: 0 auto;
 }
 
 /* Optional subtle gradient glow behind the modal content */
@@ -1860,6 +1860,9 @@ body {
   }
 
   /* Breakpoint: Mobile Large (768px) */
+  @media (max-width: 768px) {
+    .modal-overlay, .transfer-modal-overlay { padding: 1rem 0; }
+  }
   @media (max-width: 768px) {
     .sidebar { width: 280px; transform: translateX(-100%); transition: transform 240ms ease-in-out; position: fixed; left: 0; top: 0; height: 100vh; z-index: 1200; box-shadow: var(--shadow-lg); overflow-y: auto; }
     .sidebar.open { transform: translateX(0); }
