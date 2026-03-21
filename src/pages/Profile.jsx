@@ -1,4 +1,5 @@
 import ProfileCard from '../components/ProfileCard';
+import PropTypes from 'prop-types';
 import ActionButtons from '../components/ActionButtons';
 import LoadingWatch from '../components/LoadingWatch';
 import PasswordField from '../components/PasswordField';
