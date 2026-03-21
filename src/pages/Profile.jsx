@@ -1,8 +1,3 @@
-import { useState, useEffect, useCallback } from 'react';
-import PropTypes from 'prop-types';
-import { useLocation } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import ZurichBrand from '../components/ZurichBrand';
 import ProfileCard from '../components/ProfileCard';
 import ActionButtons from '../components/ActionButtons';
 import LoadingWatch from '../components/LoadingWatch';
@@ -20,6 +15,7 @@ import {
   validatePasswordData,
   validateTransactionPinData
 } from '../services/profileService';
+import { getNotificationPreferences, updateNotificationPreferences } from '../services/notificationService';
 
 const Profile = ({ styles }) => {
   const { user, logout, refreshUser } = useAuth();
@@ -27,6 +23,59 @@ const Profile = ({ styles }) => {
 
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+
+  const [preferencesLoading, setPreferencesLoading] = useState(false);
+  const [preferencesSavingKey, setPreferencesSavingKey] = useState('');
+  const [preferences, setPreferences] = useState({
+    debit: true,
+    credit: true,
+    transfer: true,
+    security: true,
+  });
+
+  const fetchPreferences = useCallback(async () => {
+    setPreferencesLoading(true);
+    try {
+      const response = await getNotificationPreferences();
+      if (response?.success) {
+        const mappedPreferences = response?.data?.emailByCategory;
+        if (mappedPreferences) {
+          setPreferences((prev) => ({
+            ...prev,
+            ...mappedPreferences,
+          }));
+        }
+      }
+    } catch (fetchError) {
+      console.error(fetchError?.response?.data?.message || 'Failed to load notification preferences');
+    } finally {
+      setPreferencesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'security') {
+      fetchPreferences();
+    }
+  }, [fetchPreferences, activeTab]);
+
+  const handlePreferenceToggle = async (category, enabled) => {
+    setPreferencesSavingKey(category);
+    const nextPreferences = { ...preferences, [category]: enabled };
+    setPreferences(nextPreferences);
+    try {
+      const response = await updateNotificationPreferences(nextPreferences);
+      if (!response?.success) {
+        throw new Error(response?.message || 'Failed to update preferences');
+      }
+      setMessage({ type: 'success', text: 'Email preferences updated successfully' });
+    } catch (preferenceError) {
+      setPreferences((prev) => ({ ...prev, [category]: !enabled }));
+      setMessage({ type: 'error', text: preferenceError?.response?.data?.message || 'Failed to update preferences' });
+    } finally {
+      setPreferencesSavingKey('');
+    }
+  };
   const [message, setMessage] = useState({ type: '', text: '' });
 
   // Profile data state
