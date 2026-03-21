@@ -223,49 +223,6 @@ ${DASHBOARD_STYLES}
   gap: var(--space-sm);
 }
 
-.beneficiary-management .btn-sm {
-  padding: var(--space-sm) var(--space-md);
-  font-size: var(--font-sizes-xs);
-}
-
-.beneficiary-management .btn-primary {
-  background-color: var(--accent);
-  color: var(--white);
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--accent);
-}
-
-.beneficiary-management .btn-primary:hover {
-  background-color: var(--accentDark);
-  border-color: var(--accentDark);
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
-}
-
-.beneficiary-management .btn-secondary {
-  background-color: var(--silver-light);
-  color: var(--navy);
-  border: 1px solid var(--border-rich);
-}
-
-.beneficiary-management .btn-secondary:hover {
-  background-color: var(--border-light);
-}
-
-.beneficiary-management .btn-outline-primary {
-  color: var(--accent);
-  border: 2px solid var(--accent);
-  background: transparent;
-}
-
-.beneficiary-management .btn-outline-primary:hover {
-  background-color: var(--accentSoft);
-  color: var(--accentDark);
-}
-
-.beneficiary-management .btn-danger {
-  background-color: var(--danger);
-  color: var(--white);
   border: 1px solid var(--danger);
 }
 
