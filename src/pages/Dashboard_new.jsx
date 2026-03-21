@@ -1455,7 +1455,7 @@ const Dashboard = ({ styles }) => {
                 <div className="transaction-detail-grid">
                   <div className="detail-item">
                     <label>Transaction ID</label>
-                    <span>{selectedTransaction.transactionId}</span>
+                    <span className="transaction-id-value">{selectedTransaction.transactionId}</span>
                   </div>
 
                   <div className="detail-item">

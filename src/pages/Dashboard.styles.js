@@ -571,8 +571,10 @@ body {
   bottom: 0;
   background: rgba(15, 23, 42, 0.5);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
+  padding: 3rem 0;
+  overflow-y: auto;
   z-index: 2000;
 }
 
@@ -583,6 +585,7 @@ body {
   max-width: 600px;
   width: 90%;
   box-shadow: var(--shadow-xl);
+  margin: auto;
 }
 
 .modal-header {
@@ -1146,12 +1149,14 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(15, 15, 17, 0.6); /* Slightly more opaque dark background */
-  backdrop-filter: blur(12px); /* High blur for premium glass effect */
+  background: rgba(15, 15, 17, 0.6);
+  backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
+  padding: 3rem 0;
+  overflow-y: auto;
   z-index: 9999;
   animation: fadeIn 0.3s ease forwards;
 }
@@ -1167,7 +1172,8 @@ body {
   transform: translateY(20px) scale(0.95);
   animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   position: relative;
-  overflow: hidden;
+  overflow: visible;
+  margin: auto;
 }
 
 /* Optional subtle gradient glow behind the modal content */
@@ -1907,6 +1913,11 @@ body {
     .action-btn { flex-direction: column; text-align: center; padding: var(--space-sm); }
     .modal-content { padding: var(--space-md); }
   }
+
+.transaction-id-value {
+  word-break: break-all;
+  white-space: normal !important;
+}
 `;
 
 export default DASHBOARD_STYLES;
