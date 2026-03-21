@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ZurichBrand from '../components/ZurichBrand';
 import ProfileCard from '../components/ProfileCard';
 import ActionButtons from '../components/ActionButtons';
+import LoadingWatch from '../components/LoadingWatch';
 import PasswordField from '../components/PasswordField';
 import { renderSidebarNavLinks } from '../components/sidebarNavLinks';
 import PROFILE_STYLES from './Profile.styles.js';
