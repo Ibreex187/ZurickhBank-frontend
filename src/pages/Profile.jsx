@@ -528,7 +528,6 @@ const Profile = ({ styles }) => {
                         <ActionButtons
                           actions={[
                             { key: 'edit', label: 'Edit', onClick: () => setActiveTab('personal'), backgroundColor: 'rgba(255,255,255,0.1)', textColor: '#ffffff', borderColor: 'rgba(255,255,255,0.2)' },
-                            { key: 'security', label: 'Security', onClick: () => setActiveTab('security'), backgroundColor: 'rgba(255,255,255,0.1)', textColor: '#ffffff', borderColor: 'rgba(255,255,255,0.2)' },
                           ]}
                         />
                       }

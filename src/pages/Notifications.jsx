@@ -9,8 +9,6 @@ import {
   getNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,
-  getNotificationPreferences,
-  updateNotificationPreferences,
 } from '../services/notificationService';
 import { publishUnreadNotifications } from '../utils/notificationEvents';
 
@@ -57,15 +55,6 @@ const Notifications = ({ styles }) => {
 
   const [markingNotificationId, setMarkingNotificationId] = useState('');
   const [markingAll, setMarkingAll] = useState(false);
-
-  const [preferencesLoading, setPreferencesLoading] = useState(false);
-  const [preferencesSavingKey, setPreferencesSavingKey] = useState('');
-  const [preferences, setPreferences] = useState({
-    debit: true,
-    credit: true,
-    transfer: true,
-    security: true,
-  });
 
   useEffect(() => {
     setSidebarOpen(false);
@@ -127,34 +116,9 @@ const Notifications = ({ styles }) => {
     }
   }, [filters]);
 
-  const fetchPreferences = useCallback(async () => {
-    setPreferencesLoading(true);
-
-    try {
-      const response = await getNotificationPreferences();
-      if (response?.success) {
-        const mappedPreferences = response?.data?.emailByCategory;
-        if (mappedPreferences) {
-          setPreferences((prev) => ({
-            ...prev,
-            ...mappedPreferences,
-          }));
-        }
-      }
-    } catch (fetchError) {
-      setError(fetchError?.response?.data?.message || 'Failed to load notification preferences');
-    } finally {
-      setPreferencesLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
     fetchNotificationList();
   }, [fetchNotificationList]);
-
-  useEffect(() => {
-    fetchPreferences();
-  }, [fetchPreferences]);
 
   const handleFilterChange = (field, value) => {
     setFilters((prev) => ({
@@ -193,33 +157,6 @@ const Notifications = ({ styles }) => {
       setError(markAllError?.response?.data?.message || 'Failed to mark all notifications as read');
     } finally {
       setMarkingAll(false);
-    }
-  };
-
-  const handlePreferenceToggle = async (category, enabled) => {
-    setPreferencesSavingKey(category);
-    setError('');
-
-    const nextPreferences = {
-      ...preferences,
-      [category]: enabled,
-    };
-
-    setPreferences(nextPreferences);
-
-    try {
-      const response = await updateNotificationPreferences(nextPreferences);
-      if (!response?.success) {
-        throw new Error(response?.message || 'Failed to update notification preferences');
-      }
-    } catch (preferenceError) {
-      setPreferences((prev) => ({
-        ...prev,
-        [category]: !enabled,
-      }));
-      setError(preferenceError?.response?.data?.message || preferenceError?.message || 'Failed to update notification preferences');
-    } finally {
-      setPreferencesSavingKey('');
     }
   };
 
@@ -433,35 +370,7 @@ const Notifications = ({ styles }) => {
               </div>
             </div>
 
-            <div className="transactions-section">
-              <div className="section-header">
-                <h3>Email Preferences</h3>
-              </div>
-
-              {preferencesLoading ? (
-                <LoadingWatch label="Loading preferences..." minHeight="100px" />
-              ) : (
-                <div className="preferences-grid">
-                  {Object.keys(preferences).map((categoryKey) => (
-                    <div className="preference-item" key={categoryKey}>
-                      <div>
-                        <p className="preference-title">{categoryKey.charAt(0).toUpperCase() + categoryKey.slice(1)}</p>
-                        <p className="preference-subtitle">Send email for {categoryKey} notifications</p>
-                      </div>
-                      <label className="preference-toggle">
-                        <input
-                          type="checkbox"
-                          checked={Boolean(preferences[categoryKey])}
-                          onChange={(event) => handlePreferenceToggle(categoryKey, event.target.checked)}
-                          disabled={preferencesSavingKey === categoryKey}
-                        />
-                        <span>{preferences[categoryKey] ? 'On' : 'Off'}</span>
-                      </label>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            
           </div>
         </div>
       </div>
