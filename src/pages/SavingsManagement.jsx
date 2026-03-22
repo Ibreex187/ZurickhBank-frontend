@@ -470,17 +470,17 @@ const SavingsManagement = ({ styles }) => {
                   </Card.Header>
                   <Card.Body>
                     <div className="row text-center">
-                      <div className="col-4">
+                      <div className="col-4 px-2">
                         <h6 className="text-muted">Total Deposited</h6>
-                        <h4 className="text-success">₦{savingsStatistics.totalDeposited.toLocaleString()}</h4>
+                        <h4 className="text-success text-truncate">₦{savingsStatistics.totalDeposited.toLocaleString()}</h4>
                       </div>
-                      <div className="col-4">
+                      <div className="col-4 px-2">
                         <h6 className="text-muted">Total Withdrawn</h6>
-                        <h4 className="text-warning">₦{savingsStatistics.totalWithdrawn.toLocaleString()}</h4>
+                        <h4 className="text-warning text-truncate">₦{savingsStatistics.totalWithdrawn.toLocaleString()}</h4>
                       </div>
-                      <div className="col-4">
+                      <div className="col-4 px-2">
                         <h6 className="text-muted">Net Savings</h6>
-                        <h4 className="text-primary">₦{savingsStatistics.netSavings.toLocaleString()}</h4>
+                        <h4 className="text-primary text-truncate">₦{savingsStatistics.netSavings.toLocaleString()}</h4>
                       </div>
                     </div>
                   </Card.Body>

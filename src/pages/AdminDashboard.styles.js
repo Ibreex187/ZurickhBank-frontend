@@ -55,7 +55,12 @@ ${DASHBOARD_STYLES}
 
 .admin-dashboard-page .premium-stat-card .d-flex {
   gap: var(--space-md);
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+}
+
+.admin-dashboard-page .premium-stat-card .d-flex > div:first-child {
+  min-width: 0;
+  flex: 1;
 }
 
 .premium-stat-card i {
