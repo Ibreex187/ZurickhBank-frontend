@@ -23,17 +23,6 @@ ${DASHBOARD_STYLES}
   font-size: var(--font-sizes-lg);
 }
 
-.beneficiary-management .nav-link {
-  color: var(--text-muted) !important;
-  font-weight: var(--font-weight-medium);
-  transition: var(--transition);
-  font-size: var(--font-sizes-sm);
-}
-
-.beneficiary-management .nav-link:hover,
-.beneficiary-management .nav-link.active {
-  color: var(--accent) !important;
-}
 
 /* Page Header */
 .beneficiary-management-header {

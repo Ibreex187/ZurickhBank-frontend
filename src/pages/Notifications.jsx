@@ -11,6 +11,7 @@ import {
   markAllNotificationsAsRead,
 } from '../services/notificationService';
 import { publishUnreadNotifications } from '../utils/notificationEvents';
+import AppButton from '../components/AppButton';
 
 const CATEGORY_OPTIONS = [
   { label: 'All Categories', value: '' },
@@ -268,22 +269,26 @@ const Notifications = ({ styles }) => {
                   </select>
                 </div>
 
-                <div className="filter-actions">
-                  <button
+                <div className="filter-actions" style={{ display: 'flex', gap: '12px' }}>
+                  <AppButton
                     type="button"
                     className="clear-filters-btn"
+                    backgroundColor="transparent"
+                    textColor="var(--navy)"
+                    borderColor="var(--border-light, #D1D5DB)"
                     onClick={() => setFilters({ unreadOnly: false, category: '', page: 1, limit: 20 })}
                   >
                     Reset
-                  </button>
-                  <button
+                  </AppButton>
+                  <AppButton
                     type="button"
                     className="submit-btn primary"
+                    backgroundColor="var(--navy)"
                     onClick={handleMarkAllAsRead}
                     disabled={markingAll || !hasUnreadNotifications}
                   >
                     {markingAll ? 'Marking...' : 'Mark all as read'}
-                  </button>
+                  </AppButton>
                 </div>
               </div>
             </div>
@@ -327,14 +332,18 @@ const Notifications = ({ styles }) => {
                             <td>{formatDateTime(notification.createdAt)}</td>
                             <td>
                               {!notification.isRead ? (
-                                <button
+                                <AppButton
                                   type="button"
+                                  size="sm"
+                                  backgroundColor="transparent"
+                                  textColor="var(--accent, #3B82F6)"
+                                  borderColor="var(--accent, #3B82F6)"
                                   className="mark-read-btn"
                                   onClick={() => handleMarkAsRead(notification._id)}
                                   disabled={markingNotificationId === notification._id}
                                 >
                                   {markingNotificationId === notification._id ? 'Marking...' : 'Mark as read'}
-                                </button>
+                                </AppButton>
                               ) : (
                                 <span className="notification-read-tag">Done</span>
                               )}
@@ -347,26 +356,32 @@ const Notifications = ({ styles }) => {
                 </div>
               )}
 
-              <div className="pagination-controls">
-                <button
+              <div className="pagination-controls" style={{ display: 'flex', gap: '12px', alignItems: 'center', marginTop: '1rem', justifyContent: 'flex-start' }}>
+                <AppButton
                   type="button"
+                  size="sm"
+                  backgroundColor="var(--silver-light, #f4f4f5)"
+                  textColor="var(--navy)"
                   className="pagination-btn"
                   onClick={() => handleFilterChange('page', Math.max(1, filters.page - 1))}
                   disabled={!pagination.hasPrevPage || loading}
                 >
                   Previous
-                </button>
-                <span className="pagination-info">
+                </AppButton>
+                <span className="pagination-info" style={{ fontSize: '0.9rem', color: 'var(--muted)' }}>
                   Page {pagination.currentPage || filters.page} of {pagination.totalPages || 1}
                 </span>
-                <button
+                <AppButton
                   type="button"
+                  size="sm"
+                  backgroundColor="var(--silver-light, #f4f4f5)"
+                  textColor="var(--navy)"
                   className="pagination-btn"
                   onClick={() => handleFilterChange('page', filters.page + 1)}
                   disabled={!pagination.hasNextPage || loading}
                 >
                   Next
-                </button>
+                </AppButton>
               </div>
             </div>
 

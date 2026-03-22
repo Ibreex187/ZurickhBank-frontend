@@ -23,17 +23,6 @@ ${DASHBOARD_STYLES}
   font-size: var(--font-sizes-lg);
 }
 
-.savings-management .nav-link {
-  color: var(--text-muted) !important;
-  font-weight: var(--font-weight-medium);
-  transition: var(--transition);
-  font-size: var(--font-sizes-sm);
-}
-
-.savings-management .nav-link:hover,
-.savings-management .nav-link.active {
-  color: var(--accent) !important;
-}
 
 /* Page Header */
 .savings-management-header {

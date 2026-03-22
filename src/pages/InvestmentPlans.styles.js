@@ -23,17 +23,6 @@ ${DASHBOARD_STYLES}
   font-size: var(--font-sizes-lg);
 }
 
-.investment-plans .nav-link {
-  color: var(--text-muted) !important;
-  font-weight: var(--font-weight-medium);
-  transition: var(--transition);
-  font-size: var(--font-sizes-sm);
-}
-
-.investment-plans .nav-link:hover,
-.investment-plans .nav-link.active {
-  color: var(--accent) !important;
-}
 
 /* Page Header */
 .investment-plans-header {
