@@ -1,20 +1,6 @@
 import PropTypes from 'prop-types';
 import { Watch } from 'react-loader-spinner';
-
-const BUTTON_SIZES = {
-  sm: {
-    padding: '8px 14px',
-    fontSize: '0.85rem',
-  },
-  md: {
-    padding: '10px 16px',
-    fontSize: '0.95rem',
-  },
-  lg: {
-    padding: '12px 20px',
-    fontSize: '1rem',
-  },
-};
+import './AppButton.css';
 
 const AppButton = ({
   children,
@@ -32,24 +18,17 @@ const AppButton = ({
   loadingText,
   ...rest
 }) => {
-  const selectedSize = BUTTON_SIZES[size] || BUTTON_SIZES.md;
 
-  const baseStyle = {
-    backgroundColor,
-    color: textColor,
-    border: `1px solid ${borderColor}`,
-    borderRadius: '10px',
-    fontWeight: 600,
-    lineHeight: 1.2,
-    cursor: disabled ? 'not-allowed' : 'pointer',
-    opacity: disabled ? 0.7 : 1,
-    transition: 'all 0.2s ease',
-    width: fullWidth ? '100%' : 'auto',
-    display: 'inline-flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: '8px',
-    ...selectedSize,
+  const buttonClasses = `app-btn app-btn-${size} ${fullWidth ? 'app-btn-full' : ''} ${className}`.trim();
+
+  // We map the legacy inline styling props to CSS custom properties.
+  // This maintains full backward compatibility across the app while allowing 
+  // our buttery smooth CSS pseudo-classes to manipulate the button visually.
+  const dynamicStyles = {
+    '--btn-bg': backgroundColor,
+    '--btn-text': textColor,
+    '--btn-border': borderColor,
+    ...style, // allow external standard styles to cascade
   };
 
   return (
@@ -57,8 +36,8 @@ const AppButton = ({
       type={type}
       onClick={onClick}
       disabled={disabled || loading}
-      className={className}
-      style={{ ...baseStyle, ...style }}
+      className={buttonClasses}
+      style={dynamicStyles}
       {...rest}
     >
       {loading && (
@@ -69,7 +48,7 @@ const AppButton = ({
           radius="24"
           color={textColor}
           ariaLabel="button-loading"
-          wrapperStyle={{}}
+          wrapperStyle={{ marginRight: children || loadingText ? '8px' : '0' }}
           wrapperClass=""
         />
       )}
