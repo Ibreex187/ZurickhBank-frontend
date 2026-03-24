@@ -341,7 +341,7 @@ const Login = ({ styles }) => {
                                   {...field}
                                   label="Password"
                                   placeholder="Enter your password"
-                                  isInvalid={meta.touched && !!meta.error}
+                                  isInvalid={Boolean(meta.touched && meta.error)}
                                   feedback={meta.touched ? meta.error : null}
                                 />
                               )}
@@ -477,7 +477,7 @@ const Login = ({ styles }) => {
               value={forgotData.confirmPassword}
               onChange={(e) => handleForgotInputChange('confirmPassword', e.target.value)}
               placeholder="Confirm new password"
-              isInvalid={showPasswordMismatch}
+              isInvalid={Boolean(showPasswordMismatch)}
               feedback={showPasswordMismatch ? 'Passwords do not match' : null}
               resetWhen={showResetPasswordModal && otpStepUnlocked}
             />

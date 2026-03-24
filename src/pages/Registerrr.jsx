@@ -1,16 +1,13 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { useNavigate, Link } from 'react-router-dom';
-import {
-  Container, Row, Col,
-  Form as BootstrapForm,
-  Alert, Offcanvas
-} from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
+import { Container, Row, Col, Form as BootstrapForm, Offcanvas } from 'react-bootstrap';
 import { Formik, Form, Field } from 'formik';
 import { useAuth } from '../context/AuthContext';
 import AppButton from '../components/AppButton';
 import PasswordField from '../components/PasswordField';
 import ZurichBrand from '../components/ZurichBrand';
+import { AUTH_STYLES } from './Auth.styles';
 
 /* ─── Validation ──────────────────────────── */
 const validate = (values) => {
@@ -41,7 +38,7 @@ const InputField = ({ label, name, type = 'text', placeholder, icon }) => (
     <BootstrapForm.Label>{label}</BootstrapForm.Label>
     <Field name={name}>
       {({ field, meta }) => (
-        <>
+        <div>
           <div className={icon ? 'input-wrap' : ''}>
             {icon && <span className="input-icon">{icon}</span>}
             <BootstrapForm.Control
@@ -56,48 +53,41 @@ const InputField = ({ label, name, type = 'text', placeholder, icon }) => (
               {meta.error}
             </BootstrapForm.Control.Feedback>
           )}
-        </>
+        </div>
       )}
     </Field>
   </BootstrapForm.Group>
 );
 
-/* ─── Left decorative panel ───────────────── */
-const AuthPanel = ({ onOpenForm }) => (
-  <div className="auth-left">
-    {/* Brand */}
-    <Link to="/" className="auth-brand">
-      <ZurichBrand showText={true} />
-    </Link>
 
-    {/* Main copy */}
+/* ─── AuthPanel ───────────────────────────── */
+const AuthPanel = ({ onOpenRegister }) => (
+  <div className="auth-left">
+    <div className="auth-brand"><ZurichBrand showText={true} /></div>
     <div className="auth-panel-body">
       <h2>Start your financial journey today.</h2>
-      <p>
-        Join over 50,000 customers who manage their money smarter with
-        Zurich Bank — instant transfers, real-time analytics, and bank-level security.
-      </p>
+      <p>Join over 50,000 customers who manage their money smarter with Zurich Bank — instant transfers, real-time analytics, and bank-level security.</p>
       <div className="auth-features">
-        {[
-          'Zero-fee instant transfers',
-          'Smart spending analytics',
-          '256-bit TSL encryption',
-          'NDIC insured up to ₦250,000',
-        ].map((f) => (
+        {["Zero-fee instant transfers", "Smart spending analytics", "256-bit TSL encryption", "NDIC insured up to ₦250,000"].map((f) => (
           <div className="auth-feature-item" key={f}>
             <div className="auth-feature-check">✓</div>
             {f}
           </div>
         ))}
       </div>
+      <div style={{ margin: '32px 0 0 0' }}>
+        <AppButton
+          fullWidth
+          backgroundColor="#2563eb"
+          style={{ color: '#fff', fontWeight: 700 }}
+          onClick={onOpenRegister}
+        >
+          Create an Account
+        </AppButton>
+      </div>
     </div>
-
-    {/* Testimonial */}
     <div className="auth-testimonial">
-      <p className="auth-testimonial-text">
-        &quot;Zurich Bank completely changed how I manage my finances. The dashboard
-        is beautiful and everything just works.&quot;
-      </p>
+      <p className="auth-testimonial-text">"Zurich Bank completely changed how I manage my Bonds and investments. The dashboard is beautiful and everything just works."</p>
       <div className="auth-testimonial-author">
         <div className="auth-avatar">MMs</div>
         <div>
@@ -106,27 +96,30 @@ const AuthPanel = ({ onOpenForm }) => (
         </div>
       </div>
     </div>
-
-    {/* Mobile Only: Re-open form button */}
-    <div className="d-lg-none mt-5 text-center px-3">
-      <AppButton onClick={onOpenForm} backgroundColor="var(--green)" size="lg" fullWidth>
-        Create an Account
-      </AppButton>
-    </div>
   </div>
 );
 
-/* ─── Main Register component ─────────────── */
 const Register = ({ styles }) => {
+  // Inject AUTH_STYLES into the document head for page-specific styles
+  useEffect(() => {
+    if (!document.getElementById('auth-styles')) {
+      const style = document.createElement('style');
+      style.id = 'auth-styles';
+      style.innerHTML = AUTH_STYLES;
+      document.head.appendChild(style);
+    }
+    return () => {
+      const style = document.getElementById('auth-styles');
+      if (style) style.remove();
+    };
+  }, []);
+  // Offcanvas state for mobile
+  const [showOffcanvas, setShowOffcanvas] = useState(false);
+  // Remove auto-open on mount; trigger with button instead
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showOffcanvas, setShowOffcanvas] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    setShowOffcanvas(true);
-  }, []);
 
   const initialValues = {
     firstName: '',
@@ -137,8 +130,8 @@ const Register = ({ styles }) => {
   };
 
   const handleSubmit = async (values, { setSubmitting }) => {
-    setLoading(true);
     setError('');
+    setLoading(true);
     try {
       await register(values);
       navigate('/login', { state: { message: 'Registration successful! Please login.' } });
@@ -152,16 +145,12 @@ const Register = ({ styles }) => {
 
   return (
     <>
-      {styles && <style>{styles}</style>}
+      {/* Removed fixed mobile Create Account button */}
       <Container fluid className="auth-container" style={{ padding: 0 }}>
         <Row className="g-0 min-vh-100">
-
-          {/* ── Left panel ── */}
           <Col lg={5} xl={4}>
-            <AuthPanel onOpenForm={() => setShowOffcanvas(true)} />
+            <AuthPanel onOpenRegister={() => setShowOffcanvas(true)} />
           </Col>
-
-          {/* ── Right: form ── */}
           <Col lg={7} xl={8} className="auth-right">
             <Offcanvas
               show={showOffcanvas}
@@ -175,156 +164,84 @@ const Register = ({ styles }) => {
               </Offcanvas.Header>
               <Offcanvas.Body>
                 <div className="auth-form-wrapper">
-
-                  {/* Header */}
                   <div className="auth-form-header">
                     <div className="auth-form-eyebrow">Get started — it&apos;s free</div>
                     <h1 className="auth-form-title">Create your account</h1>
                     <p className="auth-subtitle">
                       Already have an account?{' '}
-                      <Link to="/login" style={{ color: 'var(--green)', fontWeight: 600, textDecoration: 'none' }}>
-                        Sign in here
-                      </Link>
+                      <a href="/login" style={{ color: 'var(--green)', fontWeight: 600, textDecoration: 'none' }}>Sign in here</a>
                     </p>
                   </div>
-
                   {/* Step indicator */}
-                  <div className="auth-steps">
-                    <div className="auth-step active">
-                      <span className="step-num">1</span> Your Details
-                    </div>
-                    <div className="step-line" />
-                    <div className="auth-step">
-                      <span className="step-num">2</span> Verify Email
-                    </div>
-                    <div className="step-line" />
-                    <div className="auth-step">
-                      <span className="step-num">3</span> Start Banking
-                    </div>
-                  </div>
-
-                  {/* Form card */}
-                  <div
-                    style={{
-                      background: 'var(--white)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 18,
-                      boxShadow: '0 4px 32px rgba(10,31,68,0.08)',
-                      padding: '36px 32px',
-                    }}
-                  >
-                    {error && (
-                      <Alert className="auth-alert">{error}</Alert>
-                    )}
-
-                    <Formik
-                      initialValues={initialValues}
-                      validate={validate}
-                      onSubmit={handleSubmit}
-                    >
-                      {({ isSubmitting }) => (
-                        <Form noValidate>
-
-                          {/* Name row */}
-                          <Row>
-                            <Col md={6}>
-                              <InputField
-                                name="firstName"
-                                label="First Name"
-                                placeholder="kol"
-                                icon="👤"
-                              />
-                            </Col>
-                            <Col md={6}>
-                              <InputField
-                                name="lastName"
-                                label="Last Name"
-                                placeholder="ade"
-                              />
-                            </Col>
-                          </Row>
-
-                          <InputField
-                            name="userName"
-                            label="Username"
-                            placeholder="kol_ade"
-                            icon="@"
-                          />
-
-                          <InputField
-                            name="email"
-                            type="email"
-                            label="Email Address"
-                            placeholder="kol_ade@example.com"
-                            icon="✉"
-                          />
-
-                          <Field name="password">
-                            {({ field, meta }) => (
-                              <PasswordField
-                                {...field}
-                                label="Password"
-                                placeholder="Min. 6 characters"
-                                icon="🔒"
-                                inputWrapperClassName="input-wrap"
-                                isInvalid={meta.touched && !!meta.error}
-                                feedback={meta.touched ? meta.error : null}
-                              />
-                            )}
-                          </Field>
-
-                          {/* Password strength hint */}
-                          <div
-                            style={{
-                              display: 'flex',
-                              gap: 4,
-                              marginTop: -8,
-                              marginBottom: 20,
-                            }}
-                          >
-                            {[1, 2, 3, 4].map((i) => (
-                              <div
-                                key={i}
-                                style={{
-                                  flex: 1, height: 3, borderRadius: 4,
-                                  background: i === 1 ? 'var(--green)' : 'var(--border)',
-                                  transition: 'background 0.3s',
-                                }}
-                              />
-                            ))}
-                            <span style={{ fontSize: '0.7rem', color: 'var(--muted)', marginLeft: 4, whiteSpace: 'nowrap', lineHeight: '14px' }}>
-                              Strength
-                            </span>
+                  <Formik initialValues={initialValues} validate={validate} onSubmit={handleSubmit}>
+                    {({ values, errors, touched, isSubmitting }) => {
+                      const isDetailsFilled = values.firstName && values.lastName && values.userName;
+                      const isEmailValid = values.email && !errors.email;
+                      const isFormValid = isDetailsFilled && isEmailValid && values.password && !errors.password;
+                      return <>
+                        <div className="auth-steps" style={{ marginBottom: 28 }}>
+                          <div className={`auth-step${isDetailsFilled ? ' done' : ' active'}`}>
+                            <span className="step-num">{isDetailsFilled ? '✓' : '1'}</span> Your Details
                           </div>
-
-                          <AppButton
-                            type="submit"
-                            className="auth-submit-btn"
-                            backgroundColor="var(--navy)"
-                            fullWidth
-                            loading={loading || isSubmitting}
-                            loadingText="Creating Account..."
-                          >
-                            Create Account →
-                          </AppButton>
-
-                          <p className="auth-terms">
-                            By creating an account you agree to our{' '}
-                            <a href="/terms">Terms of Service</a> and{' '}
-                            <a href="/privacy">Privacy Policy</a>.
-                          </p>
-                        </Form>
-                      )}
-                    </Formik>
-                  </div>
-
-                  {/* Footer */}
-                  <p className="auth-footer" style={{ marginTop: 24 }}>
-                    Need help?{' '}
-                    <a href="mailto:support@zurich.bank" style={{ color: 'var(--green)', fontWeight: 600, textDecoration: 'none' }}>
-                      Contact support
-                    </a>
-                  </p>
+                          <div className="step-line" />
+                          <div className={`auth-step${isEmailValid ? ' done' : (isDetailsFilled ? ' active' : '')}`}>
+                            <span className="step-num">{isEmailValid ? '✓' : '2'}</span> Verify Email
+                          </div>
+                          <div className="step-line" />
+                          <div className={`auth-step${isFormValid ? ' done' : (isEmailValid ? ' active' : '')}`}>
+                            <span className="step-num">{isFormValid ? '✓' : '3'}</span> Start Banking
+                          </div>
+                        </div>
+                        <div style={{ background: 'var(--white)', border: '1px solid var(--border)', borderRadius: 18, boxShadow: '0 4px 32px rgba(10,31,68,0.08)', padding: '36px 32px' }}>
+                          {error && (<div className="auth-alert">{error}</div>)}
+                          <Form noValidate>
+                            <Row>
+                              <Col md={6}>
+                                <InputField name="firstName" label="First Name" placeholder="kol" icon="👤" />
+                              </Col>
+                              <Col md={6}>
+                                <InputField name="lastName" label="Last Name" placeholder="ade" />
+                              </Col>
+                            </Row>
+                            <InputField name="userName" label="Username" placeholder="kol_ade" icon="@" />
+                            <InputField name="email" type="email" label="Email Address" placeholder="kol_ade@example.com" icon="✉" />
+                            <Field name="password">
+                              {({ field, meta }) => {
+                                const password = field.value || '';
+                                const getStrength = (pwd) => {
+                                  let score = 0;
+                                  if (pwd.length >= 6) score++;
+                                  if (/[A-Z]/.test(pwd)) score++;
+                                  if (/[0-9]/.test(pwd)) score++;
+                                  if (/[^A-Za-z0-9]/.test(pwd)) score++;
+                                  return score;
+                                };
+                                const strength = getStrength(password);
+                                const strengthColors = ['var(--border)', 'var(--red)', 'var(--orange)', 'var(--yellow)', 'var(--green)'];
+                                const barColor = (idx) => {
+                                  if (strength === 0) return 'var(--border)';
+                                  return idx <= strength ? strengthColors[strength] : 'var(--border)';
+                                };
+                                const strengthLabels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
+                                return <>
+                                  <PasswordField {...field} label="Password" placeholder="Min. 6 characters" icon="🔒" inputWrapperClassName="input-wrap" isInvalid={Boolean(meta.touched && meta.error)} feedback={meta.touched ? meta.error : null} />
+                                  <div style={{ display: 'flex', gap: 4, marginTop: -8, marginBottom: 20, alignItems: 'center' }}>
+                                    {[1, 2, 3, 4].map((i) => (
+                                      <div key={i} style={{ flex: 1, height: 3, borderRadius: 4, background: barColor(i), transition: 'background 0.3s' }} />
+                                    ))}
+                                    <span style={{ fontSize: '0.7rem', color: 'var(--muted)', marginLeft: 4, whiteSpace: 'nowrap', lineHeight: '14px', minWidth: 48 }}>{strengthLabels[strength] || 'Strength'}</span>
+                                  </div>
+                                </>;
+                              }}
+                            </Field>
+                            <AppButton type="submit" className="auth-submit-btn" backgroundColor="var(--navy)" fullWidth loading={loading || isSubmitting} loadingText="Creating Account...">Create Account →</AppButton>
+                            <p className="auth-terms">By creating an account you agree to our <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>.</p>
+                          </Form>
+                        </div>
+                        <p className="auth-footer" style={{ marginTop: 24 }}>Need help? <a href="mailto:support@zurich.bank" style={{ color: 'var(--green)', fontWeight: 600, textDecoration: 'none' }}>Contact support</a></p>
+                      </>;
+                    }}
+                  </Formik>
                 </div>
               </Offcanvas.Body>
             </Offcanvas>
@@ -341,14 +258,6 @@ InputField.propTypes = {
   type: PropTypes.string,
   placeholder: PropTypes.string,
   icon: PropTypes.node,
-};
-
-AuthPanel.propTypes = {
-  onOpenForm: PropTypes.func,
-};
-
-Register.propTypes = {
-  styles: PropTypes.string,
 };
 
 export default Register;

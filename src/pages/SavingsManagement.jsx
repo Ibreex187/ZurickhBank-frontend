@@ -11,6 +11,7 @@ import PasswordField from '../components/PasswordField';
 import LoadingWatch from '../components/LoadingWatch';
 import { renderSidebarNavLinks } from '../components/sidebarNavLinks';
 import { getPremiumStatus } from '../utils/premiumStatus';
+import { formatWithCommas, unformatCommas } from '../utils/formatAmount';
 import {
   depositToSavings,
   withdrawFromSavings,
@@ -69,6 +70,31 @@ const SavingsManagement = ({ styles }) => {
     amount: '',
     direction: 'to-savings'
   });
+
+  // Handlers for formatted amount input
+  const handleDepositAmountChange = (e) => {
+    const raw = unformatCommas(e.target.value.replace(/[^\d.]/g, ''));
+    if (/^\d*(\.\d{0,2})?$/.test(raw)) {
+      setDepositAmount(raw);
+    }
+  };
+
+  const handleWithdrawAmountChange = (e) => {
+    const raw = unformatCommas(e.target.value.replace(/[^\d.]/g, ''));
+    if (/^\d*(\.\d{0,2})?$/.test(raw)) {
+      setWithdrawAmount(raw);
+    }
+  };
+
+  const handleQuickTransferAmountChange = (e) => {
+    const raw = unformatCommas(e.target.value.replace(/[^\d.]/g, ''));
+    if (/^\d*(\.\d{0,2})?$/.test(raw)) {
+      setQuickTransferData({
+        ...quickTransferData,
+        amount: raw
+      });
+    }
+  };
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false); // mobile off-canvas state
@@ -611,9 +637,10 @@ const SavingsManagement = ({ styles }) => {
                   <Form.Group className="mb-3">
                     <Form.Label>Amount *</Form.Label>
                     <Form.Control
-                      type="number"
-                      value={depositAmount}
-                      onChange={(e) => setDepositAmount(e.target.value)}
+                      type="text"
+                      inputMode="decimal"
+                      value={formatWithCommas(depositAmount)}
+                      onChange={handleDepositAmountChange}
                       placeholder="Enter amount to deposit"
                       required
                       min="0.01"
@@ -685,9 +712,10 @@ const SavingsManagement = ({ styles }) => {
                   <Form.Group className="mb-3">
                     <Form.Label>Amount *</Form.Label>
                     <Form.Control
-                      type="number"
-                      value={withdrawAmount}
-                      onChange={(e) => setWithdrawAmount(e.target.value)}
+                      type="text"
+                      inputMode="decimal"
+                      value={formatWithCommas(withdrawAmount)}
+                      onChange={handleWithdrawAmountChange}
                       placeholder="Enter amount to withdraw"
                       required
                       min="0.01"
@@ -753,12 +781,10 @@ const SavingsManagement = ({ styles }) => {
                   <Form.Group className="mb-3">
                     <Form.Label>Amount *</Form.Label>
                     <Form.Control
-                      type="number"
-                      value={quickTransferData.amount}
-                      onChange={(e) => setQuickTransferData({
-                        ...quickTransferData,
-                        amount: e.target.value
-                      })}
+                      type="text"
+                      inputMode="decimal"
+                      value={formatWithCommas(quickTransferData.amount)}
+                      onChange={handleQuickTransferAmountChange}
                       placeholder="Enter transfer amount"
                       required
                       min="0.01"

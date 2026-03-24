@@ -1,3 +1,4 @@
+import { formatWithCommas, unformatCommas } from '../utils/formatAmount';
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useAuth } from '../context/AuthContext';
@@ -589,9 +590,15 @@ const BeneficiaryManagement = ({ styles }) => {
                   <Form.Group className="mb-3">
                     <Form.Label>Amount *</Form.Label>
                     <Form.Control
-                      type="number"
-                      value={transferData.amount}
-                      onChange={(e) => setTransferData({ ...transferData, amount: e.target.value })}
+                      type="text"
+                      inputMode="decimal"
+                      value={formatWithCommas(transferData.amount)}
+                      onChange={e => {
+                        const raw = unformatCommas(e.target.value.replace(/[^\d.]/g, ''));
+                        if (/^\d*(\.\d{0,2})?$/.test(raw)) {
+                          setTransferData({ ...transferData, amount: raw });
+                        }
+                      }}
                       placeholder="Enter amount"
                       required
                       min="1"

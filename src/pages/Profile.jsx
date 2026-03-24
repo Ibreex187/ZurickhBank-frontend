@@ -818,7 +818,7 @@ const Profile = ({ styles }) => {
                               onChange={(e) => handlePasswordChange('currentPassword', e.target.value)}
                               inputClassName="form-input"
                               labelClassName=""
-                              isInvalid={!!passwordErrors.currentPassword}
+                              isInvalid={Boolean(passwordErrors.currentPassword)}
                               feedback={passwordErrors.currentPassword}
                               feedbackClassName="error-text"
                               style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--white)', borderColor: 'rgba(255,255,255,0.1)' }}
@@ -834,7 +834,7 @@ const Profile = ({ styles }) => {
                               onChange={(e) => handlePasswordChange('newPassword', e.target.value)}
                               inputClassName="form-input"
                               labelClassName=""
-                              isInvalid={!!passwordErrors.newPassword}
+                              isInvalid={Boolean(passwordErrors.newPassword)}
                               feedback={passwordErrors.newPassword}
                               feedbackClassName="error-text"
                               style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--white)', borderColor: 'rgba(255,255,255,0.1)' }}
@@ -850,7 +850,7 @@ const Profile = ({ styles }) => {
                               onChange={(e) => handlePasswordChange('confirmPassword', e.target.value)}
                               inputClassName="form-input"
                               labelClassName=""
-                              isInvalid={!!passwordErrors.confirmPassword}
+                              isInvalid={Boolean(passwordErrors.confirmPassword)}
                               feedback={passwordErrors.confirmPassword}
                               feedbackClassName="error-text"
                               style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--white)', borderColor: 'rgba(255,255,255,0.1)' }}
@@ -896,7 +896,7 @@ const Profile = ({ styles }) => {
                               onChange={(e) => handleTransactionPinChange('currentPassword', e.target.value)}
                               inputClassName="form-input"
                               labelClassName=""
-                              isInvalid={!!pinErrors.currentPassword}
+                              isInvalid={Boolean(pinErrors.currentPassword)}
                               feedback={pinErrors.currentPassword}
                               feedbackClassName="error-text"
                               style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--white)', borderColor: 'rgba(255,255,255,0.1)' }}
@@ -912,7 +912,7 @@ const Profile = ({ styles }) => {
                               onChange={(e) => handleTransactionPinChange('transactionPin', e.target.value)}
                               inputClassName="form-input"
                               labelClassName=""
-                              isInvalid={!!pinErrors.transactionPin}
+                              isInvalid={Boolean(pinErrors.transactionPin)}
                               feedback={pinErrors.transactionPin}
                               feedbackClassName="error-text"
                               style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--white)', borderColor: 'rgba(255,255,255,0.1)' }}

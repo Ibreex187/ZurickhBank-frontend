@@ -1,3 +1,4 @@
+import { formatWithCommas, unformatCommas } from '../utils/formatAmount';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useAuth } from '../context/AuthContext';
@@ -993,9 +994,15 @@ const Dashboard = ({ styles }) => {
                     <div className="transfer-input-group">
                       <span className="transfer-input-prefix">₦</span>
                       <input
-                        type="number"
-                        value={amount}
-                        onChange={(e) => setAmount(e.target.value)}
+                        type="text"
+                        inputMode="decimal"
+                        value={formatWithCommas(amount)}
+                        onChange={e => {
+                          const raw = unformatCommas(e.target.value.replace(/[^\d.]/g, ''));
+                          if (/^\d*(\.\d{0,2})?$/.test(raw)) {
+                            setAmount(raw);
+                          }
+                        }}
                         placeholder="0.00"
                         className="transfer-form-input"
                         required

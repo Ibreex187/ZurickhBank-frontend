@@ -21,17 +21,17 @@ const EyeIcon = ({ visible }) => (
 );
 
 const PasswordField = ({
-  label,
-  groupClassName,
-  labelClassName,
-  inputClassName,
-  inputWrapperClassName,
-  isInvalid,
-  feedback,
-  feedbackClassName,
-  resetWhen,
-  icon,
-  buttonStyle,
+  label = 'Password',
+  groupClassName = 'mb-3',
+  labelClassName = 'form-label',
+  inputClassName = 'form-control',
+  inputWrapperClassName = '',
+  isInvalid = false,
+  feedback = null,
+  feedbackClassName = 'invalid-feedback d-block',
+  resetWhen = true,
+  icon = null,
+  buttonStyle = {},
   ...controlProps
 }) => {
   const [isVisible, setIsVisible] = useState(false);
@@ -97,18 +97,5 @@ PasswordField.propTypes = {
   buttonStyle: PropTypes.object,
 };
 
-PasswordField.defaultProps = {
-  label: 'Password',
-  groupClassName: 'mb-3',
-  labelClassName: 'form-label',
-  inputClassName: 'form-control',
-  inputWrapperClassName: '',
-  isInvalid: false,
-  feedback: null,
-  feedbackClassName: 'invalid-feedback d-block',
-  resetWhen: true,
-  icon: null,
-  buttonStyle: {},
-};
 
 export default PasswordField;
