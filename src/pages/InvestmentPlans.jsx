@@ -19,6 +19,7 @@ import ZurichBrand from '../components/ZurichBrand';
 import LoadingWatch from '../components/LoadingWatch';
 import { renderSidebarNavLinks } from '../components/sidebarNavLinks';
 import { getPremiumStatus } from '../utils/premiumStatus';
+import { ArrowRepeat, BriefcaseFill, CashCoin, CheckLg, GraphUp, GraphUpArrow, Search } from 'react-bootstrap-icons';
 
 const InvestmentPlans = ({ styles }) => {
   const { user, logout, refreshUser } = useAuth();
@@ -407,7 +408,7 @@ const InvestmentPlans = ({ styles }) => {
                         <h3 className="mb-0">₦{investments.reduce((sum, inv) => sum + inv.amount, 0).toLocaleString()}</h3>
                       </div>
                       <div className="align-self-center">
-                        <i className="fas fa-chart-line fa-2x opacity-75"></i>
+                        <GraphUp size={32} className="opacity-75" />
                       </div>
                     </div>
                   </Card.Body>
@@ -423,7 +424,7 @@ const InvestmentPlans = ({ styles }) => {
                         <h3 className="mb-0">₦{investments.reduce((sum, inv) => sum + inv.currentValue, 0).toLocaleString()}</h3>
                       </div>
                       <div className="align-self-center">
-                        <i className="fas fa-arrow-trend-up fa-2x opacity-75"></i>
+                        <GraphUpArrow size={32} className="opacity-75" />
                       </div>
                     </div>
                   </Card.Body>
@@ -439,7 +440,7 @@ const InvestmentPlans = ({ styles }) => {
                         <h3 className="mb-0">₦{investments.reduce((sum, inv) => sum + (inv.currentValue - inv.amount), 0).toLocaleString()}</h3>
                       </div>
                       <div className="align-self-center">
-                        <i className="fas fa-coins fa-2x opacity-75"></i>
+                        <CashCoin size={32} className="opacity-75" />
                       </div>
                     </div>
                   </Card.Body>
@@ -455,7 +456,7 @@ const InvestmentPlans = ({ styles }) => {
                         <h3 className="mb-0">{investments.filter(inv => inv.status === 'active').length}</h3>
                       </div>
                       <div className="align-self-center">
-                        <i className="fas fa-briefcase fa-2x opacity-75"></i>
+                        <BriefcaseFill size={32} className="opacity-75" />
                       </div>
                     </div>
                   </Card.Body>
@@ -479,7 +480,7 @@ const InvestmentPlans = ({ styles }) => {
                       loadingText="Refreshing..."
                     >
                       <>
-                        <i className="fas fa-sync-alt me-1"></i>
+                        <ArrowRepeat size="1em" className="me-1" />
                         Refresh
                       </>
                     </AppButton>
@@ -612,7 +613,7 @@ const InvestmentPlans = ({ styles }) => {
                             <ul className="list-unstyled">
                               {stock.features.map((feature, index) => (
                                 <li key={index} className="mb-2">
-                                  <i className="fas fa-check text-success me-2"></i>
+                                  <CheckLg size="1em" className="text-success me-2" />
                                   {feature}
                                 </li>
                               ))}
@@ -657,7 +658,7 @@ const InvestmentPlans = ({ styles }) => {
                 ) : (
                   <Col>
                     <div className="text-center py-5">
-                      <i className="fas fa-search fa-3x text-muted mb-3"></i>
+                      <Search size={48} className="text-muted mb-3" />
                       <h5 className="text-muted">{stocksError ? 'Stocks unavailable' : 'No stocks found'}</h5>
                       <p className="text-muted">
                         {stocksError || 'Try selecting a different category or check back later.'}

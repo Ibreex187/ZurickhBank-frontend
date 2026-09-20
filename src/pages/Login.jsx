@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { Container, Row, Col, Form as BootstrapForm, Card, Alert, Modal, Offcanvas } from 'react-bootstrap';
 import { Formik, Form, Field } from 'formik';
 import { useAuth } from '../context/AuthContext';
@@ -91,14 +91,39 @@ const Login = ({ styles }) => {
   const [showOffcanvas, setShowOffcanvas] = useState(false); // Mobile offcanvas state
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // One-off message: shown after registering ("Registration successful") or when a session expired
+  const [notice, setNotice] = useState(() => {
+    if (location.state?.message) {
+      return { variant: 'success', text: location.state.message };
+    }
+
+    try {
+      const sessionNotice = window.sessionStorage.getItem('auth_notice');
+      if (sessionNotice) {
+        return { variant: 'warning', text: sessionNotice };
+      }
+    } catch {
+      // sessionStorage can be unavailable (private mode); the notice is optional
+    }
+
+    return null;
+  });
 
   // Auto-open offcanvas on mount for mobile
   useEffect(() => {
     setShowOffcanvas(true);
+
+    try {
+      window.sessionStorage.removeItem('auth_notice');
+    } catch {
+      // ignore
+    }
   }, []);
 
   const initialValues = {
-    username: '',
+    username: location.state?.userName || '',
     password: ''
   };
 
@@ -118,6 +143,7 @@ const Login = ({ styles }) => {
   const handleSubmit = async (values, { setSubmitting }) => {
     setLoading(true);
     setError('');
+    setNotice(null);
     try {
       await login(values.username, values.password); // AuthContext will set cookie
       navigate('/dashboard');
@@ -168,7 +194,7 @@ const Login = ({ styles }) => {
         setOtpRequested(true);
         setOtpStepUnlocked(false);
         setForgotData((prev) => ({ ...prev, otp: '', resetToken: '', newPassword: '', confirmPassword: '' }));
-        alert(response.message || 'OTP sent to your email');
+        setNotice({ variant: 'success', text: response.message || 'OTP sent to your email' });
       }
     } catch (err) {
       setError(err.response?.data?.message || err.message || 'Failed to send OTP');
@@ -244,7 +270,7 @@ const Login = ({ styles }) => {
       });
 
       if (response.success) {
-        alert(response.message || 'Password reset successful. Please login.');
+        setNotice({ variant: 'success', text: response.message || 'Password reset successful. Please sign in.' });
         setShowResetPasswordModal(false);
         setShowForgotPassword(false);
         setForgotData({ email: '', otp: '', resetToken: '', newPassword: '', confirmPassword: '' });
@@ -312,6 +338,11 @@ const Login = ({ styles }) => {
 
                   <Card className="auth-card">
                     <Card.Body>
+                      {notice && (
+                        <Alert variant={notice.variant} dismissible onClose={() => setNotice(null)}>
+                          {notice.text}
+                        </Alert>
+                      )}
                       {error && <Alert className="auth-alert">{error}</Alert>}
 
                       <Formik

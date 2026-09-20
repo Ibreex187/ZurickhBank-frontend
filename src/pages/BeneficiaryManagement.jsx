@@ -18,6 +18,7 @@ import {
 import ZurichBrand from '../components/ZurichBrand';
 import LoadingWatch from '../components/LoadingWatch';
 import { renderSidebarNavLinks } from '../components/sidebarNavLinks';
+import { LightningChargeFill, PersonLinesFill, PlusLg } from 'react-bootstrap-icons';
 
 const getLimitSeverity = (bucket) => {
   const limit = Number(bucket?.limit || 0);
@@ -39,6 +40,8 @@ const BeneficiaryManagement = ({ styles }) => {
   const [beneficiaries, setBeneficiaries] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [beneficiaryToDelete, setBeneficiaryToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [newBeneficiary, setNewBeneficiary] = useState({
     accountNumber: ''
@@ -197,23 +200,27 @@ const BeneficiaryManagement = ({ styles }) => {
     setLoading(false);
   };
 
-  const deleteBeneficiary = async (beneficiaryId) => {
-    if (window.confirm('Are you sure you want to delete this beneficiary?')) {
-      try {
-        const data = await removeBeneficiary(beneficiaryId);
-        if (data.success) {
-          setMessage({
-            type: 'success',
-            text: 'Beneficiary deleted successfully!'
-          });
-          fetchBeneficiaries();
-        }
-      } catch (error) {
+  const confirmDeleteBeneficiary = async () => {
+    if (!beneficiaryToDelete) return;
+
+    setDeleting(true);
+    try {
+      const data = await removeBeneficiary(beneficiaryToDelete._id);
+      if (data.success) {
         setMessage({
-          type: 'error',
-          text: error.response?.data?.message || 'Failed to delete beneficiary'
+          type: 'success',
+          text: 'Beneficiary deleted successfully!'
         });
+        fetchBeneficiaries();
       }
+    } catch (error) {
+      setMessage({
+        type: 'error',
+        text: error.response?.data?.message || 'Failed to delete beneficiary'
+      });
+    } finally {
+      setDeleting(false);
+      setBeneficiaryToDelete(null);
     }
   };
 
@@ -382,7 +389,7 @@ const BeneficiaryManagement = ({ styles }) => {
                     onClick={() => setShowAddModal(true)}
                     className="px-4"
                   >
-                    <i className="fas fa-plus me-2"></i>
+                    <PlusLg size="1em" className="me-2" />
                     Add Beneficiary
                   </Button>
                 </div>
@@ -411,7 +418,7 @@ const BeneficiaryManagement = ({ styles }) => {
                         <h3 className="mb-0">{beneficiaries.length}</h3>
                       </div>
                       <div className="align-self-center">
-                        <i className="fas fa-address-book fa-2x opacity-75"></i>
+                        <PersonLinesFill size={32} className="opacity-75" />
                       </div>
                     </div>
                   </Card.Body>
@@ -427,7 +434,7 @@ const BeneficiaryManagement = ({ styles }) => {
                         <h3 className="mb-0">{beneficiaries.length}</h3>
                       </div>
                       <div className="align-self-center">
-                        <i className="fas fa-address-book fa-2x opacity-75"></i>
+                        <PersonLinesFill size={32} className="opacity-75" />
                       </div>
                     </div>
                   </Card.Body>
@@ -443,7 +450,7 @@ const BeneficiaryManagement = ({ styles }) => {
                         <h3 className="mb-0">{beneficiaries.length}</h3>
                       </div>
                       <div className="align-self-center">
-                        <i className="fas fa-bolt fa-2x opacity-75"></i>
+                        <LightningChargeFill size={32} className="opacity-75" />
                       </div>
                     </div>
                   </Card.Body>
@@ -461,7 +468,7 @@ const BeneficiaryManagement = ({ styles }) => {
                   <LoadingWatch label="Loading beneficiaries..." minHeight="160px" />
                 ) : beneficiaries.length === 0 ? (
                   <div className="text-center py-5">
-                    <i className="fas fa-address-book fa-3x text-muted mb-3"></i>
+                    <PersonLinesFill size={48} className="text-muted mb-3" />
                     <h5 className="text-muted">No beneficiaries added yet</h5>
                     <p className="text-muted">Add your first beneficiary to start making quick transfers</p>
                   </div>
@@ -496,7 +503,7 @@ const BeneficiaryManagement = ({ styles }) => {
                               <Button
                                 variant="outline-danger"
                                 size="sm"
-                                onClick={() => deleteBeneficiary(beneficiary._id)}
+                                onClick={() => setBeneficiaryToDelete(beneficiary)}
                               >
                                 Delete
                               </Button>
@@ -550,6 +557,28 @@ const BeneficiaryManagement = ({ styles }) => {
                   </Button>
                 </Modal.Footer>
               </Form>
+            </Modal>
+
+            {/* Delete Confirmation Modal */}
+            <Modal show={Boolean(beneficiaryToDelete)} onHide={() => !deleting && setBeneficiaryToDelete(null)} centered>
+              <Modal.Header closeButton>
+                <Modal.Title>Remove beneficiary?</Modal.Title>
+              </Modal.Header>
+              <Modal.Body>
+                <p className="mb-1">
+                  <strong>{beneficiaryToDelete?.firstName} {beneficiaryToDelete?.lastName}</strong>
+                  {' '}(<span className="font-monospace">{beneficiaryToDelete?.accountNumber}</span>) will be removed from your list.
+                </p>
+                <p className="text-muted small mb-0">You can add them again later using their account number.</p>
+              </Modal.Body>
+              <Modal.Footer>
+                <Button variant="secondary" onClick={() => setBeneficiaryToDelete(null)} disabled={deleting}>
+                  Keep
+                </Button>
+                <Button variant="danger" onClick={confirmDeleteBeneficiary} disabled={deleting}>
+                  {deleting ? 'Removing...' : 'Remove'}
+                </Button>
+              </Modal.Footer>
             </Modal>
 
             {/* Transfer Modal */}

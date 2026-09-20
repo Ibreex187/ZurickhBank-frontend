@@ -21,6 +21,7 @@ import {
   getSavingsInsights
 } from '../services/savingsService';
 import { getTransactionLimits } from '../services/transactionService';
+import { ClockHistory, GraphUp, PiggyBankFill, Wallet2 } from 'react-bootstrap-icons';
 
 const getLimitSeverity = (bucket) => {
   const limit = Number(bucket?.limit || 0);
@@ -442,7 +443,7 @@ const SavingsManagement = ({ styles }) => {
                         <h3 className="mb-0">₦{savingsData.balances.mainBalance?.toLocaleString() || 0}</h3>
                       </div>
                       <div className="align-self-center">
-                        <i className="fas fa-wallet fa-2x opacity-75"></i>
+                        <Wallet2 size={32} className="opacity-75" />
                       </div>
                     </div>
                   </Card.Body>
@@ -458,7 +459,7 @@ const SavingsManagement = ({ styles }) => {
                         <h3 className="mb-0">₦{savingsData.balances.savingsBalance?.toLocaleString() || 0}</h3>
                       </div>
                       <div className="align-self-center">
-                        <i className="fas fa-piggy-bank fa-2x opacity-75"></i>
+                        <PiggyBankFill size={32} className="opacity-75" />
                       </div>
                     </div>
                   </Card.Body>
@@ -474,7 +475,7 @@ const SavingsManagement = ({ styles }) => {
                         <h3 className="mb-0">₦{savingsData.balances.totalBalance?.toLocaleString() || 0}</h3>
                       </div>
                       <div className="align-self-center">
-                        <i className="fas fa-chart-line fa-2x opacity-75"></i>
+                        <GraphUp size={32} className="opacity-75" />
                       </div>
                     </div>
                   </Card.Body>
@@ -562,7 +563,7 @@ const SavingsManagement = ({ styles }) => {
               <Card.Body>
                 {transactions.length === 0 ? (
                   <div className="text-center py-5">
-                    <i className="fas fa-history fa-3x text-muted mb-3"></i>
+                    <ClockHistory size={48} className="text-muted mb-3" />
                     <h5 className="text-muted">No transactions yet</h5>
                     <p className="text-muted">Start saving to see your transaction history</p>
                   </div>

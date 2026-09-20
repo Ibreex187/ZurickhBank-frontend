@@ -2,6 +2,7 @@ import { Navigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { useAuth } from '../context/AuthContext';
 import LoadingWatch from './LoadingWatch';
+import { ShieldExclamation } from 'react-bootstrap-icons';
 
 const AdminRoute = ({ children }) => {
   const { user, loading } = useAuth();
@@ -31,7 +32,7 @@ const AdminRoute = ({ children }) => {
             <div className="col-md-6 text-center">
               <div className="card border-danger">
                 <div className="card-body py-5">
-                  <i className="fas fa-shield-alt fa-4x text-danger mb-3"></i>
+                  <ShieldExclamation size={64} className="text-danger mb-3" />
                   <h2 className="text-danger mb-3">Access Denied</h2>
                   <p className="text-muted mb-4">
                     You don&apos;t have permission to access the admin dashboard.

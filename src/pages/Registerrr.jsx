@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Container, Row, Col, Form as BootstrapForm, Offcanvas } from 'react-bootstrap';
 import { Formik, Form, Field } from 'formik';
 import { useAuth } from '../context/AuthContext';
@@ -127,7 +127,9 @@ const Register = ({ styles }) => {
     setLoading(true);
     try {
       await register(values);
-      navigate('/login', { state: { message: 'Registration successful! Please login.' } });
+      navigate('/login', {
+        state: { message: 'Registration successful! Please sign in.', userName: values.userName },
+      });
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Please try again.');
     } finally {
@@ -162,7 +164,7 @@ const Register = ({ styles }) => {
                     <h1 className="auth-form-title">Create your account</h1>
                     <p className="auth-subtitle">
                       Already have an account?{' '}
-                      <a href="/login" style={{ color: 'var(--green)', fontWeight: 600, textDecoration: 'none' }}>Sign in here</a>
+                      <Link to="/login" style={{ color: 'var(--green)', fontWeight: 600, textDecoration: 'none' }}>Sign in here</Link>
                     </p>
                   </div>
                   {/* Step indicator */}
@@ -228,7 +230,7 @@ const Register = ({ styles }) => {
                               }}
                             </Field>
                             <AppButton type="submit" className="auth-submit-btn" backgroundColor="var(--navy)" fullWidth loading={loading || isSubmitting} loadingText="Creating Account...">Create Account →</AppButton>
-                            <p className="auth-terms">By creating an account you agree to our <a href="/terms">Terms of Service</a> and <a href="/privacy">Privacy Policy</a>.</p>
+                            <p className="auth-terms">By creating an account you agree to our <Link to="/terms">Terms of Service</Link> and <Link to="/privacy">Privacy Policy</Link>.</p>
                           </Form>
                         </div>
                         <p className="auth-footer" style={{ marginTop: 24 }}>Need help? <a href="mailto:support@zurich.bank" style={{ color: 'var(--green)', fontWeight: 600, textDecoration: 'none' }}>Contact support</a></p>

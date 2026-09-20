@@ -76,6 +76,14 @@ api.interceptors.response.use(
 
       if (hasToken && !isPublicAuthRequest) {
         cookies.remove('token');
+
+        // Lets the login page explain why the user was sent back
+        try {
+          window.sessionStorage.setItem('auth_notice', 'Your session expired. Please sign in again.');
+        } catch {
+          // sessionStorage can be unavailable (private mode); the redirect still works without the message
+        }
+
         window.location.href = '/login';
       }
     }

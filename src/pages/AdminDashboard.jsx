@@ -9,6 +9,7 @@ import {
 } from 'react-bootstrap';
 import ZurichBrand from '../components/ZurichBrand';
 import { renderSidebarNavLinks } from '../components/sidebarNavLinks';
+import { ArrowDown, CheckCircleFill, ClockFill, PeopleFill } from 'react-bootstrap-icons';
 
 const AdminDashboard = ({ styles }) => {
   const { user, logout } = useAuth();
@@ -209,7 +210,7 @@ const AdminDashboard = ({ styles }) => {
                         <h2 className="mb-0">{totalUsersInTransactions}</h2>
                       </div>
                       <div className="align-self-center">
-                        <i className="fas fa-users fa-2x opacity-75"></i>
+                        <PeopleFill size={32} className="opacity-75" />
                       </div>
                     </div>
                   </Card.Body>
@@ -225,7 +226,7 @@ const AdminDashboard = ({ styles }) => {
                         <h2 className="mb-0">₦{totalDeposits.toLocaleString()}</h2>
                       </div>
                       <div className="align-self-center">
-                        <i className="fas fa-arrow-down fa-2x opacity-75"></i>
+                        <ArrowDown size={32} className="opacity-75" />
                       </div>
                     </div>
                   </Card.Body>
@@ -241,7 +242,7 @@ const AdminDashboard = ({ styles }) => {
                         <h2 className="mb-0">{pendingTransactions}</h2>
                       </div>
                       <div className="align-self-center">
-                        <i className="fas fa-clock fa-2x opacity-75"></i>
+                        <ClockFill size={32} className="opacity-75" />
                       </div>
                     </div>
                   </Card.Body>
@@ -257,7 +258,7 @@ const AdminDashboard = ({ styles }) => {
                         <h2 className="mb-0">{allTransactions.length}</h2>
                       </div>
                       <div className="align-self-center">
-                        <i className="fas fa-check-circle fa-2x opacity-75"></i>
+                        <CheckCircleFill size={32} className="opacity-75" />
                       </div>
                     </div>
                   </Card.Body>

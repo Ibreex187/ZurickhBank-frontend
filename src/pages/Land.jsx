@@ -17,7 +17,6 @@ const NavBar = () => (
         <Nav className="mx-auto">
           <Nav.Link href="#features">Features</Nav.Link>
           <Nav.Link href="#security">Security</Nav.Link>
-          <Nav.Link href="#about">About</Nav.Link>
         </Nav>
         <div className="d-flex gap-2 align-items-center">
           <Link to="/login">
@@ -249,26 +248,23 @@ const Footer = () => (
         <Col lg={2} md={4} sm={6}>
           <h5 className="footer-heading">Product</h5>
           <Nav className="flex-column footer-links">
-            <Nav.Link href="#">Personal Accounts</Nav.Link>
-            <Nav.Link href="#">Savings & Vaults</Nav.Link>
+            <Nav.Link href="#features">Features</Nav.Link>
+            <Nav.Link href="#security">Security</Nav.Link>
           </Nav>
         </Col>
 
         <Col lg={2} md={4} sm={6}>
-          <h5 className="footer-heading">Company</h5>
+          <h5 className="footer-heading">Legal</h5>
           <Nav className="flex-column footer-links">
-            <Nav.Link href="#">About Us</Nav.Link>
-            <Nav.Link href="#">Privacy Policy</Nav.Link>
+            <Nav.Link as={Link} to="/terms">Terms of Service</Nav.Link>
+            <Nav.Link as={Link} to="/privacy">Privacy Policy</Nav.Link>
           </Nav>
         </Col>
 
         <Col lg={2} md={4} sm={6}>
           <h5 className="footer-heading">Support</h5>
           <Nav className="flex-column footer-links">
-            <Nav.Link href="#">Help Center</Nav.Link>
-            <Nav.Link href="#">Security</Nav.Link>
-            <Nav.Link href="#">Contact Us</Nav.Link>
-            <Nav.Link href="#">FAQ</Nav.Link>
+            <Nav.Link href="mailto:support@zurichbank.example">Contact Us</Nav.Link>
           </Nav>
         </Col>
       </Row>
@@ -277,13 +273,6 @@ const Footer = () => (
         <Row className="align-items-center">
           <Col md={6}>
             <p className="footer-copy mb-0">&copy; 2026 Zurich Bank. Demo project, not a real bank. No real money is held or moved.</p>
-          </Col>
-          <Col md={6} className="text-md-end mt-3 mt-md-0">
-            <div className="footer-socials">
-              <span className="social-link">𝕏</span>
-              <span className="social-link">in</span>
-              <span className="social-link">📷</span>
-            </div>
           </Col>
         </Row>
       </div>

@@ -25,6 +25,9 @@ const Ledger = lazy(() => import('./pages/Ledger'));
 const Notifications = lazy(() => import('./pages/Notifications'));
 const Profile = lazy(() => import('./pages/Profile'));
 const Land = lazy(() => import('./pages/Land'));
+const Terms = lazy(() => import('./pages/Terms'));
+const Privacy = lazy(() => import('./pages/Privacy'));
+const NotFound = lazy(() => import('./pages/NotFound'));
 
 function App() {
 
@@ -38,6 +41,8 @@ function App() {
             <Route path="/" element={<Land styles={LANDING_STYLES} />} />
             <Route path="/login" element={<Login styles={AUTH_STYLES} />} />
             <Route path="/register" element={<Registerrr styles={AUTH_STYLES} />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
 
             <Route
               path="/dashboard"
@@ -110,6 +115,8 @@ function App() {
                 </AdminRoute>
               }
             />
+
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </Suspense>
       </AuthProvider>
