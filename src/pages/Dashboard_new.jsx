@@ -297,6 +297,7 @@ const Dashboard = ({ styles }) => {
 
   // Export transactions to CSV
   const EXPORT_ROW_LIMIT = 500;
+  const EXPORT_PAGE_SIZE = 100; // the largest page the API allows
 
   // A cell that starts with = + - @ would be run as a formula by Excel/Sheets,
   // and transfer notes are typed by other users, so text cells get a leading quote.
@@ -312,9 +313,22 @@ const Dashboard = ({ styles }) => {
     setExporting(true);
 
     try {
-      const response = await getTransactionHistory({ page: 1, limit: EXPORT_ROW_LIMIT, ...filters });
-      const rows = response?.data?.transactions || [];
-      const total = Number(response?.data?.pagination?.totalTransactions) || rows.length;
+      // The API returns at most EXPORT_PAGE_SIZE rows per request, so collect the pages one by one
+      const collected = [];
+      let total = 0;
+
+      for (let pageNumber = 1; collected.length < EXPORT_ROW_LIMIT; pageNumber += 1) {
+        const response = await getTransactionHistory({ page: pageNumber, limit: EXPORT_PAGE_SIZE, ...filters });
+        const pageRows = response?.data?.transactions || [];
+
+        total = Number(response?.data?.pagination?.totalTransactions) || total;
+        collected.push(...pageRows);
+
+        if (pageRows.length === 0 || !response?.data?.pagination?.hasNextPage) break;
+      }
+
+      const rows = collected.slice(0, EXPORT_ROW_LIMIT);
+      total = total || rows.length;
 
       if (rows.length === 0) {
         setExportNotice({ variant: 'warning', text: 'There are no transactions to export for the current filters.' });
@@ -1230,6 +1244,7 @@ const Dashboard = ({ styles }) => {
                         value={filters.search}
                         onChange={(e) => handleFilterChange('search', e.target.value)}
                         placeholder="Search transactions..."
+                        maxLength={100}
                         className="search-input"
                       />
                       <select
