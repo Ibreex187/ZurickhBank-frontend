@@ -38,17 +38,17 @@ const normalizeStocksAsPlans = (stocks = []) => {
     id: stock.symbol || stock.stockSymbol || index + 1,
     symbol: stock.symbol || stock.stockSymbol,
     name: stock.name || stock.companyName || `${stock.symbol} Stock`,
-    description: stock.description || `Invest in ${stock.name || stock.symbol} stocks with real-time price fluctuations`,
+    description: stock.description || `Invest in ${stock.name || stock.symbol} stocks with simulated price fluctuations`,
     currentPrice: Number(stock.currentPrice || stock.price || 0),
     basePrice: Number(stock.basePrice || stock.currentPrice || stock.price || 0),
     priceChange: Number(stock.priceChange || 0),
     priceChangePercent: Number(stock.priceChangePercent || 0),
     minAmount: Number(stock.currentPrice || 100), // Minimum 1 share
     maxAmount: 1000000, // Reasonable max for demo
-    duration: 'Real-time Trading',
+    duration: 'Simulated Trading',
     risk: stock.symbol?.includes('TSLA') ? 'High' : stock.symbol?.includes('AAPL') ? 'Medium' : 'Low',
     features: [
-      'Real-time price updates',
+      'Simulated price updates',
       'Buy/Sell flexibility',
       'Portfolio tracking',
       'Profit/Loss calculations'
@@ -226,116 +226,3 @@ export const getInvestmentHistory = async () => {
 export const getInvestmentPlans = getAvailableStocks;
 export const getMyInvestments = getStockPortfolio;
 export const createInvestment = buyStock;
-
-// Sample stock data for fallback when backend is unavailable
-export const getSampleStocks = () => [
-  {
-    id: 'AAPL',
-    symbol: 'AAPL',
-    name: 'Apple Inc.',
-    description: 'Invest in Apple Inc. stocks with real-time price fluctuations',
-    currentPrice: 150.00,
-    basePrice: 150.00,
-    priceChange: 2.50,
-    priceChangePercent: 1.69,
-    minAmount: 150,
-    maxAmount: 1000000,
-    duration: 'Real-time Trading',
-    risk: 'Medium',
-    features: ['Real-time price updates', 'Buy/Sell flexibility', 'Portfolio tracking', 'Dividend potential'],
-    category: 'balanced',
-    isStock: true
-  },
-  {
-    id: 'GOOGL',
-    symbol: 'GOOGL',
-    name: 'Alphabet Inc.',
-    description: 'Invest in Google/Alphabet stocks with growth potential',
-    currentPrice: 2800.00,
-    basePrice: 2800.00,
-    priceChange: -15.20,
-    priceChangePercent: -0.54,
-    minAmount: 2800,
-    maxAmount: 1000000,
-    duration: 'Real-time Trading',
-    risk: 'Medium',
-    features: ['Tech sector growth', 'Market leader', 'Innovation focus', 'Long-term potential'],
-    category: 'balanced',
-    isStock: true
-  },
-  {
-    id: 'TSLA',
-    symbol: 'TSLA',
-    name: 'Tesla Inc.',
-    description: 'High volatility EV stock with growth potential',
-    currentPrice: 200.00,
-    basePrice: 200.00,
-    priceChange: 8.75,
-    priceChangePercent: 4.58,
-    minAmount: 200,
-    maxAmount: 1000000,
-    duration: 'Real-time Trading',
-    risk: 'High',
-    features: ['EV market leader', 'High volatility', 'Innovation focus', 'Growth potential'],
-    category: 'aggressive',
-    isStock: true
-  },
-  {
-    id: 'MSFT',
-    symbol: 'MSFT',
-    name: 'Microsoft Corp.',
-    description: 'Stable tech investment with steady growth',
-    currentPrice: 300.00,
-    basePrice: 300.00,
-    priceChange: 3.25,
-    priceChangePercent: 1.10,
-    minAmount: 300,
-    maxAmount: 1000000,
-    duration: 'Real-time Trading',
-    risk: 'Low',
-    features: ['Stable growth', 'Dividend stock', 'Cloud computing', 'Enterprise focus'],
-    category: 'conservative',
-    isStock: true
-  }
-];
-
-export const getSamplePortfolio = () => [
-  {
-    _id: 1,
-    planName: 'Apple Inc. (AAPL)',
-    symbol: 'AAPL',
-    amount: 1500.00,
-    currentValue: 1575.00,
-    quantity: 10,
-    averagePrice: 150.00,
-    currentPrice: 157.50,
-    profitLoss: 75.00,
-    profitLossPercent: 5.0,
-    startDate: '2024-01-15T00:00:00.000Z',
-    status: 'active',
-    interestRate: 5.0,
-    maturityDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-    duration: 'Ongoing'
-  },
-  {
-    _id: 2,
-    planName: 'Microsoft Corp. (MSFT)',
-    symbol: 'MSFT',
-    amount: 3000.00,
-    currentValue: 3150.00,
-    quantity: 10,
-    averagePrice: 300.00,
-    currentPrice: 315.00,
-    profitLoss: 150.00,
-    profitLossPercent: 5.0,
-    startDate: '2024-02-01T00:00:00.000Z',
-    status: 'active',
-    interestRate: 5.0,
-    maturityDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-    duration: 'Ongoing'
-  }
-];
-
-// Legacy sample data aliases
-export const getSampleInvestmentPlans = getSampleStocks;
-export const getSampleInvestments = getSamplePortfolio;

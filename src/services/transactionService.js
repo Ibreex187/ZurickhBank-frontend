@@ -201,7 +201,7 @@ export const transferFunds = async ({ receiverAccountNumber, amount, description
       transactionPin: String(transactionPin || '').trim()
     };
 
-    // Add description if provided (though backend doesn't use it currently)
+    // Optional note, stored with the transaction and shown in history
     if (description) {
       transferData.description = description;
     }

@@ -21,12 +21,18 @@ import {
   validateTransactionPinData
 } from '../services/profileService';
 import { getNotificationPreferences, updateNotificationPreferences } from '../services/notificationService';
+import { getPremiumStatus } from '../utils/premiumStatus';
 
 const Profile = ({ styles }) => {
   const { user, logout, refreshUser } = useAuth();
   const isAdmin = user?.roles === 'admin' || user?.role === 'admin' || user?.isAdmin === true;
 
   const [loading, setLoading] = useState(false);
+  const [premiumStatus, setPremiumStatus] = useState({ isPremium: false });
+
+  useEffect(() => {
+    getPremiumStatus().then(setPremiumStatus);
+  }, []);
   const [activeTab, setActiveTab] = useState('overview');
 
   const [preferencesLoading, setPreferencesLoading] = useState(false);
@@ -482,7 +488,9 @@ const Profile = ({ styles }) => {
                 </div>
                 <div className="user-info">
                   <span className="user-name">{profileData.firstName} {profileData.lastName}</span>
-                  <span className="user-role premium">Premium Account</span>
+                  <span className={`user-role ${premiumStatus.isPremium ? 'premium' : 'standard'}`}>
+                    {premiumStatus.isPremium ? 'Premium Account' : 'Standard Account'}
+                  </span>
                 </div>
               </div>
             </div>

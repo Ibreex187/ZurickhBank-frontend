@@ -47,8 +47,8 @@ const DashboardPreview = () => (
     </div>
 
     <div className="preview-content">
-      <div className="preview-balance-label">Total Balance</div>
-      <div className="preview-balance-amount">--10*******</div>
+      <div className="preview-balance-label">Total Balance (sample)</div>
+      <div className="preview-balance-amount">₦1,250,000.00</div>
       <span className="balance-badge">&#8593; +3.2% this month</span>
 
       <div className="preview-divider" />
@@ -88,7 +88,7 @@ const HeroSection = () => (
         <Col lg={6} className="hero-left">
           <div className="hero-badge">
             <span className="badge-dot" />
-            Empowering 50,000+ Users
+            A demo banking experience
           </div>
 
           <h1 className="hero-title">
@@ -109,14 +109,18 @@ const HeroSection = () => (
             </Link>
           </div>
 
+          <p className="small mt-3 mb-0" style={{ color: 'var(--text-muted)' }}>
+            Demo application. No real money is held or moved.
+          </p>
+
           <div className="hero-stats">
             <div className="stat-item">
-              <h3>50k+</h3>
-              <p>Active Users</p>
+              <h3>₦99,999</h3>
+              <p>Starter balance</p>
             </div>
             <div className="stat-item">
-              <h3>₦2T+</h3>
-              <p>Processed</p>
+              <h3>₦0</h3>
+              <p>Transfer fees</p>
             </div>
           </div>
         </Col>
@@ -133,18 +137,18 @@ const HeroSection = () => (
 
 const FEATURES = [
   { icon: '💳', title: 'Instant Transfers', desc: 'Send and receive money instantly with zero fees between Zurich Bank accounts. Real-time settlement, no waiting.' },
-  { icon: '📊', title: 'Smart Analytics', desc: 'Track spending with detailed insights and personalised financial reports. Know exactly where your money goes.' },
+  { icon: '📊', title: 'Clear History', desc: 'Search and filter your full transaction history by date, type, recipient or amount, and export it to CSV.' },
   { icon: '📱', title: 'Mobile First', desc: 'Access your account anywhere with our fully responsive design. Optimised for every screen and every device.' },
-  { icon: '🔔', title: 'Smart Alerts', desc: 'Get real-time notifications for every transaction and account activity. Stay informed, stay in control.' },
-  { icon: '🎯', title: 'Savings Goals', desc: 'Set financial goals and automate your savings. Watch your targets come to life with progress tracking.' },
-  { icon: '🤝', title: '24/7 Support', desc: 'Our dedicated team is available around the clock to help with any questions or issues you may have.' },
+  { icon: '🔔', title: 'Activity Alerts', desc: 'Get in-app and email notifications for debits, credits, transfers and security events, with per-category email controls.' },
+  { icon: '🏦', title: 'Savings', desc: 'Move money into a separate savings balance and track your deposits, withdrawals and net savings.' },
+  { icon: '📈', title: 'Stock Simulator', desc: 'Practice buying and selling stocks with simulated prices, and follow your portfolio profit and loss.' },
 ];
 
 const SECURITY_ITEMS = [
-  '256-bit SSL Encryption',
-  'Two-Factor Authentication',
-  '24/7 Fraud Monitoring',
-  'NDIC Insured up to ₦250,000',
+  'Encrypted connections (HTTPS)',
+  'Transaction PIN on every money movement',
+  'Email OTP for sensitive account changes',
+  'Alerts on failed sign-in attempts',
 ];
 
 const FeaturesSection = () => (
@@ -205,8 +209,8 @@ const CtaSection = () => (
       <div className="cta-card-wrapper">
         <h2 className="cta-title">Ready for Better Banking?</h2>
         <p className="cta-subtitle">
-          Join thousands of users who have already made the switch to Zurich Bank.
-          Start your journey today in less than 5 minutes.
+          Create a free demo account and explore transfers, savings and a stock simulator.
+          Sign-up takes about a minute.
         </p>
         <div className="d-flex gap-3 justify-content-center flex-wrap">
           <Link to="/register">
@@ -238,9 +242,7 @@ const Footer = () => (
             Secure, transparent, and built for you.
           </p>
           <div className="footer-contact-info">
-            <p>📍 No13 Ogo-oluwa off gbogan-ibadan Road, Osogbo, Nigeria</p>
-            <p>📧 support@zurichbank.com</p>
-            <p>📞 +234 8146-4332-53</p>
+            <p>📧 support@zurichbank.example</p>
           </div>
         </Col>
 
@@ -274,7 +276,7 @@ const Footer = () => (
       <div className="footer-bottom">
         <Row className="align-items-center">
           <Col md={6}>
-            <p className="footer-copy mb-0">&copy; 2026 Zurich Bank. Member NDIC. Equal Housing Lender.</p>
+            <p className="footer-copy mb-0">&copy; 2026 Zurich Bank. Demo project, not a real bank. No real money is held or moved.</p>
           </Col>
           <Col md={6} className="text-md-end mt-3 mt-md-0">
             <div className="footer-socials">

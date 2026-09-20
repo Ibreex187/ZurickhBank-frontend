@@ -39,16 +39,16 @@ const AuthPanel = ({ onOpenForm, isLogin }) => (
     </Link>
 
     <div className="auth-panel-body">
-      <h2>Welcome to premium digital banking.</h2>
+      <h2>Welcome to Zurich Bank.</h2>
       <p>
-        Manage transfers, investments, and savings from one secure workspace designed for modern wealth management.
+        Manage transfers, savings, and a simulated investment portfolio from one workspace. This is a demo application.
       </p>
       <div className="auth-features">
         {[
-          'Real-time account visibility',
-          'Gold-tier wealth tools',
-          'Enterprise-grade security',
-          'Trusted by fast-growing businesses',
+          'Instant balance and history updates',
+          'Savings and a stock simulator',
+          'PIN-protected transfers',
+          'Alerts on failed sign-in attempts',
         ].map((feature) => (
           <div className="auth-feature-item" key={feature}>
             <div className="auth-feature-check">✓</div>
@@ -60,15 +60,8 @@ const AuthPanel = ({ onOpenForm, isLogin }) => (
 
     <div className="auth-testimonial">
       <p className="auth-testimonial-text">
-        &quot;Zurich Bank gives us confidence in every transaction. The platform gives premium and reliable service.&quot;
+        Demo application: nothing here involves real money.
       </p>
-      <div className="auth-testimonial-author">
-        <div className="auth-avatar">Y.O</div>
-        <div>
-          <div className="auth-author-name">Y. O. Kolade</div>
-          <div className="auth-author-role">Creative Finance Director</div>
-        </div>
-      </div>
     </div>
 
     {/* Mobile Only: Re-open form button */}

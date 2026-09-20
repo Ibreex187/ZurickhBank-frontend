@@ -18,6 +18,7 @@ import {
   getTransactionHistory,
   getTransactionById,
   getTransactionLimits,
+  getTransactionSummary,
   resolveRecipientAccount,
   transferFunds,
   depositFunds,
@@ -40,59 +41,6 @@ const getCookieValue = (name) => {
 const setCookieValue = (name, value, days = 30) => {
   const expires = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toUTCString();
   document.cookie = `${name}=${value}; expires=${expires}; path=/; SameSite=Lax`;
-};
-
-const formatDateForApi = (date) => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
-
-const getMonthRange = (monthOffset = 0) => {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth() + monthOffset;
-
-  const startDate = new Date(year, month, 1);
-  const endDate = new Date(year, month + 1, 0);
-
-  return {
-    startDate: formatDateForApi(startDate),
-    endDate: formatDateForApi(endDate),
-  };
-};
-
-const getSignedTransactionAmount = (transaction, currentUserId) => {
-  const amount = Number(transaction?.amount) || 0;
-  const type = String(transaction?.type || '').toLowerCase();
-
-  if (type === 'deposit') return amount;
-  if (type === 'withdraw') return -amount;
-
-  if (type === 'transfer') {
-    const senderId = String(transaction?.sender?._id || '');
-    const userId = String(currentUserId || '');
-
-    if (!senderId || !userId) return 0;
-    return senderId === userId ? -amount : amount;
-  }
-
-  return 0;
-};
-
-const getNetActivityAmount = (transactionList, currentUserId) => {
-  const settledStatuses = new Set(['completed', 'complete', 'successful', 'success']);
-
-  return (transactionList || []).reduce((total, transaction) => {
-    const status = String(transaction?.status || '').toLowerCase();
-
-    if (status && !settledStatuses.has(status)) {
-      return total;
-    }
-
-    return total + getSignedTransactionAmount(transaction, currentUserId);
-  }, 0);
 };
 
 const formatCurrencyValue = (value) => `₦${Number(value || 0).toLocaleString()}`;
@@ -121,10 +69,6 @@ const Dashboard = ({ styles }) => {
   const [actionType, setActionType] = useState('');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
-  const [withdrawalMethod, setWithdrawalMethod] = useState('cash'); // 'cash', 'atm', or 'external'
-  const [externalBank, setExternalBank] = useState('');
-  const [externalAccount, setExternalAccount] = useState('');
-  const [atmPin, setAtmPin] = useState('');
   const [transactionPin, setTransactionPin] = useState('');
   const [receiverAccountNumber, setReceiverAccountNumber] = useState('');
   const [receiverLookup, setReceiverLookup] = useState({
@@ -168,7 +112,7 @@ const Dashboard = ({ styles }) => {
   const [transactionDetailsLoading, setTransactionDetailsLoading] = useState(false);
   const [transactionLimits, setTransactionLimits] = useState(null);
   const [limitsLoading, setLimitsLoading] = useState(false);
-  const [balanceChangePercent, setBalanceChangePercent] = useState(0);
+  const [netActivity, setNetActivity] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(() => readStoredUnreadNotifications());
   const [transferModalSession, setTransferModalSession] = useState(0);
   const hasTransactionPin = Boolean(user?.hasTransactionPin);
@@ -185,10 +129,6 @@ const Dashboard = ({ styles }) => {
     setDescription('');
     setAmount('');
     setReceiverAccountNumber('');
-    setWithdrawalMethod('cash');
-    setExternalBank('');
-    setExternalAccount('');
-    setAtmPin('');
     setTransactionPin('');
     setReceiverLookup({ loading: false, accountName: '', resolvedAccountNumber: '', error: '' });
     setMessage({ type: '', text: '' });
@@ -442,51 +382,21 @@ const Dashboard = ({ styles }) => {
     }
   }, [filters, pagination.currentPage, pagination.limit]);
 
-  const fetchBalanceChange = useCallback(async () => {
+  const fetchNetActivity = useCallback(async () => {
     try {
-      const currentMonthRange = getMonthRange(0);
-      const lastMonthRange = getMonthRange(-1);
+      const now = new Date();
+      const response = await getTransactionSummary({
+        startDate: new Date(now.getFullYear(), now.getMonth(), 1).toISOString(),
+        endDate: new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999).toISOString(),
+      });
 
-      const [currentMonthResponse, lastMonthResponse] = await Promise.all([
-        getTransactionHistory({
-          page: 1,
-          limit: 500,
-          startDate: currentMonthRange.startDate,
-          endDate: currentMonthRange.endDate,
-        }),
-        getTransactionHistory({
-          page: 1,
-          limit: 500,
-          startDate: lastMonthRange.startDate,
-          endDate: lastMonthRange.endDate,
-        }),
-      ]);
-
-      const currentMonthTransactions = currentMonthResponse?.data?.transactions || [];
-      const lastMonthTransactions = lastMonthResponse?.data?.transactions || [];
-
-      const currentMonthNet = getNetActivityAmount(currentMonthTransactions, user?._id);
-      const lastMonthNet = getNetActivityAmount(lastMonthTransactions, user?._id);
-
-      const base = Math.abs(lastMonthNet);
-      let computedPercent = 0;
-
-      if (base < 0.01) {
-        if (Math.abs(currentMonthNet) < 0.01) {
-          computedPercent = 0;
-        } else {
-          computedPercent = currentMonthNet > 0 ? 100 : -100;
-        }
-      } else {
-        computedPercent = ((currentMonthNet - lastMonthNet) / base) * 100;
-      }
-
-      setBalanceChangePercent(Number.isFinite(computedPercent) ? computedPercent : 0);
+      const net = Number(response?.data?.summary?.netAmount);
+      setNetActivity(Number.isFinite(net) ? net : 0);
     } catch (error) {
-      console.error('Failed to compute balance change:', error);
-      setBalanceChangePercent(0);
+      console.error('Failed to load net activity:', error);
+      setNetActivity(0);
     }
-  }, [user?._id]);
+  }, []);
 
   const fetchUnreadNotifications = useCallback(async () => {
     try {
@@ -528,8 +438,8 @@ const Dashboard = ({ styles }) => {
   }, [fetchTransactions]);
 
   useEffect(() => {
-    fetchBalanceChange();
-  }, [fetchBalanceChange]);
+    fetchNetActivity();
+  }, [fetchNetActivity]);
 
   useEffect(() => {
     fetchUnreadNotifications();
@@ -632,7 +542,7 @@ const Dashboard = ({ styles }) => {
         setTransactionPin('');
         setReceiverLookup({ loading: false, accountName: '', resolvedAccountNumber: '', error: '' });
         await fetchTransactions();
-        await fetchBalanceChange();
+        await fetchNetActivity();
         await fetchTransactionLimits();
         await refreshUser();
 
@@ -665,14 +575,10 @@ const Dashboard = ({ styles }) => {
       receiverLookup.resolvedAccountNumber !== receiverAccountNumber.trim() ||
       !!receiverLookup.error
     )) ||
-    (actionType === 'withdraw' && (
-      (withdrawalMethod === 'atm' && atmPin.length < 4) ||
-      (withdrawalMethod === 'external' && (!externalBank || externalAccount.length < 10))
-    )) ||
     transactionPin.trim().length !== 4;
 
-  const balanceChangeDirection = balanceChangePercent > 0 ? 'positive' : balanceChangePercent < 0 ? 'negative' : 'neutral';
-  const formattedBalanceChange = `${balanceChangePercent > 0 ? '+' : ''}${balanceChangePercent.toFixed(1)}%`;
+  const balanceChangeDirection = netActivity > 0 ? 'positive' : netActivity < 0 ? 'negative' : 'neutral';
+  const formattedBalanceChange = `${netActivity > 0 ? '+' : netActivity < 0 ? '-' : ''}₦${Math.abs(netActivity).toLocaleString()}`;
   const activeLimitOperation = actionType === 'transfer' || actionType === 'withdraw' ? actionType : null;
   const activeOperationLimits = activeLimitOperation ? transactionLimits?.operations?.[activeLimitOperation] : null;
   const withdrawDailySeverity = getLimitSeverity(transactionLimits?.operations?.withdraw?.daily);
@@ -816,7 +722,7 @@ const Dashboard = ({ styles }) => {
                   </svg>
                   {formattedBalanceChange}
                 </span>
-                <span className="change-period">vs last month activity</span>
+                <span className="change-period">net activity this month</span>
               </div>
             </div>
           </div>
@@ -951,44 +857,6 @@ const Dashboard = ({ styles }) => {
                     </div>
                   )}
 
-                  {actionType === 'withdraw' && (
-                    <div className="transfer-method-selector">
-                      <label className="transfer-form-label">Withdrawal Method</label>
-                      <div className="method-cards-grid">
-                        <button
-                          type="button"
-                          className={`method-card ${withdrawalMethod === 'cash' ? 'active' : ''}`}
-                          onClick={() => setWithdrawalMethod('cash')}
-                        >
-                          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M3,6H21V18H3V6M12,9A3,3 0 0,1 15,12A3,3 0 0,1 12,15A3,3 0 0,1 9,12A3,3 0 0,1 12,9M7,8A2,2 0 0,1 5,10V14A2,2 0 0,1 7,16H17A2,2 0 0,1 19,14V10A2,2 0 0,1 17,8H7Z" />
-                          </svg>
-                          <span>Cash</span>
-                        </button>
-                        <button
-                          type="button"
-                          className={`method-card ${withdrawalMethod === 'atm' ? 'active' : ''}`}
-                          onClick={() => setWithdrawalMethod('atm')}
-                        >
-                          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M4,3H20A2,2 0 0,1 22,5V19A2,2 0 0,1 20,21H4A2,2 0 0,1 2,19V5A2,2 0 0,1 4,3M4,7V19H20V7H4M10,9H14V13H10V9M11,10V12H13V10H11M6,14H8V16H6V14M6,17H8V19H6V17M9,14H11V16H9V14M9,17H11V19H9V17M12,14H14V16H12V14M12,17H14V19H12V17M15,14H18V16H15V14M15,17H18V19H15V17Z" />
-                          </svg>
-                          <span>ATM</span>
-                        </button>
-                        <button
-                          type="button"
-                          className={`method-card ${withdrawalMethod === 'external' ? 'active' : ''}`}
-                          onClick={() => setWithdrawalMethod('external')}
-                        >
-                          <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M11.5,1L2,6V8H21V6M16,10V17H19V10M2,22H21V19H2M10,10V17H13V10M4,10V17H7V10H4Z" />
-                          </svg>
-                          <span>Bank</span>
-                        </button>
-                      </div>
-                    </div>
-                  )}
-
                   <div className="transfer-form-group">
                     <label className="transfer-form-label">Amount</label>
                     <div className="transfer-input-group">
@@ -1055,56 +923,6 @@ const Dashboard = ({ styles }) => {
                           className="transfer-form-textarea"
                           rows="2"
                           maxLength="200"
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  {actionType === 'withdraw' && withdrawalMethod === 'atm' && (
-                    <div className="transfer-form-group">
-                      <PasswordField
-                        label="ATM PIN"
-                        labelClassName="transfer-form-label"
-                        inputClassName="transfer-form-input"
-                        groupClassName=""
-                        value={atmPin}
-                        onChange={(e) => setAtmPin(e.target.value.replace(/\D/g, '').substring(0, 4))}
-                        placeholder="••••"
-                        required
-                        maxLength="4"
-                      />
-                      <small className="transfer-text-muted">Enter a 4-digit PIN for verification.</small>
-                    </div>
-                  )}
-
-                  {actionType === 'withdraw' && withdrawalMethod === 'external' && (
-                    <>
-                      <div className="transfer-form-group">
-                        <label className="transfer-form-label">Destination Bank Name</label>
-                        <select
-                          value={externalBank}
-                          onChange={(e) => setExternalBank(e.target.value)}
-                          className="transfer-form-input"
-                          required
-                        >
-                          <option value="">Select a Bank...</option>
-                          <option value="chase">Chase Bank</option>
-                          <option value="bofa">Bank of America</option>
-                          <option value="wells">Wells Fargo</option>
-                          <option value="citi">Citibank</option>
-                          <option value="other">Other</option>
-                        </select>
-                      </div>
-                      <div className="transfer-form-group">
-                        <label className="transfer-form-label">Account Number</label>
-                        <input
-                          type="text"
-                          value={externalAccount}
-                          onChange={(e) => setExternalAccount(e.target.value.replace(/\D/g, ''))}
-                          placeholder="Enter account number"
-                          className="transfer-form-input"
-                          required
-                          minLength="5"
                         />
                       </div>
                     </>
@@ -1335,6 +1153,10 @@ const Dashboard = ({ styles }) => {
                                   From: {transaction.sender.firstName} {transaction.sender.lastName} (•••• {transaction.sender.accountNumber.slice(-4)})
                                 </span>
                               )}
+
+                              {transaction.description && (
+                                <span className="transaction-subtitle">Note: {transaction.description}</span>
+                              )}
                             </div>
                           </div>
                         </td>
@@ -1517,6 +1339,13 @@ const Dashboard = ({ styles }) => {
                         <br />
                         <small>Account: •••• {selectedTransaction.receiver.accountNumber?.slice(-4)}</small>
                       </span>
+                    </div>
+                  )}
+
+                  {selectedTransaction.description && (
+                    <div className="detail-item">
+                      <label>Note</label>
+                      <span>{selectedTransaction.description}</span>
                     </div>
                   )}
 

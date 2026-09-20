@@ -66,9 +66,9 @@ const AuthPanel = ({ onOpenRegister }) => (
     <div className="auth-brand"><ZurichBrand showText={true} /></div>
     <div className="auth-panel-body">
       <h2>Start your financial journey today.</h2>
-      <p>Join over 50,000 customers who manage their money smarter with Zurich Bank — instant transfers, real-time analytics, and bank-level security.</p>
+      <p>Create a free demo account and explore instant transfers, savings and a stock simulator. No real money is held or moved.</p>
       <div className="auth-features">
-        {["Zero-fee instant transfers", "Smart spending analytics", "256-bit TSL encryption", "NDIC insured up to ₦250,000"].map((f) => (
+        {["Zero-fee instant transfers", "Savings with clear insights", "Encrypted connections (HTTPS)", "Transaction PIN on every transfer"].map((f) => (
           <div className="auth-feature-item" key={f}>
             <div className="auth-feature-check">✓</div>
             {f}
@@ -87,14 +87,7 @@ const AuthPanel = ({ onOpenRegister }) => (
       </div>
     </div>
     <div className="auth-testimonial">
-      <p className="auth-testimonial-text">"Zurich Bank completely changed how I manage my Bonds and investments. The dashboard is beautiful and everything just works."</p>
-      <div className="auth-testimonial-author">
-        <div className="auth-avatar">MMs</div>
-        <div>
-          <div className="auth-author-name">El-Mubarak(Saturn) Moh</div>
-          <div className="auth-author-role">Small Business Owner</div>
-        </div>
-      </div>
+      <p className="auth-testimonial-text">Demo application: accounts start with a ₦99,999 practice balance and nothing here involves real money.</p>
     </div>
   </div>
 );
@@ -185,7 +178,7 @@ const Register = ({ styles }) => {
                           </div>
                           <div className="step-line" />
                           <div className={`auth-step${isEmailValid ? ' done' : (isDetailsFilled ? ' active' : '')}`}>
-                            <span className="step-num">{isEmailValid ? '✓' : '2'}</span> Verify Email
+                            <span className="step-num">{isEmailValid ? '✓' : '2'}</span> Your Email
                           </div>
                           <div className="step-line" />
                           <div className={`auth-step${isFormValid ? ' done' : (isEmailValid ? ' active' : '')}`}>

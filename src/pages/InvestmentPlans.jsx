@@ -8,8 +8,7 @@ import {
   getStockDetails,
   getInvestmentHistory,
   buyStock,
-  sellStock,
-  getSampleStocks
+  sellStock
 } from '../services/investmentService';
 import {
   Container, Card, Form, Alert, Table, Row, Col,
@@ -26,6 +25,7 @@ const InvestmentPlans = ({ styles }) => {
   const isAdmin = user?.roles === 'admin' || user?.role === 'admin' || user?.isAdmin === true;
   const [investments, setInvestments] = useState([]);
   const [availableStocks, setAvailableStocks] = useState([]);
+  const [stocksError, setStocksError] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
   const [showBuyModal, setShowBuyModal] = useState(false);
@@ -78,18 +78,19 @@ const InvestmentPlans = ({ styles }) => {
   );
 
   const fetchAvailableStocks = async () => {
+    setStocksError('');
     try {
       const response = await getAvailableStocks();
       if (response.success && response.data.length > 0) {
         setAvailableStocks(response.data);
         return;
       }
+      setAvailableStocks([]);
     } catch (error) {
       console.error('Failed to fetch available stocks:', error);
+      setAvailableStocks([]);
+      setStocksError('We could not load the stock list right now. Please try again in a moment.');
     }
-
-    // Fallback to sample data if backend is unavailable or returns no data
-    setAvailableStocks(getSampleStocks());
   };
 
   const fetchMyPortfolio = async (forceFresh = false) => {
@@ -375,7 +376,10 @@ const InvestmentPlans = ({ styles }) => {
                 <div className="d-flex justify-content-between align-items-center">
                   <div>
                     <h2 className="mb-1">Stock Trading & Investments</h2>
-                    <p className="text-muted mb-0">Trade stocks in real-time and build your investment portfolio</p>
+                    <p className="text-muted mb-0">
+                      Practice trading with simulated stocks. Prices are randomly generated for demonstration
+                      and are not real market data.
+                    </p>
                   </div>
                 </div>
               </Col>
@@ -654,8 +658,21 @@ const InvestmentPlans = ({ styles }) => {
                   <Col>
                     <div className="text-center py-5">
                       <i className="fas fa-search fa-3x text-muted mb-3"></i>
-                      <h5 className="text-muted">No stocks found</h5>
-                      <p className="text-muted">Try selecting a different category or check back later.</p>
+                      <h5 className="text-muted">{stocksError ? 'Stocks unavailable' : 'No stocks found'}</h5>
+                      <p className="text-muted">
+                        {stocksError || 'Try selecting a different category or check back later.'}
+                      </p>
+                      {stocksError && (
+                        <AppButton
+                          size="sm"
+                          backgroundColor="transparent"
+                          textColor="#151e31"
+                          borderColor="#151e31"
+                          onClick={fetchAvailableStocks}
+                        >
+                          Try again
+                        </AppButton>
+                      )}
                     </div>
                   </Col>
                 )}

@@ -10,6 +10,7 @@ import {
   transferToBeneficiary,
 } from '../services/beneficiaryService';
 import { getTransactionLimits } from '../services/transactionService';
+import { getPremiumStatus } from '../utils/premiumStatus';
 import {
   Container, Card, Form, Button, Alert, Table, Row, Col,
   Modal
@@ -34,6 +35,7 @@ const getLimitSeverity = (bucket) => {
 const BeneficiaryManagement = ({ styles }) => {
   const { user, logout } = useAuth();
   const isAdmin = user?.roles === 'admin' || user?.role === 'admin' || user?.isAdmin === true;
+  const [premiumStatus, setPremiumStatus] = useState({ isPremium: false });
   const [beneficiaries, setBeneficiaries] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -78,6 +80,7 @@ const BeneficiaryManagement = ({ styles }) => {
 
   useEffect(() => {
     fetchBeneficiaries();
+    getPremiumStatus().then(setPremiumStatus);
   }, []);
 
   useEffect(() => {
@@ -360,7 +363,9 @@ const BeneficiaryManagement = ({ styles }) => {
                 </div>
                 <div className="user-info">
                   <span className="user-name">{user?.firstName} {user?.lastName}</span>
-                  <span className="user-role premium">Premium Account</span>
+                  <span className={`user-role ${premiumStatus.isPremium ? 'premium' : 'standard'}`}>
+                    {premiumStatus.isPremium ? 'Premium Account' : 'Standard Account'}
+                  </span>
                 </div>
               </div>
             </div>
