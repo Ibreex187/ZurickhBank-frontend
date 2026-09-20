@@ -44,7 +44,7 @@ const PasswordField = ({
 
   return (
     <div className={`${groupClassName} position-relative`}>
-      {label && <label className={labelClassName}>{label}</label>}
+      {label && <label className={labelClassName} htmlFor={controlProps.id}>{label}</label>}
       <div className={inputWrapperClassName}>
         {icon && <span className="input-icon">{icon}</span>}
         <input

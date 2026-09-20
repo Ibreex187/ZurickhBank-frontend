@@ -24,6 +24,12 @@ import { getNotificationPreferences, updateNotificationPreferences } from '../se
 import { getPremiumStatus } from '../utils/premiumStatus';
 import { formatMoney } from '../utils/formatters';
 import CopyButton from '../components/CopyButton';
+import { useCountdown } from '../hooks/useCountdown';
+import { getRetryAfterSeconds } from '../utils/authErrors';
+import { OTP_LENGTH } from '../utils/authRules';
+
+// Matches the server's minimum gap between two one-time codes
+const OTP_RESEND_SECONDS = 60;
 
 const Profile = ({ styles }) => {
   const { user, logout, refreshUser } = useAuth();
@@ -112,6 +118,7 @@ const Profile = ({ styles }) => {
   const [editErrors, setEditErrors] = useState({});
   const [editOtp, setEditOtp] = useState('');
   const [editOtpLoading, setEditOtpLoading] = useState(false);
+  const otpCountdown = useCountdown();
 
   // Change password state
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -238,6 +245,13 @@ const Profile = ({ styles }) => {
     setMessage({ type: '', text: '' });
     try {
       const response = await requestProfileUpdateOtp();
+
+      // The server allows a new code once a minute; show the wait instead of letting people hit the error
+      const waitSeconds = response.success ? OTP_RESEND_SECONDS : getRetryAfterSeconds(response.message);
+      if (waitSeconds > 0) {
+        otpCountdown.start(waitSeconds);
+      }
+
       setMessage({
         type: response.success ? 'success' : 'error',
         text: response.message || (response.success ? 'OTP sent' : 'Failed to send OTP')
@@ -728,11 +742,15 @@ const Profile = ({ styles }) => {
                             </div>
 
                               <div className="form-group">
-                                <label style={{ color: 'var(--white)' }}>OTP (required to save changes)</label>
+                                <label htmlFor="profile-otp" style={{ color: 'var(--white)' }}>OTP (required to save changes)</label>
                                 <input
+                                  id="profile-otp"
                                   type="text"
+                                  inputMode="numeric"
+                                  autoComplete="one-time-code"
+                                  maxLength={OTP_LENGTH}
                                   value={editOtp}
-                                  onChange={(e) => setEditOtp(e.target.value)}
+                                  onChange={(e) => setEditOtp(e.target.value.replace(/\D/g, '').slice(0, OTP_LENGTH))}
                                   className="form-input"
                                   placeholder="Enter 6-digit OTP"
                                   style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--white)', borderColor: 'rgba(255,255,255,0.1)' }}
@@ -745,10 +763,14 @@ const Profile = ({ styles }) => {
                                 type="button"
                                 className="action-btn-custom"
                                 onClick={handleRequestProfileOtp}
-                                disabled={editOtpLoading}
+                                disabled={editOtpLoading || otpCountdown.secondsLeft > 0}
                                 style={{ color: '#fff', borderColor: 'rgba(255,255,255,0.2)' }}
                               >
-                                {editOtpLoading ? 'Sending OTP...' : 'Send OTP'}
+                                {editOtpLoading
+                                  ? 'Sending OTP...'
+                                  : otpCountdown.secondsLeft > 0
+                                    ? `Resend in ${otpCountdown.secondsLeft}s`
+                                    : 'Send OTP'}
                               </button>
                             <button
                               type="button"
@@ -832,6 +854,7 @@ const Profile = ({ styles }) => {
                           <div className="form-group">
                             <PasswordField
                               label="Current Password"
+                              autoComplete="current-password"
                               value={passwordData.currentPassword}
                               onChange={(e) => handlePasswordChange('currentPassword', e.target.value)}
                               inputClassName="form-input"
@@ -848,6 +871,7 @@ const Profile = ({ styles }) => {
                           <div className="form-group">
                             <PasswordField
                               label="New Password"
+                              autoComplete="new-password"
                               value={passwordData.newPassword}
                               onChange={(e) => handlePasswordChange('newPassword', e.target.value)}
                               inputClassName="form-input"
@@ -864,6 +888,7 @@ const Profile = ({ styles }) => {
                           <div className="form-group">
                             <PasswordField
                               label="Confirm New Password"
+                              autoComplete="new-password"
                               value={passwordData.confirmPassword}
                               onChange={(e) => handlePasswordChange('confirmPassword', e.target.value)}
                               inputClassName="form-input"
@@ -910,6 +935,7 @@ const Profile = ({ styles }) => {
                           <div className="form-group">
                             <PasswordField
                               label="Current Password"
+                              autoComplete="current-password"
                               value={pinData.currentPassword}
                               onChange={(e) => handleTransactionPinChange('currentPassword', e.target.value)}
                               inputClassName="form-input"
@@ -926,6 +952,8 @@ const Profile = ({ styles }) => {
                           <div className="form-group">
                             <PasswordField
                               label="Transaction PIN"
+                              autoComplete="off"
+                              inputMode="numeric"
                               value={pinData.transactionPin}
                               onChange={(e) => handleTransactionPinChange('transactionPin', e.target.value)}
                               inputClassName="form-input"
@@ -943,6 +971,8 @@ const Profile = ({ styles }) => {
                           <div className="form-group">
                             <PasswordField
                               label="Confirm Transaction PIN"
+                              autoComplete="off"
+                              inputMode="numeric"
                               value={pinData.confirmTransactionPin}
                               onChange={(e) => handleTransactionPinChange('confirmTransactionPin', e.target.value)}
                               inputClassName="form-input"

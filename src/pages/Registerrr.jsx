@@ -6,35 +6,28 @@ import { Formik, Form, Field } from 'formik';
 import { useAuth } from '../context/AuthContext';
 import AppButton from '../components/AppButton';
 import PasswordField from '../components/PasswordField';
+import PasswordRules from '../components/PasswordRules';
 import ZurichBrand from '../components/ZurichBrand';
 import { AUTH_STYLES } from './Auth.styles';
+import { getAuthErrorMessage } from '../utils/authErrors';
+import { USERNAME_MAX, USERNAME_MIN, validateEmail, validateName, validatePassword, validateUserName } from '../utils/authRules';
 
 /* ─── Validation ──────────────────────────── */
 const validate = (values) => {
-  const errors = {};
-  if (!values.firstName) errors.firstName = 'First name is required';
-  if (!values.lastName) errors.lastName = 'Last name is required';
-  if (!values.userName) {
-    errors.userName = 'Username is required';
-  } else if (values.userName.length < 3) {
-    errors.userName = 'Username must be at least 3 characters';
-  }
-  if (!values.email) {
-    errors.email = 'Email is required';
-  } else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(values.email)) {
-    errors.email = 'Invalid email address';
-  }
-  if (!values.password) {
-    errors.password = 'Password is required';
-  } else if (values.password.length < 6) {
-    errors.password = 'Password must be at least 6 characters';
-  }
-  return errors;
+  const checks = {
+    firstName: validateName(values.firstName, 'First name'),
+    lastName: validateName(values.lastName, 'Last name'),
+    userName: validateUserName(values.userName),
+    email: validateEmail(values.email),
+    password: validatePassword(values.password),
+  };
+
+  return Object.fromEntries(Object.entries(checks).filter(([, message]) => message));
 };
 
 /* ─── InputField ──────────────────────────── */
-const InputField = ({ label, name, type = 'text', placeholder, icon }) => (
-  <BootstrapForm.Group className="mb-3">
+const InputField = ({ label, name, type = 'text', placeholder, icon, autoComplete, hint }) => (
+  <BootstrapForm.Group className="mb-3" controlId={`register-${name}`}>
     <BootstrapForm.Label>{label}</BootstrapForm.Label>
     <Field name={name}>
       {({ field, meta }) => (
@@ -45,13 +38,16 @@ const InputField = ({ label, name, type = 'text', placeholder, icon }) => (
               {...field}
               type={type}
               placeholder={placeholder}
+              autoComplete={autoComplete}
               isInvalid={meta.touched && !!meta.error}
             />
           </div>
-          {meta.touched && meta.error && (
+          {meta.touched && meta.error ? (
             <BootstrapForm.Control.Feedback type="invalid" style={{ display: 'block' }}>
               {meta.error}
             </BootstrapForm.Control.Feedback>
+          ) : (
+            hint && <BootstrapForm.Text className="text-muted">{hint}</BootstrapForm.Text>
           )}
         </div>
       )}
@@ -131,7 +127,7 @@ const Register = () => {
         state: { message: 'Registration successful! Please sign in.', userName: values.userName },
       });
     } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed. Please try again.');
+      setError(getAuthErrorMessage(err, 'Registration failed. Please try again.'));
     } finally {
       setLoading(false);
       setSubmitting(false);
@@ -192,48 +188,44 @@ const Register = () => {
                           <Form noValidate>
                             <Row>
                               <Col md={6}>
-                                <InputField name="firstName" label="First Name" placeholder="kol" icon="👤" />
+                                <InputField name="firstName" label="First Name" placeholder="Ada" icon="👤" autoComplete="given-name" />
                               </Col>
                               <Col md={6}>
-                                <InputField name="lastName" label="Last Name" placeholder="ade" />
+                                <InputField name="lastName" label="Last Name" placeholder="Obi" autoComplete="family-name" />
                               </Col>
                             </Row>
-                            <InputField name="userName" label="Username" placeholder="kol_ade" icon="@" />
-                            <InputField name="email" type="email" label="Email Address" placeholder="kol_ade@example.com" icon="✉" />
+                            <InputField
+                              name="userName"
+                              label="Username"
+                              placeholder="adaobi"
+                              icon="@"
+                              autoComplete="username"
+                              hint={`${USERNAME_MIN} to ${USERNAME_MAX} letters or numbers. No spaces or symbols.`}
+                            />
+                            <InputField name="email" type="email" label="Email Address" placeholder="ada@example.com" icon="✉" autoComplete="email" />
                             <Field name="password">
-                              {({ field, meta }) => {
-                                const password = field.value || '';
-                                const getStrength = (pwd) => {
-                                  let score = 0;
-                                  if (pwd.length >= 6) score++;
-                                  if (/[A-Z]/.test(pwd)) score++;
-                                  if (/[0-9]/.test(pwd)) score++;
-                                  if (/[^A-Za-z0-9]/.test(pwd)) score++;
-                                  return score;
-                                };
-                                const strength = getStrength(password);
-                                const strengthColors = ['var(--border)', 'var(--red)', 'var(--orange)', 'var(--yellow)', 'var(--green)'];
-                                const barColor = (idx) => {
-                                  if (strength === 0) return 'var(--border)';
-                                  return idx <= strength ? strengthColors[strength] : 'var(--border)';
-                                };
-                                const strengthLabels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
-                                return <>
-                                  <PasswordField {...field} label="Password" placeholder="Min. 6 characters" icon="🔒" inputWrapperClassName="input-wrap" isInvalid={Boolean(meta.touched && meta.error)} feedback={meta.touched ? meta.error : null} />
-                                  <div style={{ display: 'flex', gap: 4, marginTop: -8, marginBottom: 20, alignItems: 'center' }}>
-                                    {[1, 2, 3, 4].map((i) => (
-                                      <div key={i} style={{ flex: 1, height: 3, borderRadius: 4, background: barColor(i), transition: 'background 0.3s' }} />
-                                    ))}
-                                    <span style={{ fontSize: '0.7rem', color: 'var(--muted)', marginLeft: 4, whiteSpace: 'nowrap', lineHeight: '14px', minWidth: 48 }}>{strengthLabels[strength] || 'Strength'}</span>
-                                  </div>
-                                </>;
-                              }}
+                              {({ field, meta }) => (
+                                <>
+                                  <PasswordField
+                                    {...field}
+                                    id="register-password"
+                                    label="Password"
+                                    placeholder="Choose a password"
+                                    autoComplete="new-password"
+                                    icon="🔒"
+                                    inputWrapperClassName="input-wrap"
+                                    isInvalid={Boolean(meta.touched && meta.error)}
+                                    feedback={meta.touched ? meta.error : null}
+                                  />
+                                  <PasswordRules password={field.value || ''} />
+                                </>
+                              )}
                             </Field>
                             <AppButton type="submit" className="auth-submit-btn" backgroundColor="var(--navy)" fullWidth loading={loading || isSubmitting} loadingText="Creating Account...">Create Account →</AppButton>
                             <p className="auth-terms">By creating an account you agree to our <Link to="/terms">Terms of Service</Link> and <Link to="/privacy">Privacy Policy</Link>.</p>
                           </Form>
                         </div>
-                        <p className="auth-footer" style={{ marginTop: 24 }}>Need help? <a href="mailto:support@zurich.bank" style={{ color: 'var(--green)', fontWeight: 600, textDecoration: 'none' }}>Contact support</a></p>
+                        <p className="auth-footer" style={{ marginTop: 24 }}>Need help? <a href="mailto:support@zurichbank.example" style={{ color: 'var(--green)', fontWeight: 600, textDecoration: 'none' }}>Contact support</a></p>
                       </>;
                     }}
                   </Formik>
@@ -257,6 +249,8 @@ InputField.propTypes = {
   type: PropTypes.string,
   placeholder: PropTypes.string,
   icon: PropTypes.node,
+  autoComplete: PropTypes.string,
+  hint: PropTypes.node,
 };
 
 export default Register;

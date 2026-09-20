@@ -1,16 +1,15 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Container, Row, Col, Form as BootstrapForm, Card, Alert, Modal, Offcanvas } from 'react-bootstrap';
+import { Container, Row, Col, Form as BootstrapForm, Card, Alert, Offcanvas } from 'react-bootstrap';
 import { Formik, Form, Field } from 'formik';
 import { useAuth } from '../context/AuthContext';
 import AppButton from '../components/AppButton';
 import PasswordField from '../components/PasswordField';
 import ZurichBrand from '../components/ZurichBrand';
-import { requestForgotPasswordOtp, verifyForgotPasswordOtp, resetForgotPassword } from '../services/authService';
 
-const CustomField = ({ label, name, type = 'text', placeholder }) => (
-  <BootstrapForm.Group className="mb-3">
+const CustomField = ({ label, name, type = 'text', placeholder, autoComplete }) => (
+  <BootstrapForm.Group className="mb-3" controlId={`login-${name}`}>
     <BootstrapForm.Label>{label}</BootstrapForm.Label>
     <Field name={name}>
       {({ field, meta }) => (
@@ -19,6 +18,7 @@ const CustomField = ({ label, name, type = 'text', placeholder }) => (
             {...field}
             type={type}
             placeholder={placeholder}
+            autoComplete={autoComplete}
             isInvalid={meta.touched && meta.error}
           />
           {meta.touched && meta.error && (
@@ -76,24 +76,12 @@ const AuthPanel = ({ onOpenForm, isLogin }) => (
 const Login = ({ styles }) => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [forgotData, setForgotData] = useState({
-    email: '',
-    otp: '',
-    resetToken: '',
-    newPassword: '',
-    confirmPassword: ''
-  });
-  const [forgotLoading, setForgotLoading] = useState(false);
-  const [otpRequested, setOtpRequested] = useState(false);
-  const [otpStepUnlocked, setOtpStepUnlocked] = useState(false);
-  const [showResetPasswordModal, setShowResetPasswordModal] = useState(false);
   const [showOffcanvas, setShowOffcanvas] = useState(false); // Mobile offcanvas state
   const { login } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // One-off message: shown after registering ("Registration successful") or when a session expired
+  // One-off message: shown after registering or resetting a password, or when a session expired
   const [notice, setNotice] = useState(() => {
     if (location.state?.message) {
       return { variant: 'success', text: location.state.message };
@@ -140,6 +128,7 @@ const Login = ({ styles }) => {
 
     return errors;
   };
+
   const handleSubmit = async (values, { setSubmitting }) => {
     setLoading(true);
     setError('');
@@ -148,163 +137,12 @@ const Login = ({ styles }) => {
       await login(values.username, values.password); // AuthContext will set cookie
       navigate('/dashboard');
     } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Login failed. Please try again.');
+      setError(err.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
       setSubmitting(false);
     }
   };
-
-  const handleForgotInputChange = (field, value) => {
-    setForgotData((prev) => ({ ...prev, [field]: value }));
-
-    if (field === 'email') {
-      setOtpRequested(false);
-      setOtpStepUnlocked(false);
-      setForgotData((prev) => ({
-        ...prev,
-        email: value,
-        otp: '',
-        resetToken: '',
-        newPassword: '',
-        confirmPassword: ''
-      }));
-      return;
-    }
-
-    if (field === 'otp' && !value.trim()) {
-      setOtpStepUnlocked(false);
-      setForgotData((prev) => ({ ...prev, otp: value, resetToken: '', newPassword: '', confirmPassword: '' }));
-      return;
-    }
-  };
-
-  const handleRequestForgotOtp = async () => {
-    if (!forgotData.email) {
-      setError('Enter your email to receive OTP');
-      return;
-    }
-
-    setForgotLoading(true);
-    setError('');
-    try {
-      const response = await requestForgotPasswordOtp(forgotData.email);
-      setError(response.success ? '' : response.message || 'Failed to send OTP');
-      if (response.success) {
-        setOtpRequested(true);
-        setOtpStepUnlocked(false);
-        setForgotData((prev) => ({ ...prev, otp: '', resetToken: '', newPassword: '', confirmPassword: '' }));
-        setNotice({ variant: 'success', text: response.message || 'OTP sent to your email' });
-      }
-    } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Failed to send OTP');
-    } finally {
-      setForgotLoading(false);
-    }
-  };
-
-  const verifyOtpAndOpenReset = async () => {
-    if (!otpRequested) {
-      setError('Request OTP with your email first');
-      return;
-    }
-
-    const normalizedOtp = forgotData.otp.trim();
-
-    if (!normalizedOtp) {
-      setError('Enter OTP to continue');
-      return;
-    }
-
-    setForgotLoading(true);
-    setError('');
-    try {
-      const response = await verifyForgotPasswordOtp({
-        email: forgotData.email,
-        otp: normalizedOtp,
-      });
-
-      if (!response.success || !response.data?.resetToken) {
-        setError(response.message || 'Failed to verify OTP');
-        return;
-      }
-
-      setForgotData((prev) => ({ ...prev, resetToken: response.data.resetToken }));
-      setOtpStepUnlocked(true);
-      setShowResetPasswordModal(true);
-    } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Failed to verify OTP');
-    } finally {
-      setForgotLoading(false);
-    }
-  };
-
-  const handleUnlockPasswordStep = async () => {
-    await verifyOtpAndOpenReset();
-  };
-
-  const handleCloseResetPasswordModal = () => {
-    setShowResetPasswordModal(false);
-    setOtpStepUnlocked(false);
-    setForgotData((prev) => ({ ...prev, resetToken: '', newPassword: '', confirmPassword: '' }));
-  };
-
-  const handleResetForgotPassword = async () => {
-    if (!forgotData.resetToken || !forgotData.newPassword || !forgotData.confirmPassword) {
-      setError('Fill all forgot password fields');
-      return;
-    }
-
-    if (forgotData.newPassword !== forgotData.confirmPassword) {
-      setError('New password and confirm password do not match');
-      return;
-    }
-
-    setForgotLoading(true);
-    setError('');
-    try {
-      const response = await resetForgotPassword({
-        resetToken: forgotData.resetToken,
-        newPassword: forgotData.newPassword,
-        confirmPassword: forgotData.confirmPassword
-      });
-
-      if (response.success) {
-        setNotice({ variant: 'success', text: response.message || 'Password reset successful. Please sign in.' });
-        setShowResetPasswordModal(false);
-        setShowForgotPassword(false);
-        setForgotData({ email: '', otp: '', resetToken: '', newPassword: '', confirmPassword: '' });
-        setOtpRequested(false);
-        setOtpStepUnlocked(false);
-      } else {
-        setError(response.message || 'Failed to reset password');
-      }
-    } catch (err) {
-      setError(err.response?.data?.message || err.message || 'Failed to reset password');
-    } finally {
-      setForgotLoading(false);
-    }
-  };
-
-  const showPasswordMismatch =
-    forgotData.newPassword.trim() &&
-    forgotData.confirmPassword.trim() &&
-    forgotData.newPassword !== forgotData.confirmPassword;
-
-  // const handleSubmit = async (values, { setSubmitting }) => {
-  //   setLoading(true);
-  //   setError('');
-
-  //   try {
-  //     await login(values.username, values.password);
-  //     navigate('/dashboard');
-  //   } catch (err) {
-  //     setError(err.response?.data?.message || 'Login failed. Please try again.');
-  //   } finally {
-  //     setLoading(false);
-  //     setSubmitting(false);
-  //   }
-  // };
 
   return (
     <>
@@ -343,7 +181,7 @@ const Login = ({ styles }) => {
                           {notice.text}
                         </Alert>
                       )}
-                      {error && <Alert className="auth-alert">{error}</Alert>}
+                      {error && <Alert className="auth-alert" role="alert">{error}</Alert>}
 
                       <Formik
                         initialValues={initialValues}
@@ -351,20 +189,23 @@ const Login = ({ styles }) => {
                         onSubmit={handleSubmit}
                       >
                         {({ isSubmitting }) => (
-                          <Form>
+                          <Form noValidate>
                             <CustomField
                               name="username"
                               type="text"
                               label="Username"
                               placeholder="Enter your username"
+                              autoComplete="username"
                             />
 
                             <Field name="password">
                               {({ field, meta }) => (
                                 <PasswordField
                                   {...field}
+                                  id="login-password"
                                   label="Password"
                                   placeholder="Enter your password"
+                                  autoComplete="current-password"
                                   isInvalid={Boolean(meta.touched && meta.error)}
                                   feedback={meta.touched ? meta.error : null}
                                 />
@@ -386,78 +227,8 @@ const Login = ({ styles }) => {
                       </Formik>
 
                       <div className="mt-3">
-                        <button
-                          type="button"
-                          className="btn btn-link p-0"
-                          onClick={() => {
-                            setShowForgotPassword((prev) => !prev);
-                            setError('');
-                            if (showForgotPassword) {
-                              setShowResetPasswordModal(false);
-                              setForgotData({ email: '', otp: '', resetToken: '', newPassword: '', confirmPassword: '' });
-                              setOtpRequested(false);
-                              setOtpStepUnlocked(false);
-                            }
-                          }}
-                        >
-                          {showForgotPassword ? 'Back to login' : 'Forgot password?'}
-                        </button>
+                        <Link to="/forgot-password">Forgot password?</Link>
                       </div>
-
-                      {showForgotPassword && (
-                        <div className="mt-3">
-                          <BootstrapForm.Group className="mb-2">
-                            <BootstrapForm.Label>Email</BootstrapForm.Label>
-                            <BootstrapForm.Control
-                              type="email"
-                              value={forgotData.email}
-                              onChange={(e) => handleForgotInputChange('email', e.target.value)}
-                              placeholder="Enter your email"
-                            />
-                          </BootstrapForm.Group>
-
-                          <div className="d-flex gap-2 mb-2">
-                            <AppButton
-                              type="button"
-                              backgroundColor="var(--navy)"
-                              loading={forgotLoading}
-                              loadingText="Sending..."
-                              onClick={handleRequestForgotOtp}
-                            >
-                              Send OTP
-                            </AppButton>
-                          </div>
-
-                          {otpRequested && (
-                            <>
-                              <BootstrapForm.Group className="mb-2">
-                                <BootstrapForm.Label>OTP</BootstrapForm.Label>
-                                <BootstrapForm.Control
-                                  type="text"
-                                  value={forgotData.otp}
-                                  onChange={(e) => handleForgotInputChange('otp', e.target.value)}
-                                  placeholder="Enter OTP"
-                                />
-                              </BootstrapForm.Group>
-
-                              {!otpStepUnlocked && (
-                                <div className="d-flex gap-2 mb-2">
-                                  <AppButton
-                                    type="button"
-                                    backgroundColor="var(--gold)"
-                                    loading={forgotLoading}
-                                    loadingText="Submitting OTP..."
-                                    onClick={handleUnlockPasswordStep}
-                                  >
-                                    Submit OTP
-                                  </AppButton>
-                                </div>
-                              )}
-                            </>
-                          )}
-
-                        </div>
-                      )}
 
                       <p className="auth-footer mt-3">
                         Don&apos;t have an account? <Link to="/register">Sign up</Link>
@@ -470,54 +241,6 @@ const Login = ({ styles }) => {
           </Col>
         </Row>
       </Container>
-
-      <Modal
-        show={showResetPasswordModal && otpStepUnlocked}
-        onHide={handleCloseResetPasswordModal}
-        centered
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>Reset Password</Modal.Title>
-        </Modal.Header>
-        <BootstrapForm
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleResetForgotPassword();
-          }}
-        >
-          <Modal.Body>
-            <PasswordField
-              label="New Password"
-              groupClassName="mb-2"
-              value={forgotData.newPassword}
-              onChange={(e) => handleForgotInputChange('newPassword', e.target.value)}
-              placeholder="Enter new password"
-              resetWhen={showResetPasswordModal && otpStepUnlocked}
-            />
-
-            <PasswordField
-              label="Confirm New Password"
-              groupClassName="mb-3"
-              value={forgotData.confirmPassword}
-              onChange={(e) => handleForgotInputChange('confirmPassword', e.target.value)}
-              placeholder="Confirm new password"
-              isInvalid={Boolean(showPasswordMismatch)}
-              feedback={showPasswordMismatch ? 'Passwords do not match' : null}
-              resetWhen={showResetPasswordModal && otpStepUnlocked}
-            />
-          </Modal.Body>
-          <Modal.Footer>
-            <AppButton
-              type="submit"
-              backgroundColor="var(--gold)"
-              loading={forgotLoading}
-              loadingText="Submitting Reset..."
-            >
-              Submit Reset Password
-            </AppButton>
-          </Modal.Footer>
-        </BootstrapForm>
-      </Modal>
     </>
   );
 };
@@ -532,6 +255,7 @@ CustomField.propTypes = {
   name: PropTypes.string,
   type: PropTypes.string,
   placeholder: PropTypes.string,
+  autoComplete: PropTypes.string,
 };
 
 Login.propTypes = {

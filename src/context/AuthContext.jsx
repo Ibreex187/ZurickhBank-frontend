@@ -2,6 +2,7 @@ import { createContext, useState, useContext, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import api from '../config/api';
 import Cookies from 'universal-cookie';
+import { getAuthErrorMessage } from '../utils/authErrors';
 
 const cookies = new Cookies();
 
@@ -78,13 +79,12 @@ export const AuthProvider = ({ children }) => {
       }
       throw new Error(response.data?.message || 'Login failed');
     } catch (err) {
-      // Log the full response/error for debugging
-      // err.response may contain server status and body
-      // Throw a new Error with server-provided message when available
-      // so the UI shows a helpful message
-      console.error('AuthContext.login error:', err.response ?? err);
-      const serverMsg = err.response?.data?.message || err.response?.data || err.message;
-      throw new Error(serverMsg || 'Login failed due to server error');
+      // Log only the status: the axios response carries the request config, which includes the password
+      console.error('AuthContext.login failed:', err.response?.status ?? err.message);
+
+      const loginError = new Error(getAuthErrorMessage(err, 'Login failed. Please try again.'));
+      loginError.status = err.response?.status;
+      throw loginError;
     }
   };
 

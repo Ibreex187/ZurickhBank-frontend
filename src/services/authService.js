@@ -29,6 +29,7 @@ export const requestForgotPasswordOtp = async (email) => {
       success: false,
       message: error.response?.data?.message || error.message || 'Failed to request OTP',
       status: error.response?.status,
+      isNetworkError: !error.response,
       error: error.response?.data
     };
   }
@@ -49,6 +50,7 @@ export const verifyForgotPasswordOtp = async ({ email, otp }) => {
       success: false,
       message: error.response?.data?.message || error.message || 'Failed to verify OTP',
       status: error.response?.status,
+      isNetworkError: !error.response,
       error: error.response?.data
     };
   }
@@ -69,6 +71,7 @@ export const resetForgotPassword = async ({ resetToken, newPassword, confirmPass
       success: false,
       message: error.response?.data?.message || error.message || 'Failed to reset password',
       status: error.response?.status,
+      isNetworkError: !error.response,
       error: error.response?.data
     };
   }
