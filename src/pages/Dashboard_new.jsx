@@ -27,6 +27,12 @@ import {
   validateAccountNumber
 } from '../services/transactionService';
 import { getUnreadNotificationCount } from '../services/notificationService';
+import { createBeneficiary } from '../services/beneficiaryService';
+import { formatDate, formatDateTime, formatMoney, formatPlainAmount } from '../utils/formatters';
+import { Alert, Button, ListGroup } from 'react-bootstrap';
+import CopyButton from '../components/CopyButton';
+import LimitMeter from '../components/LimitMeter';
+import TransactionReceipt from '../components/TransactionReceipt';
 
 const BALANCE_VISIBILITY_COOKIE = 'dashboard_balance_visible';
 
@@ -43,7 +49,7 @@ const setCookieValue = (name, value, days = 30) => {
   document.cookie = `${name}=${value}; expires=${expires}; path=/; SameSite=Lax`;
 };
 
-const formatCurrencyValue = (value) => `₦${Number(value || 0).toLocaleString()}`;
+const formatCurrencyValue = (value) => formatMoney(value);
 
 const getLimitSeverity = (bucket) => {
   const limit = Number(bucket?.limit || 0);
@@ -115,16 +121,15 @@ const Dashboard = ({ styles }) => {
   const [netActivity, setNetActivity] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(() => readStoredUnreadNotifications());
   const [transferModalSession, setTransferModalSession] = useState(0);
+  const [modalStep, setModalStep] = useState('form'); // 'form' | 'review' | 'receipt'
+  const [receipt, setReceipt] = useState(null);
+  const [saveBeneficiaryState, setSaveBeneficiaryState] = useState({ status: 'idle', text: '' });
+  const [exporting, setExporting] = useState(false);
+  const [exportNotice, setExportNotice] = useState({ variant: '', text: '' });
   const hasTransactionPin = Boolean(user?.hasTransactionPin);
-  const transactionSuccessTimeoutRef = useRef(null);
   const receiverAccountInputRef = useRef(null);
 
   const closeTransactionModal = useCallback(() => {
-    if (transactionSuccessTimeoutRef.current) {
-      clearTimeout(transactionSuccessTimeoutRef.current);
-      transactionSuccessTimeoutRef.current = null;
-    }
-
     setActionType('');
     setDescription('');
     setAmount('');
@@ -132,10 +137,16 @@ const Dashboard = ({ styles }) => {
     setTransactionPin('');
     setReceiverLookup({ loading: false, accountName: '', resolvedAccountNumber: '', error: '' });
     setMessage({ type: '', text: '' });
+    setModalStep('form');
+    setReceipt(null);
+    setSaveBeneficiaryState({ status: 'idle', text: '' });
   }, []);
 
   const openProtectedAction = (nextActionType) => {
     setMessage({ type: '', text: '' });
+    setModalStep('form');
+    setReceipt(null);
+    setSaveBeneficiaryState({ status: 'idle', text: '' });
 
     if (!hasTransactionPin) {
       setShowPinGuardModal(true);
@@ -173,12 +184,6 @@ const Dashboard = ({ styles }) => {
 
   useEffect(() => {
     getPremiumStatus().then(setPremiumStatus);
-  }, []);
-
-  useEffect(() => () => {
-    if (transactionSuccessTimeoutRef.current) {
-      clearTimeout(transactionSuccessTimeoutRef.current);
-    }
   }, []);
 
   useEffect(() => {
@@ -291,43 +296,77 @@ const Dashboard = ({ styles }) => {
   };
 
   // Export transactions to CSV
-  const handleExportTransactions = () => {
-    if (transactions.length === 0) {
-      setMessage({
-        type: 'error',
-        text: 'No transactions to export'
+  const EXPORT_ROW_LIMIT = 500;
+
+  // A cell that starts with = + - @ would be run as a formula by Excel/Sheets,
+  // and transfer notes are typed by other users, so text cells get a leading quote.
+  const toCsvTextCell = (value) => {
+    const text = String(value ?? '');
+    const safe = /^[=+\-@\t\r]/.test(text) ? `'${text}` : text;
+    return `"${safe.replace(/"/g, '""')}"`;
+  };
+
+  // Export every transaction matching the current filters (up to EXPORT_ROW_LIMIT), not just the visible page
+  const handleExportTransactions = async () => {
+    setExportNotice({ variant: '', text: '' });
+    setExporting(true);
+
+    try {
+      const response = await getTransactionHistory({ page: 1, limit: EXPORT_ROW_LIMIT, ...filters });
+      const rows = response?.data?.transactions || [];
+      const total = Number(response?.data?.pagination?.totalTransactions) || rows.length;
+
+      if (rows.length === 0) {
+        setExportNotice({ variant: 'warning', text: 'There are no transactions to export for the current filters.' });
+        return;
+      }
+
+      const isOutgoing = (t) =>
+        t.type === 'withdraw' || (t.type === 'transfer' && t.sender?._id === user?._id);
+
+      const counterparty = (t) => {
+        if (t.type !== 'transfer') return '';
+        const other = t.sender?._id === user?._id ? t.receiver : t.sender;
+        const name = `${other?.firstName || ''} ${other?.lastName || ''}`.trim();
+        return name ? `${name} (${other?.accountNumber || ''})` : '';
+      };
+
+      const header = ['Date', 'Type', 'Direction', 'Amount (NGN)', 'Status', 'Transaction ID', 'Counterparty', 'Note']
+        .map(toCsvTextCell)
+        .join(',');
+
+      const lines = rows.map((t) => [
+        toCsvTextCell(formatDate(t.date)),
+        toCsvTextCell(t.type),
+        toCsvTextCell(isOutgoing(t) ? 'Out' : 'In'),
+        (isOutgoing(t) ? -1 : 1) * Number(t.amount || 0),
+        toCsvTextCell(t.status),
+        toCsvTextCell(t.transactionId),
+        toCsvTextCell(counterparty(t)),
+        toCsvTextCell(t.description),
+      ].join(','));
+
+      // The BOM makes Excel read the file as UTF-8
+      const blob = new Blob([`\uFEFF${[header, ...lines].join('\r\n')}`], { type: 'text/csv;charset=utf-8' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `transactions-${new Date().toISOString().split('T')[0]}.csv`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+
+      setExportNotice({
+        variant: 'success',
+        text: total > rows.length
+          ? `Exported the ${rows.length} most recent of ${total} matching transactions. Narrow the date range to export the rest.`
+          : `Exported ${rows.length} transaction${rows.length === 1 ? '' : 's'}.`,
       });
-      return;
+    } catch (error) {
+      console.error('Failed to export transactions:', error);
+      setExportNotice({ variant: 'danger', text: 'Could not export transactions. Please try again.' });
+    } finally {
+      setExporting(false);
     }
-
-    const csvContent = [
-      ['Date', 'Type', 'Amount', 'Status', 'Transaction ID', 'Details'],
-      ...transactions.map(t => [
-        new Date(t.date).toLocaleDateString(),
-        t.type.toUpperCase(),
-        t.amount,
-        t.status,
-        t.transactionId,
-        t.type === 'transfer' ?
-          (t.sender?._id === user?._id ?
-            `To: ${t.receiver?.firstName} ${t.receiver?.lastName}` :
-            `From: ${t.sender?.firstName} ${t.sender?.lastName}`) :
-          ''
-      ])
-    ].map(row => row.join(',')).join('\n');
-
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `transactions-${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-    window.URL.revokeObjectURL(url);
-
-    setMessage({
-      type: 'success',
-      text: 'Transactions exported successfully'
-    });
   };
 
   // Show transaction details
@@ -463,99 +502,100 @@ const Dashboard = ({ styles }) => {
     };
   }, []);
 
-  const handleTransaction = async (e) => {
-    e.preventDefault();
+  // Throws an Error with a user-facing message when the form is not ready to submit
+  const validateTransactionForm = () => {
+    if (!actionType) {
+      throw new Error('Select a transaction type first.');
+    }
+
+    const amountValidation = validateTransactionAmount(amount);
+    if (amountValidation) {
+      throw new Error(amountValidation);
+    }
+
+    if (actionType === 'transfer') {
+      const accountValidation = validateAccountNumber(receiverAccountNumber);
+      if (accountValidation) {
+        throw new Error(accountValidation);
+      }
+
+      if (receiverLookup.loading) {
+        throw new Error('Please wait while recipient account is being verified');
+      }
+
+      if (!receiverLookup.accountName) {
+        throw new Error(receiverLookup.error || 'Recipient account must be verified before transfer');
+      }
+    }
+
+    if (!/^\d{4}$/.test(String(transactionPin || '').trim())) {
+      throw new Error('Enter a valid 4-digit transaction PIN.');
+    }
+  };
+
+  const submitTransaction = async () => {
     setLoading(true);
     setMessage({ type: '', text: '' });
 
     try {
-      // Validate amount
-      const amountValidation = validateTransactionAmount(amount);
-      if (amountValidation) {
-        throw new Error(amountValidation);
-      }
+      validateTransactionForm();
 
-      // Validate account number for transfer
-      if (actionType === 'transfer') {
-        const accountValidation = validateAccountNumber(receiverAccountNumber);
-        if (accountValidation) {
-          throw new Error(accountValidation);
-        }
-
-        if (receiverLookup.loading) {
-          throw new Error('Please wait while recipient account is being verified');
-        }
-
-        if (!receiverLookup.accountName) {
-          throw new Error(receiverLookup.error || 'Recipient account must be verified before transfer');
-        }
-      }
-
-      if (!actionType) {
-        throw new Error('Select a transaction type first.');
-      }
-
-      if (!/^\d{4}$/.test(String(transactionPin || '').trim())) {
-        throw new Error('Enter a valid 4-digit transaction PIN.');
-      }
-
+      const parsedAmount = parseFloat(amount);
       let response;
 
-      // Call the appropriate service function
       switch (actionType) {
         case 'transfer':
           response = await transferFunds({
             receiverAccountNumber,
-            amount: parseFloat(amount),
+            amount: parsedAmount,
             description: description.trim(),
             transactionPin
           });
-          // Set a very specific success message mapped to the transaction type
-          if (response.success) {
-            response.message = 'Transfer completed successfully.';
-          }
           break;
         case 'deposit':
-          response = await depositFunds(parseFloat(amount), transactionPin);
-          if (response.success) {
-            response.message = 'Deposit completed successfully.';
-          }
+          response = await depositFunds(parsedAmount, transactionPin);
           break;
         case 'withdraw':
-          response = await withdrawFunds(parseFloat(amount), transactionPin);
-          if (response.success) {
-            response.message = 'Withdrawal completed successfully.';
-          }
+          response = await withdrawFunds(parsedAmount, transactionPin);
           break;
         default:
           throw new Error('Invalid transaction type');
       }
 
-      if (response.success) {
-        setMessage({
-          type: 'success',
-          text: response.message || 'Transaction completed successfully.',
-        });
-        setAmount('');
-        setDescription('');
-        setReceiverAccountNumber('');
-        setTransactionPin('');
-        setReceiverLookup({ loading: false, accountName: '', resolvedAccountNumber: '', error: '' });
-        await fetchTransactions();
-        await fetchNetActivity();
-        await fetchTransactionLimits();
-        await refreshUser();
-
-        if (transactionSuccessTimeoutRef.current) {
-          clearTimeout(transactionSuccessTimeoutRef.current);
-        }
-
-        transactionSuccessTimeoutRef.current = setTimeout(() => {
-          closeTransactionModal();
-        }, 4000);
-      } else {
+      if (!response.success) {
         throw new Error(response.message || 'Transaction failed');
       }
+
+      const data = response.data || {};
+      const reportedBalance = Number(data.newBalance ?? data.balance);
+      const isTransfer = actionType === 'transfer';
+
+      setReceipt({
+        title: isTransfer ? 'Transfer successful' : actionType === 'deposit' ? 'Deposit successful' : 'Withdrawal successful',
+        amount: parsedAmount,
+        date: new Date(),
+        transactionId: data.transactionId,
+        recipientName: isTransfer ? (data.recipient?.name || receiverLookup.accountName) : undefined,
+        recipientAccount: isTransfer ? (data.recipient?.accountNumber || receiverAccountNumber) : undefined,
+        note: isTransfer ? description.trim() : undefined,
+        newBalance: Number.isFinite(reportedBalance) ? reportedBalance : undefined,
+        fee: isTransfer ? 0 : undefined,
+      });
+      setModalStep('receipt');
+      setSaveBeneficiaryState({ status: 'idle', text: '' });
+
+      setAmount('');
+      setDescription('');
+      setReceiverAccountNumber('');
+      setTransactionPin('');
+      setReceiverLookup({ loading: false, accountName: '', resolvedAccountNumber: '', error: '' });
+
+      await Promise.all([
+        fetchTransactions(),
+        fetchNetActivity(),
+        fetchTransactionLimits(),
+        refreshUser(),
+      ]);
     } catch (error) {
       setMessage({
         type: 'error',
@@ -564,6 +604,49 @@ const Dashboard = ({ styles }) => {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Transfers get a review step first; deposits and withdrawals are submitted straight away
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    setMessage({ type: '', text: '' });
+
+    try {
+      validateTransactionForm();
+    } catch (error) {
+      setMessage({ type: 'error', text: error.message });
+      return;
+    }
+
+    if (actionType === 'transfer') {
+      setModalStep('review');
+      return;
+    }
+
+    submitTransaction();
+  };
+
+  const handleSaveBeneficiary = async () => {
+    if (!receipt?.recipientAccount) return;
+
+    setSaveBeneficiaryState({ status: 'saving', text: '' });
+    try {
+      const result = await createBeneficiary(receipt.recipientAccount);
+      setSaveBeneficiaryState(
+        result?.success
+          ? { status: 'saved', text: 'Saved to your beneficiaries.' }
+          : { status: 'error', text: result?.message || 'Could not save this beneficiary.' }
+      );
+    } catch (error) {
+      setSaveBeneficiaryState({
+        status: 'error',
+        text: error.response?.data?.message || 'Could not save this beneficiary.',
+      });
+    }
+  };
+
+  const handleSendAgain = () => {
+    openProtectedAction('transfer');
   };
 
   const isTransferSubmitDisabled =
@@ -578,13 +661,12 @@ const Dashboard = ({ styles }) => {
     transactionPin.trim().length !== 4;
 
   const balanceChangeDirection = netActivity > 0 ? 'positive' : netActivity < 0 ? 'negative' : 'neutral';
-  const formattedBalanceChange = `${netActivity > 0 ? '+' : netActivity < 0 ? '-' : ''}₦${Math.abs(netActivity).toLocaleString()}`;
+  const formattedBalanceChange = `${netActivity > 0 ? '+' : netActivity < 0 ? '-' : ''}${formatMoney(Math.abs(netActivity))}`;
+  const hasActiveFilters = Boolean(
+    filters.type !== 'all' || filters.search || filters.startDate || filters.endDate || filters.minAmount || filters.maxAmount
+  );
   const activeLimitOperation = actionType === 'transfer' || actionType === 'withdraw' ? actionType : null;
   const activeOperationLimits = activeLimitOperation ? transactionLimits?.operations?.[activeLimitOperation] : null;
-  const withdrawDailySeverity = getLimitSeverity(transactionLimits?.operations?.withdraw?.daily);
-  const withdrawMonthlySeverity = getLimitSeverity(transactionLimits?.operations?.withdraw?.monthly);
-  const transferDailySeverity = getLimitSeverity(transactionLimits?.operations?.transfer?.daily);
-  const transferMonthlySeverity = getLimitSeverity(transactionLimits?.operations?.transfer?.monthly);
   const activeDailySeverity = getLimitSeverity(activeOperationLimits?.daily);
   const activeMonthlySeverity = getLimitSeverity(activeOperationLimits?.monthly);
 
@@ -686,6 +768,12 @@ const Dashboard = ({ styles }) => {
                 <div className="card-title">
                   <h3>Total Balance</h3>
                   <span className="account-number">•••• {user?.accountNumber?.slice(-4)}</span>
+                  <CopyButton
+                    value={user?.accountNumber}
+                    label="Copy number"
+                    ariaLabel="Copy your full account number"
+                    className="ms-2 small"
+                  />
                 </div>
                 <button
                   type="button"
@@ -707,7 +795,7 @@ const Dashboard = ({ styles }) => {
               </div>
               <div className="balance-amount">
                 <span className="currency">₦</span>
-                <span className="amount">{showBalanceAmount ? (user?.balance?.toLocaleString() || '0') : '•••••••'}</span>
+                <span className="amount">{showBalanceAmount ? formatPlainAmount(user?.balance) : '•••••••'}</span>
               </div>
               <div className="balance-change">
                 <span className={`change ${balanceChangeDirection}`}>
@@ -776,19 +864,25 @@ const Dashboard = ({ styles }) => {
               <span className="tier-chip">Tier: {transactionLimits?.tier || 'unverified'}</span>
             </div>
 
-            {limitsLoading ? (
+            <p className="limits-muted small mb-3">
+              Your account tier sets how much you can send and withdraw each day and month. In this demo, an admin assigns tiers.
+            </p>
+
+            {limitsLoading && !transactionLimits ? (
               <p className="limits-muted">Loading current limits...</p>
+            ) : !transactionLimits ? (
+              <p className="limits-muted">Limits are unavailable right now.</p>
             ) : (
               <div className="limits-grid">
                 <div className="limit-card">
                   <h4>Withdraw</h4>
-                  <p className={`limit-line ${withdrawDailySeverity}`}>Daily Remaining: <strong>{formatCurrencyValue(transactionLimits?.operations?.withdraw?.daily?.remaining)}</strong></p>
-                  <p className={`limit-line ${withdrawMonthlySeverity}`}>Monthly Remaining: <strong>{formatCurrencyValue(transactionLimits?.operations?.withdraw?.monthly?.remaining)}</strong></p>
+                  <LimitMeter label="Daily" bucket={transactionLimits?.operations?.withdraw?.daily} />
+                  <LimitMeter label="Monthly" bucket={transactionLimits?.operations?.withdraw?.monthly} />
                 </div>
                 <div className="limit-card">
                   <h4>Transfer</h4>
-                  <p className={`limit-line ${transferDailySeverity}`}>Daily Remaining: <strong>{formatCurrencyValue(transactionLimits?.operations?.transfer?.daily?.remaining)}</strong></p>
-                  <p className={`limit-line ${transferMonthlySeverity}`}>Monthly Remaining: <strong>{formatCurrencyValue(transactionLimits?.operations?.transfer?.monthly?.remaining)}</strong></p>
+                  <LimitMeter label="Daily" bucket={transactionLimits?.operations?.transfer?.daily} />
+                  <LimitMeter label="Monthly" bucket={transactionLimits?.operations?.transfer?.monthly} />
                 </div>
               </div>
             )}
@@ -832,7 +926,13 @@ const Dashboard = ({ styles }) => {
             <div className="transfer-modal-overlay">
               <div className="transfer-modal-content">
                 <div className="transfer-modal-header">
-                  <h3>{actionType.charAt(0).toUpperCase() + actionType.slice(1)} Money</h3>
+                  <h3>
+                    {modalStep === 'receipt'
+                      ? 'Receipt'
+                      : modalStep === 'review'
+                        ? 'Review transfer'
+                        : `${actionType.charAt(0).toUpperCase() + actionType.slice(1)} Money`}
+                  </h3>
                   <button
                     className="close-modal-btn"
                     onClick={closeTransactionModal}
@@ -849,7 +949,14 @@ const Dashboard = ({ styles }) => {
                   </div>
                 )}
 
-                <form onSubmit={handleTransaction} className="transfer-form">
+                {modalStep === 'form' && (
+                <form onSubmit={handleFormSubmit} className="transfer-form">
+                  {actionType === 'deposit' && (
+                    <Alert variant="info" className="small py-2">
+                      Demo top-up: this adds practice money to your account instantly. No real payment is taken.
+                    </Alert>
+                  )}
+
                   {activeOperationLimits && (
                     <div className="limit-inline-note">
                       <span className={activeDailySeverity}>{activeLimitOperation === 'transfer' ? 'Transfer' : 'Withdraw'} Daily Remaining: <strong>{formatCurrencyValue(activeOperationLimits?.daily?.remaining)}</strong></span>
@@ -951,9 +1058,109 @@ const Dashboard = ({ styles }) => {
                     loadingText="Processing..."
                     backgroundColor="var(--navy)"
                   >
-                    {`Confirm ${actionType.charAt(0).toUpperCase() + actionType.slice(1)}`}
+                    {actionType === 'transfer'
+                      ? 'Review transfer'
+                      : `Confirm ${actionType.charAt(0).toUpperCase() + actionType.slice(1)}`}
                   </AppButton>
                 </form>
+                )}
+
+                {modalStep === 'review' && (
+                  <div>
+                    <p className="text-muted small mb-3">Check the details below. Transfers can&apos;t be undone.</p>
+                    <ListGroup variant="flush" className="mb-3">
+                      <ListGroup.Item className="d-flex justify-content-between px-0">
+                        <span className="text-muted">Amount</span>
+                        <strong>{formatMoney(parseFloat(amount) || 0)}</strong>
+                      </ListGroup.Item>
+                      <ListGroup.Item className="d-flex justify-content-between align-items-start gap-3 px-0">
+                        <span className="text-muted">To</span>
+                        <span className="text-end">
+                          <strong>{receiverLookup.accountName}</strong>
+                          <div className="small text-muted font-monospace">{receiverAccountNumber}</div>
+                        </span>
+                      </ListGroup.Item>
+                      {description.trim() && (
+                        <ListGroup.Item className="d-flex justify-content-between align-items-start gap-3 px-0">
+                          <span className="text-muted">Note</span>
+                          <span className="text-end" style={{ overflowWrap: 'anywhere' }}>{description.trim()}</span>
+                        </ListGroup.Item>
+                      )}
+                      <ListGroup.Item className="d-flex justify-content-between px-0">
+                        <span className="text-muted">Fee</span>
+                        <span>{formatMoney(0)}</span>
+                      </ListGroup.Item>
+                      <ListGroup.Item className="d-flex justify-content-between px-0">
+                        <span className="text-muted">Total debited</span>
+                        <strong>{formatMoney(parseFloat(amount) || 0)}</strong>
+                      </ListGroup.Item>
+                    </ListGroup>
+
+                    <div className="d-flex gap-2">
+                      <Button
+                        type="button"
+                        variant="outline-secondary"
+                        className="flex-fill"
+                        onClick={() => {
+                          setMessage({ type: '', text: '' });
+                          setModalStep('form');
+                        }}
+                        disabled={loading}
+                      >
+                        Back
+                      </Button>
+                      <AppButton
+                        type="button"
+                        className="flex-fill"
+                        backgroundColor="var(--navy)"
+                        loading={loading}
+                        loadingText="Sending..."
+                        onClick={submitTransaction}
+                      >
+                        {`Send ${formatMoney(parseFloat(amount) || 0)}`}
+                      </AppButton>
+                    </div>
+                  </div>
+                )}
+
+                {modalStep === 'receipt' && receipt && (
+                  <div>
+                    <TransactionReceipt receipt={receipt} />
+
+                    {saveBeneficiaryState.text && (
+                      <Alert
+                        variant={saveBeneficiaryState.status === 'saved' ? 'success' : 'warning'}
+                        className="small py-2"
+                      >
+                        {saveBeneficiaryState.text}
+                      </Alert>
+                    )}
+
+                    <div className="d-flex flex-wrap gap-2">
+                      <Button type="button" variant="dark" className="flex-fill" onClick={closeTransactionModal}>
+                        Done
+                      </Button>
+                      {receipt.recipientAccount && (
+                        <>
+                          <Button type="button" variant="outline-dark" className="flex-fill" onClick={handleSendAgain}>
+                            Send again
+                          </Button>
+                          {saveBeneficiaryState.status !== 'saved' && (
+                            <Button
+                              type="button"
+                              variant="outline-secondary"
+                              className="flex-fill"
+                              onClick={handleSaveBeneficiary}
+                              disabled={saveBeneficiaryState.status === 'saving'}
+                            >
+                              {saveBeneficiaryState.status === 'saving' ? 'Saving...' : 'Save as beneficiary'}
+                            </Button>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -972,14 +1179,30 @@ const Dashboard = ({ styles }) => {
                   </svg>
                   {showFilters ? 'Hide Filters' : 'Show Filters'}
                 </button>
-                <button className="export-btn" onClick={handleExportTransactions}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                <button
+                  type="button"
+                  className="export-btn"
+                  onClick={handleExportTransactions}
+                  disabled={exporting || pagination.totalTransactions === 0}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                     <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
                   </svg>
-                  Export ({pagination.totalTransactions})
+                  {exporting ? 'Exporting...' : `Export CSV (${pagination.totalTransactions})`}
                 </button>
               </div>
             </div>
+
+            {exportNotice.text && (
+              <Alert
+                variant={exportNotice.variant || 'info'}
+                dismissible
+                onClose={() => setExportNotice({ variant: '', text: '' })}
+                className="small py-2"
+              >
+                {exportNotice.text}
+              </Alert>
+            )}
 
             {/* Advanced Filters */}
             {showFilters && (
@@ -1099,7 +1322,21 @@ const Dashboard = ({ styles }) => {
                           <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor">
                             <path d="M19,3H5C3.89,3 3,3.89 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19V5C21,3.89 20.1,3 19,3M19,5V19H5V5H19Z" />
                           </svg>
-                          <p>{filters.type === 'all' ? 'No transactions found' : `No ${filters.type} transactions found`}</p>
+                          {hasActiveFilters ? (
+                            <>
+                              <p>No transactions match your filters.</p>
+                              <Button type="button" variant="outline-secondary" size="sm" onClick={handleClearFilters}>
+                                Clear filters
+                              </Button>
+                            </>
+                          ) : (
+                            <>
+                              <p>No transactions yet. Add some practice money to get started.</p>
+                              <Button type="button" variant="dark" size="sm" onClick={() => openProtectedAction('deposit')}>
+                                Add money
+                              </Button>
+                            </>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -1178,11 +1415,11 @@ const Dashboard = ({ styles }) => {
                             {transaction.type === 'withdraw' ||
                               (transaction.type === 'transfer' && transaction.sender?._id?.toString() === user?._id)
                               ? '-'
-                              : '+'}₦{transaction.amount?.toLocaleString()}
+                              : '+'}{formatMoney(transaction.amount)}
                           </span>
                         </td>
                         <td className="date dashboard-text-cell">
-                          {new Date(transaction.date).toLocaleDateString()}
+                          {formatDate(transaction.date)}
                         </td>
                         <td className="dashboard-text-cell">
                           <span className={`status-badge ${transaction.status}`}>
@@ -1304,7 +1541,7 @@ const Dashboard = ({ styles }) => {
                       {selectedTransaction.type === 'withdraw' ||
                         (selectedTransaction.type === 'transfer' && selectedTransaction.sender?._id?.toString() === user?._id)
                         ? '-'
-                        : '+'}₦{selectedTransaction.amount?.toLocaleString()}
+                        : '+'}{formatMoney(selectedTransaction.amount)}
                     </span>
                   </div>
 
@@ -1317,7 +1554,7 @@ const Dashboard = ({ styles }) => {
 
                   <div className="detail-item">
                     <label>Date</label>
-                    <span>{new Date(selectedTransaction.date).toLocaleString()}</span>
+                    <span>{formatDateTime(selectedTransaction.date)}</span>
                   </div>
 
                   {selectedTransaction.type === 'transfer' && selectedTransaction.sender && (
@@ -1352,7 +1589,7 @@ const Dashboard = ({ styles }) => {
                   {selectedTransaction.createdAt && (
                     <div className="detail-item">
                       <label>Created</label>
-                      <span>{new Date(selectedTransaction.createdAt).toLocaleString()}</span>
+                      <span>{formatDateTime(selectedTransaction.createdAt)}</span>
                     </div>
                   )}
                 </div>

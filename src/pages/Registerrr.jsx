@@ -92,7 +92,7 @@ const AuthPanel = ({ onOpenRegister }) => (
   </div>
 );
 
-const Register = ({ styles }) => {
+const Register = () => {
   // Inject AUTH_STYLES into the document head for page-specific styles
   useEffect(() => {
     if (!document.getElementById('auth-styles')) {
@@ -169,7 +169,7 @@ const Register = ({ styles }) => {
                   </div>
                   {/* Step indicator */}
                   <Formik initialValues={initialValues} validate={validate} onSubmit={handleSubmit}>
-                    {({ values, errors, touched, isSubmitting }) => {
+                    {({ values, errors, isSubmitting }) => {
                       const isDetailsFilled = values.firstName && values.lastName && values.userName;
                       const isEmailValid = values.email && !errors.email;
                       const isFormValid = isDetailsFilled && isEmailValid && values.password && !errors.password;
@@ -245,6 +245,10 @@ const Register = ({ styles }) => {
       </Container>
     </>
   );
+};
+
+AuthPanel.propTypes = {
+  onOpenRegister: PropTypes.func,
 };
 
 InputField.propTypes = {

@@ -6,9 +6,9 @@ import LoadingWatch from '../components/LoadingWatch';
 import { renderSidebarNavLinks } from '../components/sidebarNavLinks';
 import { DASHBOARD_STYLES } from './Dashboard.styles';
 import { getAccountStatement, getLedgerHistory } from '../services/ledgerService';
+import { formatDateTime, formatMoney } from '../utils/formatters';
 
-const formatCurrency = (value) => `₦${Number(value || 0).toLocaleString()}`;
-const formatDateTime = (value) => (value ? new Date(value).toLocaleString() : '-');
+const formatCurrency = (value) => formatMoney(value);
 
 const Ledger = () => {
   const { user, logout } = useAuth();

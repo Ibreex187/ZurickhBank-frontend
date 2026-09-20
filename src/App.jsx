@@ -40,7 +40,7 @@ function App() {
           <Routes>
             <Route path="/" element={<Land styles={LANDING_STYLES} />} />
             <Route path="/login" element={<Login styles={AUTH_STYLES} />} />
-            <Route path="/register" element={<Registerrr styles={AUTH_STYLES} />} />
+            <Route path="/register" element={<Registerrr />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />
 

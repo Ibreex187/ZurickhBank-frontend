@@ -33,8 +33,30 @@ const makeRequest = async (method, endpoint, payload, options = {}) => {
 /**
  * Normalize stock data from backend format for display as investment plans
  */
+// Illustrative risk profile per symbol. The simulated market has no real risk data,
+// so these labels are fixed and only meant to help browse the demo stocks.
+const STOCK_CATEGORIES = {
+  MSFT: 'conservative',
+  AAPL: 'balanced',
+  GOOGL: 'balanced',
+  AMZN: 'balanced',
+  META: 'balanced',
+  NFLX: 'aggressive',
+  NVDA: 'aggressive',
+  TSLA: 'aggressive'
+};
+
+const RISK_BY_CATEGORY = {
+  conservative: 'Low',
+  balanced: 'Medium',
+  aggressive: 'High'
+};
+
 const normalizeStocksAsPlans = (stocks = []) => {
-  return stocks.map((stock, index) => ({
+  return stocks.map((stock, index) => {
+    const category = STOCK_CATEGORIES[stock.symbol || stock.stockSymbol] || 'balanced';
+
+    return {
     id: stock.symbol || stock.stockSymbol || index + 1,
     symbol: stock.symbol || stock.stockSymbol,
     name: stock.name || stock.companyName || `${stock.symbol} Stock`,
@@ -46,17 +68,17 @@ const normalizeStocksAsPlans = (stocks = []) => {
     minAmount: Number(stock.currentPrice || 100), // Minimum 1 share
     maxAmount: 1000000, // Reasonable max for demo
     duration: 'Simulated Trading',
-    risk: stock.symbol?.includes('TSLA') ? 'High' : stock.symbol?.includes('AAPL') ? 'Medium' : 'Low',
+    risk: RISK_BY_CATEGORY[category],
     features: [
       'Simulated price updates',
       'Buy/Sell flexibility',
       'Portfolio tracking',
       'Profit/Loss calculations'
     ],
-    category: stock.symbol?.includes('TSLA') || stock.symbol?.includes('NVDA') ? 'aggressive' : 
-             stock.symbol?.includes('AAPL') || stock.symbol?.includes('MSFT') ? 'balanced' : 'conservative',
+    category,
     isStock: true
-  }));
+    };
+  });
 };
 
 /**
@@ -120,7 +142,6 @@ export const getStockPortfolio = async (forceFresh = false) => {
     // Add cache-busting parameter if force refresh requested
     if (forceFresh) {
       endpoint += `?_t=${Date.now()}`;
-      console.log('Fetching fresh portfolio data...');
     }
     
     const response = await makeRequest('get', endpoint);
@@ -135,7 +156,6 @@ export const getStockPortfolio = async (forceFresh = false) => {
       responseData
     );
 
-    console.log('Portfolio data received:', portfolioData.length, 'items');
 
     return {
       success: true,
@@ -155,7 +175,6 @@ export const buyStock = async (stockData) => {
       quantity: Number(stockData.quantity)
     };
     
-    console.log('Buying stock with payload:', payload);
     
     const response = await makeRequest('post', INVESTMENT_ENDPOINTS.buy, payload);
     return response?.data || { success: true, message: 'Stock purchased successfully!' };
@@ -173,7 +192,6 @@ export const sellStock = async (stockData) => {
       quantity: Number(stockData.quantity)
     };
     
-    console.log('Selling stock with payload:', payload);
     
     const response = await makeRequest('post', INVESTMENT_ENDPOINTS.sell, payload);
     return response?.data || { success: true, message: 'Stock sold successfully!' };

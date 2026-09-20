@@ -12,14 +12,16 @@ import {
 } from '../services/investmentService';
 import {
   Container, Card, Form, Alert, Table, Row, Col,
-  Modal, Badge
+  Modal, Badge, Button, ListGroup
 } from 'react-bootstrap';
 import AppButton from '../components/AppButton';
+import TransactionReceipt from '../components/TransactionReceipt';
 import ZurichBrand from '../components/ZurichBrand';
 import LoadingWatch from '../components/LoadingWatch';
 import { renderSidebarNavLinks } from '../components/sidebarNavLinks';
 import { getPremiumStatus } from '../utils/premiumStatus';
 import { ArrowRepeat, BriefcaseFill, CashCoin, CheckLg, GraphUp, GraphUpArrow, Search } from 'react-bootstrap-icons';
+import { formatDate, formatMoney } from '../utils/formatters';
 
 const InvestmentPlans = ({ styles }) => {
   const { user, logout, refreshUser } = useAuth();
@@ -39,6 +41,9 @@ const InvestmentPlans = ({ styles }) => {
     quantity: '',
     action: 'buy'
   });
+  const [orderStep, setOrderStep] = useState('form'); // 'form' | 'review' | 'done'
+  const [orderError, setOrderError] = useState('');
+  const [orderReceipt, setOrderReceipt] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [investmentHistory, setInvestmentHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -97,15 +102,8 @@ const InvestmentPlans = ({ styles }) => {
   const fetchMyPortfolio = async (forceFresh = false) => {
     setLoading(true);
     try {
-      // Add small delay if this is a refresh after transaction
-      if (forceFresh) {
-        console.log('Waiting 1 second for backend to process transaction...');
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-
       const response = await getStockPortfolio(forceFresh);
       const latestInvestments = Array.isArray(response?.data) ? response.data : [];
-      console.log('Portfolio updated with', latestInvestments.length, 'investments');
       setInvestments(latestInvestments);
     } catch (error) {
       console.error('Failed to fetch portfolio:', error);
@@ -157,6 +155,9 @@ const InvestmentPlans = ({ styles }) => {
   const openBuyModal = (stock) => {
     setSelectedStock(stock);
     setStockData({ quantity: '', action: 'buy' });
+    setOrderStep('form');
+    setOrderError('');
+    setOrderReceipt(null);
     setShowBuyModal(true);
   };
 
@@ -168,106 +169,182 @@ const InvestmentPlans = ({ styles }) => {
       maxQuantity: investment.quantity
     });
     setStockData({ quantity: '', action: 'sell' });
+    setOrderStep('form');
+    setOrderError('');
+    setOrderReceipt(null);
     setShowSellModal(true);
   };
 
-  const handleStockTransaction = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage({ type: '', text: '' });
+  const closeOrderModal = () => {
+    setShowBuyModal(false);
+    setShowSellModal(false);
+    setOrderStep('form');
+    setOrderError('');
+    setOrderReceipt(null);
+  };
 
-    try {
-      // Validate input data
-      const quantity = parseInt(stockData.quantity);
-      const userBalance = user?.balance || 0;
-      const totalCost = quantity * selectedStock.currentPrice;
+  // Returns { quantity } when the order is valid, otherwise { error }
+  const validateOrder = () => {
+    const quantity = parseInt(stockData.quantity, 10);
 
-      // Validation checks
-      if (isNaN(quantity) || quantity <= 0) {
-        setMessage({
-          type: 'error',
-          text: 'Please enter a valid quantity'
-        });
-        setLoading(false);
-        return;
-      }
-
-      if (stockData.action === 'buy') {
-        if (totalCost > userBalance) {
-          setMessage({
-            type: 'error',
-            text: `Insufficient balance. Need ₦${totalCost.toLocaleString()}, Available: ₦${userBalance.toLocaleString()}`
-          });
-          setLoading(false);
-          return;
-        }
-
-        const response = await buyStock({
-          stockSymbol: selectedStock.symbol,
-          quantity: quantity
-        });
-
-        if (response.success !== false) {
-          console.log('Buy transaction successful, refreshing portfolio...');
-          setMessage({
-            type: 'success',
-            text: response?.message || `Successfully bought ${quantity} shares of ${selectedStock.symbol}!`
-          });
-          setShowBuyModal(false);
-          setStockData({ quantity: '', action: 'buy' });
-
-          // Refresh portfolio and user data after successful transaction
-          await Promise.all([
-            fetchMyPortfolio(true), // Force fresh data
-            refreshUser(),
-            fetchInvestmentHistoryData()
-          ]);
-          console.log('Portfolio refresh completed after buy');
-        }
-      } else if (stockData.action === 'sell') {
-        if (quantity > selectedStock.maxQuantity) {
-          setMessage({
-            type: 'error',
-            text: `Cannot sell ${quantity} shares. You only own ${selectedStock.maxQuantity} shares.`
-          });
-          setLoading(false);
-          return;
-        }
-
-        const response = await sellStock({
-          stockSymbol: selectedStock.symbol,
-          quantity: quantity
-        });
-
-        if (response.success !== false) {
-          console.log('Sell transaction successful, refreshing portfolio...');
-          setMessage({
-            type: 'success',
-            text: response?.message || `Successfully sold ${quantity} shares of ${selectedStock.symbol}!`
-          });
-          setShowSellModal(false);
-          setStockData({ quantity: '', action: 'sell' });
-
-          // Refresh portfolio and user data after successful transaction
-          await Promise.all([
-            fetchMyPortfolio(true), // Force fresh data
-            refreshUser(),
-            fetchInvestmentHistoryData()
-          ]);
-          console.log('Portfolio refresh completed after sell');
-        }
-      }
-    } catch (error) {
-      console.error('Stock transaction error:', error);
-      const errorMessage = error.response?.data?.message ||
-        error.message ||
-        'Transaction failed. Please try again.';
-      setMessage({
-        type: 'error',
-        text: errorMessage
-      });
+    if (Number.isNaN(quantity) || quantity <= 0) {
+      return { error: 'Please enter a valid quantity.' };
     }
-    setLoading(false);
+
+    if (stockData.action === 'buy') {
+      const estimatedCost = quantity * selectedStock.currentPrice;
+      const userBalance = user?.balance || 0;
+
+      if (estimatedCost > userBalance) {
+        return {
+          error: `Insufficient balance. Estimated cost is ${formatMoney(estimatedCost)} and you have ${formatMoney(userBalance)}.`,
+        };
+      }
+    } else if (quantity > selectedStock.maxQuantity) {
+      return { error: `Cannot sell ${quantity} shares. You only own ${selectedStock.maxQuantity}.` };
+    }
+
+    return { quantity };
+  };
+
+  // Step 1 -> 2: check the input, then show the order for review
+  const handleOrderFormSubmit = (e) => {
+    e.preventDefault();
+    setOrderError('');
+
+    const { error } = validateOrder();
+    if (error) {
+      setOrderError(error);
+      return;
+    }
+
+    setOrderStep('review');
+  };
+
+  // Step 2 -> 3: place the order and show what actually happened
+  const placeOrder = async () => {
+    setOrderError('');
+
+    const { quantity, error } = validateOrder();
+    if (error) {
+      setOrderError(error);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const isBuy = stockData.action === 'buy';
+      const payload = { stockSymbol: selectedStock.symbol, quantity };
+      const response = isBuy ? await buyStock(payload) : await sellStock(payload);
+
+      if (response.success === false) {
+        throw new Error(response.message || 'The order could not be completed.');
+      }
+
+      const result = response.data || {};
+      const pricePerShare = Number(result.pricePerShare);
+      const total = Number(isBuy ? result.totalCost : result.totalSaleValue);
+      const balanceAfter = Number(isBuy ? result.remainingBalance : result.newBalance);
+      const profitLoss = Number(result.profitLoss);
+
+      const details = [{ label: 'Shares', value: `${quantity} × ${selectedStock.symbol}` }];
+      if (Number.isFinite(pricePerShare)) {
+        details.push({ label: 'Price per share', value: formatMoney(pricePerShare) });
+      }
+      if (!isBuy && Number.isFinite(profitLoss)) {
+        details.push({ label: 'Profit / loss', value: formatMoney(profitLoss) });
+      }
+
+      setOrderReceipt({
+        title: isBuy ? 'Shares purchased' : 'Shares sold',
+        amount: Number.isFinite(total) ? total : quantity * selectedStock.currentPrice,
+        date: new Date(),
+        transactionId: result.tradeReferenceId,
+        newBalance: Number.isFinite(balanceAfter) ? balanceAfter : undefined,
+        details,
+      });
+      setOrderStep('done');
+      setStockData({ quantity: '', action: stockData.action });
+
+      await Promise.all([
+        fetchMyPortfolio(true),
+        refreshUser(),
+        fetchInvestmentHistoryData(),
+      ]);
+    } catch (orderFailure) {
+      console.error('Stock order failed:', orderFailure);
+      setOrderError(
+        orderFailure.response?.data?.message || orderFailure.message || 'Order failed. Please try again.'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Review and receipt screens are shared by the buy and sell modals
+  const renderOrderReviewOrReceipt = () => {
+    if (orderStep === 'done' && orderReceipt) {
+      return (
+        <>
+          <Modal.Body>
+            <TransactionReceipt receipt={orderReceipt} />
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="dark" onClick={closeOrderModal}>
+              Done
+            </Button>
+          </Modal.Footer>
+        </>
+      );
+    }
+
+    const isBuy = stockData.action === 'buy';
+    const quantity = parseInt(stockData.quantity, 10) || 0;
+    const estimatedTotal = quantity * (selectedStock?.currentPrice || 0);
+
+    return (
+      <>
+        <Modal.Body>
+          {orderError && (
+            <Alert variant="danger" className="py-2 small" role="alert">
+              {orderError}
+            </Alert>
+          )}
+          <p className="text-muted small mb-3">Review your order before placing it.</p>
+          <ListGroup variant="flush" className="mb-3">
+            <ListGroup.Item className="d-flex justify-content-between px-0">
+              <span className="text-muted">{isBuy ? 'Buying' : 'Selling'}</span>
+              <strong>{quantity} × {selectedStock?.symbol}</strong>
+            </ListGroup.Item>
+            <ListGroup.Item className="d-flex justify-content-between px-0">
+              <span className="text-muted">Estimated price per share</span>
+              <span>{formatMoney(selectedStock?.currentPrice)}</span>
+            </ListGroup.Item>
+            <ListGroup.Item className="d-flex justify-content-between px-0">
+              <span className="text-muted">{isBuy ? 'Estimated total cost' : 'Estimated proceeds'}</span>
+              <strong>{formatMoney(estimatedTotal)}</strong>
+            </ListGroup.Item>
+          </ListGroup>
+          <Alert variant="info" className="small py-2 mb-0">
+            Prices are simulated and can move a few percent between this screen and the moment your order is
+            placed. Your receipt shows the final price.
+          </Alert>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="outline-secondary" onClick={() => setOrderStep('form')} disabled={loading}>
+            Back
+          </Button>
+          <AppButton
+            backgroundColor={isBuy ? '#151e31' : '#dc3545'}
+            onClick={placeOrder}
+            loading={loading}
+            loadingText="Placing order..."
+          >
+            {isBuy ? 'Place buy order' : 'Place sell order'}
+          </AppButton>
+        </Modal.Footer>
+      </>
+    );
   };
 
   const getProfitColor = (profitLoss) => {
@@ -405,7 +482,7 @@ const InvestmentPlans = ({ styles }) => {
                     <div className="d-flex justify-content-between">
                       <div>
                         <h6 className="mb-0">Total Invested</h6>
-                        <h3 className="mb-0">₦{investments.reduce((sum, inv) => sum + inv.amount, 0).toLocaleString()}</h3>
+                        <h3 className="mb-0">{formatMoney(investments.reduce((sum, inv) => sum + inv.amount, 0))}</h3>
                       </div>
                       <div className="align-self-center">
                         <GraphUp size={32} className="opacity-75" />
@@ -421,7 +498,7 @@ const InvestmentPlans = ({ styles }) => {
                     <div className="d-flex justify-content-between">
                       <div>
                         <h6 className="mb-0">Current Value</h6>
-                        <h3 className="mb-0">₦{investments.reduce((sum, inv) => sum + inv.currentValue, 0).toLocaleString()}</h3>
+                        <h3 className="mb-0">{formatMoney(investments.reduce((sum, inv) => sum + inv.currentValue, 0))}</h3>
                       </div>
                       <div className="align-self-center">
                         <GraphUpArrow size={32} className="opacity-75" />
@@ -437,7 +514,7 @@ const InvestmentPlans = ({ styles }) => {
                     <div className="d-flex justify-content-between">
                       <div>
                         <h6 className="mb-0">Total Returns</h6>
-                        <h3 className="mb-0">₦{investments.reduce((sum, inv) => sum + (inv.currentValue - inv.amount), 0).toLocaleString()}</h3>
+                        <h3 className="mb-0">{formatMoney(investments.reduce((sum, inv) => sum + (inv.currentValue - inv.amount), 0))}</h3>
                       </div>
                       <div className="align-self-center">
                         <CashCoin size={32} className="opacity-75" />
@@ -509,16 +586,16 @@ const InvestmentPlans = ({ styles }) => {
                               <small className="text-muted">{investment.symbol}</small>
                             </td>
                             <td className="investment-amount-cell">{(investment.quantity || 0).toLocaleString()}</td>
-                            <td className="investment-amount-cell">₦{(investment.averagePrice || 0).toLocaleString()}</td>
-                            <td className="investment-amount-cell">₦{(investment.currentPrice || 0).toLocaleString()}</td>
+                            <td className="investment-amount-cell">{formatMoney((investment.averagePrice || 0))}</td>
+                            <td className="investment-amount-cell">{formatMoney((investment.currentPrice || 0))}</td>
                             <td className="investment-amount-cell">
                               <span className="fw-bold investment-amount-cell">
-                                ₦{(investment.currentValue || 0).toLocaleString()}
+                                {formatMoney((investment.currentValue || 0))}
                               </span>
                             </td>
                             <td className="investment-amount-cell">
                               <span className={`fw-bold investment-amount-cell ${getProfitColor(investment.profitLoss)}`}>
-                                ₦{(investment.profitLoss || 0).toLocaleString()}
+                                {formatMoney((investment.profitLoss || 0))}
                                 {investment.profitLossPercent && (
                                   <small className="d-block">
                                     ({investment.profitLossPercent > 0 ? '+' : ''}{investment.profitLossPercent.toFixed(2)}%)
@@ -597,7 +674,7 @@ const InvestmentPlans = ({ styles }) => {
                           <p className="text-muted mb-3">{stock.description}</p>
 
                           <div className="text-center mb-3">
-                            <h2 className="text-primary mb-1">₦{stock.currentPrice.toLocaleString()}</h2>
+                            <h2 className="text-primary mb-1">{formatMoney(stock.currentPrice)}</h2>
                             <small className="text-muted">Current Price per Share</small>
                             {stock.priceChange !== undefined && (
                               <div className={`mt-1 ${getPriceChangeColor(stock.priceChange)}`}>
@@ -624,7 +701,7 @@ const InvestmentPlans = ({ styles }) => {
                             <div className="row">
                               <div className="col-6">
                                 <small className="text-muted">Min Investment</small>
-                                <p className="mb-0 fw-bold">₦{stock.currentPrice.toLocaleString()}</p>
+                                <p className="mb-0 fw-bold">{formatMoney(stock.currentPrice)}</p>
                                 <small className="text-muted">(1 share)</small>
                               </div>
                               <div className="col-6">
@@ -714,10 +791,10 @@ const InvestmentPlans = ({ styles }) => {
                       <tbody>
                         {investmentHistory.map((item) => (
                           <tr key={item._id}>
-                            <td className="investment-text-cell">{new Date(item.purchaseDate || item.createdAt || Date.now()).toLocaleDateString()}</td>
+                            <td className="investment-text-cell">{formatDate(item.purchaseDate || item.createdAt || Date.now())}</td>
                             <td className="investment-text-cell">{item.stockSymbol}</td>
                             <td className="investment-amount-cell">{Number(item.quantity || 0).toLocaleString()}</td>
-                            <td className="investment-amount-cell">₦{Number(item.totalInvested || 0).toLocaleString()}</td>
+                            <td className="investment-amount-cell">{formatMoney(Number(item.totalInvested || 0))}</td>
                             <td>
                               <Badge bg={item.status === 'active' ? 'success' : 'secondary'}>
                                 {item.status || 'unknown'}
@@ -743,8 +820,8 @@ const InvestmentPlans = ({ styles }) => {
                   <>
                     <p><strong>Symbol:</strong> {selectedStockDetails.symbol}</p>
                     <p><strong>Name:</strong> {selectedStockDetails.name}</p>
-                    <p><strong>Current Price:</strong> ₦{Number(selectedStockDetails.currentPrice || 0).toLocaleString()}</p>
-                    <p><strong>Base Price:</strong> ₦{Number(selectedStockDetails.basePrice || 0).toLocaleString()}</p>
+                    <p><strong>Current Price:</strong> {formatMoney(Number(selectedStockDetails.currentPrice || 0))}</p>
+                    <p><strong>Base Price:</strong> {formatMoney(Number(selectedStockDetails.basePrice || 0))}</p>
                     <p><strong>Risk:</strong> {selectedStockDetails.risk || 'N/A'}</p>
                     <p className="mb-0"><strong>Description:</strong> {selectedStockDetails.description || 'N/A'}</p>
                   </>
@@ -755,12 +832,18 @@ const InvestmentPlans = ({ styles }) => {
             </Modal>
 
             {/* Buy Stock Modal */}
-            <Modal show={showBuyModal} onHide={() => setShowBuyModal(false)} size="lg">
+            <Modal show={showBuyModal} onHide={closeOrderModal} size="lg">
               <Modal.Header closeButton>
                 <Modal.Title>Buy {selectedStock?.name} ({selectedStock?.symbol})</Modal.Title>
               </Modal.Header>
-              <Form onSubmit={handleStockTransaction}>
+              {orderStep !== 'form' ? renderOrderReviewOrReceipt() : (
+              <Form onSubmit={handleOrderFormSubmit}>
                 <Modal.Body>
+                  {orderError && (
+                    <Alert variant="danger" className="py-2 small" role="alert">
+                      {orderError}
+                    </Alert>
+                  )}
                   {selectedStock && (
                     <>
                       <Card className="mb-4 bg-light">
@@ -768,7 +851,7 @@ const InvestmentPlans = ({ styles }) => {
                           <h6>Stock Details:</h6>
                           <Row>
                             <Col md={6}>
-                              <p className="mb-1"><strong>Current Price:</strong> ₦{selectedStock.currentPrice?.toLocaleString()}</p>
+                              <p className="mb-1"><strong>Current Price:</strong> {formatMoney(selectedStock.currentPrice)}</p>
                               <p className="mb-1"><strong>Stock Symbol:</strong> {selectedStock.symbol}</p>
                             </Col>
                             <Col md={6}>
@@ -801,7 +884,7 @@ const InvestmentPlans = ({ styles }) => {
                               max="10000"
                             />
                             <Form.Text className="text-muted">
-                              Min: 1 share | Available Balance: ₦{(user?.balance || 0).toLocaleString()}
+                              Min: 1 share | Available Balance: {formatMoney((user?.balance || 0))}
                             </Form.Text>
                           </Form.Group>
                         </Col>
@@ -815,12 +898,12 @@ const InvestmentPlans = ({ styles }) => {
                               <strong>Shares: {stockData.quantity}</strong>
                             </p>
                             <p className="mb-1">
-                              <strong>Price per Share: ₦{selectedStock.currentPrice.toLocaleString()}</strong>
+                              <strong>Price per Share: {formatMoney(selectedStock.currentPrice)}</strong>
                             </p>
                             <p className="mb-0">
-                              <strong>Total Cost: ₦{(
+                              <strong>Total Cost: {formatMoney((
                                 parseInt(stockData.quantity) * selectedStock.currentPrice
-                              ).toLocaleString()}</strong>
+                              ))}</strong>
                             </p>
                           </Card.Body>
                         </Card>
@@ -831,7 +914,7 @@ const InvestmentPlans = ({ styles }) => {
                 <Modal.Footer>
                   <AppButton
                     backgroundColor="#6c757d"
-                    onClick={() => setShowBuyModal(false)}
+                    onClick={closeOrderModal}
                   >
                     Cancel
                   </AppButton>
@@ -840,19 +923,26 @@ const InvestmentPlans = ({ styles }) => {
                     type="submit"
                     disabled={loading || !stockData.quantity}
                   >
-                    {loading ? 'Processing...' : 'Buy Shares'}
+                    Review order
                   </AppButton>
                 </Modal.Footer>
               </Form>
+              )}
             </Modal>
 
             {/* Sell Stock Modal */}
-            <Modal show={showSellModal} onHide={() => setShowSellModal(false)} size="lg">
+            <Modal show={showSellModal} onHide={closeOrderModal} size="lg">
               <Modal.Header closeButton>
                 <Modal.Title>Sell {selectedStock?.symbol} Shares</Modal.Title>
               </Modal.Header>
-              <Form onSubmit={handleStockTransaction}>
+              {orderStep !== 'form' ? renderOrderReviewOrReceipt() : (
+              <Form onSubmit={handleOrderFormSubmit}>
                 <Modal.Body>
+                  {orderError && (
+                    <Alert variant="danger" className="py-2 small" role="alert">
+                      {orderError}
+                    </Alert>
+                  )}
                   {selectedStock && (
                     <>
                       <Card className="mb-4 bg-light">
@@ -861,11 +951,11 @@ const InvestmentPlans = ({ styles }) => {
                           <Row>
                             <Col md={6}>
                               <p className="mb-1"><strong>Shares Owned:</strong> {selectedStock.maxQuantity || 0}</p>
-                              <p className="mb-1"><strong>Average Price:</strong> ₦{selectedStock.averagePrice?.toLocaleString() || 'N/A'}</p>
+                              <p className="mb-1"><strong>Average Price:</strong> {selectedStock.averagePrice != null ? formatMoney(selectedStock.averagePrice) : 'N/A'}</p>
                             </Col>
                             <Col md={6}>
-                              <p className="mb-1"><strong>Current Price:</strong> ₦{selectedStock.currentPrice?.toLocaleString()}</p>
-                              <p className="mb-1"><strong>Total Value:</strong> ₦{((selectedStock.maxQuantity || 0) * (selectedStock.currentPrice || 0)).toLocaleString()}</p>
+                              <p className="mb-1"><strong>Current Price:</strong> {formatMoney(selectedStock.currentPrice)}</p>
+                              <p className="mb-1"><strong>Total Value:</strong> {formatMoney(((selectedStock.maxQuantity || 0) * (selectedStock.currentPrice || 0)))}</p>
                             </Col>
                           </Row>
                         </Card.Body>
@@ -899,12 +989,12 @@ const InvestmentPlans = ({ styles }) => {
                               <strong>Shares to Sell: {stockData.quantity}</strong>
                             </p>
                             <p className="mb-1">
-                              <strong>Current Price: ₦{selectedStock.currentPrice.toLocaleString()}</strong>
+                              <strong>Current Price: {formatMoney(selectedStock.currentPrice)}</strong>
                             </p>
                             <p className="mb-0">
-                              <strong>Total Proceeds: ₦{(
+                              <strong>Total Proceeds: {formatMoney((
                                 parseInt(stockData.quantity) * selectedStock.currentPrice
-                              ).toLocaleString()}</strong>
+                              ))}</strong>
                             </p>
                           </Card.Body>
                         </Card>
@@ -915,7 +1005,7 @@ const InvestmentPlans = ({ styles }) => {
                 <Modal.Footer>
                   <AppButton
                     backgroundColor="#6c757d"
-                    onClick={() => setShowSellModal(false)}
+                    onClick={closeOrderModal}
                   >
                     Cancel
                   </AppButton>
@@ -924,10 +1014,11 @@ const InvestmentPlans = ({ styles }) => {
                     type="submit"
                     disabled={loading || !stockData.quantity}
                   >
-                    {loading ? 'Processing...' : 'Sell Shares'}
+                    Review order
                   </AppButton>
                 </Modal.Footer>
               </Form>
+              )}
             </Modal>
           </Container>
         </div>

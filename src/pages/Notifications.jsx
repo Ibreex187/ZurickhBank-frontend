@@ -12,6 +12,7 @@ import {
 } from '../services/notificationService';
 import { publishUnreadNotifications } from '../utils/notificationEvents';
 import AppButton from '../components/AppButton';
+import { formatDateTime } from '../utils/formatters';
 
 const CATEGORY_OPTIONS = [
   { label: 'All Categories', value: '' },
@@ -22,11 +23,6 @@ const CATEGORY_OPTIONS = [
 ];
 
 const LIMIT_OPTIONS = [10, 20, 50, 100];
-
-const formatDateTime = (value) => {
-  if (!value) return '-';
-  return new Date(value).toLocaleString();
-};
 
 const Notifications = ({ styles }) => {
   const { user, logout } = useAuth();
@@ -316,7 +312,16 @@ const Notifications = ({ styles }) => {
                     <tbody>
                       {notifications.length === 0 ? (
                         <tr>
-                          <td colSpan="6" className="text-center">No notifications found.</td>
+                          <td colSpan="6" className="text-center py-4">
+                            <p className="mb-1 fw-semibold">
+                              {filters.unreadOnly || filters.category ? 'No notifications match these filters.' : "You're all caught up."}
+                            </p>
+                            <p className="text-muted small mb-0">
+                              {filters.unreadOnly || filters.category
+                                ? 'Try resetting the filters to see everything.'
+                                : 'Alerts about your money and account security will show up here.'}
+                            </p>
+                          </td>
                         </tr>
                       ) : (
                         notifications.map((notification) => (

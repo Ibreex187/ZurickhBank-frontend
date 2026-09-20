@@ -19,22 +19,12 @@ import ZurichBrand from '../components/ZurichBrand';
 import LoadingWatch from '../components/LoadingWatch';
 import { renderSidebarNavLinks } from '../components/sidebarNavLinks';
 import { LightningChargeFill, PersonLinesFill, PlusLg } from 'react-bootstrap-icons';
-
-const getLimitSeverity = (bucket) => {
-  const limit = Number(bucket?.limit || 0);
-  const remaining = Number(bucket?.remaining || 0);
-
-  if (!Number.isFinite(limit) || limit <= 0) return 'normal';
-  if (!Number.isFinite(remaining) || remaining <= 0) return 'danger';
-
-  const ratio = remaining / limit;
-  if (ratio <= 0.1) return 'danger';
-  if (ratio <= 0.25) return 'warning';
-  return 'normal';
-};
+import { formatMoney } from '../utils/formatters';
+import LimitMeter from '../components/LimitMeter';
+import TransactionReceipt from '../components/TransactionReceipt';
 
 const BeneficiaryManagement = ({ styles }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, refreshUser } = useAuth();
   const isAdmin = user?.roles === 'admin' || user?.role === 'admin' || user?.isAdmin === true;
   const [premiumStatus, setPremiumStatus] = useState({ isPremium: false });
   const [beneficiaries, setBeneficiaries] = useState([]);
@@ -55,6 +45,8 @@ const BeneficiaryManagement = ({ styles }) => {
   const [showTransferModal, setShowTransferModal] = useState(false);
   const [selectedBeneficiary, setSelectedBeneficiary] = useState(null);
   const [transferLoading, setTransferLoading] = useState(false);
+  const [transferError, setTransferError] = useState('');
+  const [transferReceipt, setTransferReceipt] = useState(null);
   const [transferLimits, setTransferLimits] = useState(null);
   const [limitsLoading, setLimitsLoading] = useState(false);
 
@@ -105,7 +97,7 @@ const BeneficiaryManagement = ({ styles }) => {
         } else {
           setTransferLimits(null);
         }
-      } catch (error) {
+      } catch {
         if (isActive) {
           setTransferLimits(null);
         }
@@ -232,33 +224,34 @@ const BeneficiaryManagement = ({ styles }) => {
       description: '',
       transactionPin: '',
     });
+    setTransferError('');
+    setTransferReceipt(null);
     setShowTransferModal(true);
+  };
+
+  const closeTransferModal = () => {
+    setShowTransferModal(false);
+    setTransferError('');
+    setTransferReceipt(null);
   };
 
   const handleTransfer = async (e) => {
     e.preventDefault();
 
+    setTransferError('');
+
     if (!selectedBeneficiary?.accountNumber) {
-      setMessage({
-        type: 'error',
-        text: 'Recipient details are missing. Please close and reopen transfer modal.'
-      });
+      setTransferError('Recipient details are missing. Please close and reopen this window.');
       return;
     }
 
     if (!transferData.amount || Number(transferData.amount) <= 0) {
-      setMessage({
-        type: 'error',
-        text: 'Enter a valid transfer amount.'
-      });
+      setTransferError('Enter a valid transfer amount.');
       return;
     }
 
     if (String(transferData.transactionPin || '').trim().length !== 4) {
-      setMessage({
-        type: 'error',
-        text: 'Enter your 4-digit transaction PIN.'
-      });
+      setTransferError('Enter your 4-digit transaction PIN.');
       return;
     }
 
@@ -272,9 +265,19 @@ const BeneficiaryManagement = ({ styles }) => {
       });
 
       if (data.success) {
-        setMessage({
-          type: 'success',
-          text: 'Transfer initiated successfully!'
+        const result = data.data || {};
+        const newBalance = Number(result.newBalance);
+
+        setTransferReceipt({
+          title: 'Transfer successful',
+          amount: Number(result.amount) || parseFloat(transferData.amount),
+          date: new Date(),
+          transactionId: result.transactionId,
+          recipientName: result.recipient?.name || `${selectedBeneficiary.firstName} ${selectedBeneficiary.lastName}`,
+          recipientAccount: result.recipient?.accountNumber || selectedBeneficiary.accountNumber,
+          note: transferData.description.trim() || undefined,
+          newBalance: Number.isFinite(newBalance) ? newBalance : undefined,
+          fee: 0,
         });
         setTransferData({
           beneficiaryId: '',
@@ -282,23 +285,18 @@ const BeneficiaryManagement = ({ styles }) => {
           description: '',
           transactionPin: '',
         });
-        setShowTransferModal(false);
-        setSelectedBeneficiary(null);
+        refreshUser();
+      } else {
+        setTransferError(data.message || 'Transfer failed');
       }
     } catch (error) {
-      setMessage({
-        type: 'error',
-        text: error.response?.data?.message || 'Transfer failed'
-      });
+      setTransferError(error.response?.data?.message || error.message || 'Transfer failed');
     } finally {
       setTransferLoading(false);
     }
   };
 
   const transferOperationLimits = transferLimits?.operations?.transfer;
-  const formatCurrencyValue = (value) => `₦${Number(value || 0).toLocaleString()}`;
-  const transferDailySeverity = getLimitSeverity(transferOperationLimits?.daily);
-  const transferMonthlySeverity = getLimitSeverity(transferOperationLimits?.monthly);
 
   return (
     <>
@@ -471,6 +469,9 @@ const BeneficiaryManagement = ({ styles }) => {
                     <PersonLinesFill size={48} className="text-muted mb-3" />
                     <h5 className="text-muted">No beneficiaries added yet</h5>
                     <p className="text-muted">Add your first beneficiary to start making quick transfers</p>
+                    <Button variant="dark" onClick={() => setShowAddModal(true)}>
+                      Add your first beneficiary
+                    </Button>
                   </div>
                 ) : (
                   <div className="table-responsive">
@@ -582,14 +583,34 @@ const BeneficiaryManagement = ({ styles }) => {
             </Modal>
 
             {/* Transfer Modal */}
-            <Modal show={showTransferModal} onHide={() => setShowTransferModal(false)}>
+            <Modal show={showTransferModal} onHide={closeTransferModal}>
               <Modal.Header closeButton>
                 <Modal.Title>
-                  Transfer to {selectedBeneficiary ? `${selectedBeneficiary.firstName} ${selectedBeneficiary.lastName}` : ''}
+                  {transferReceipt
+                    ? 'Receipt'
+                    : `Transfer to ${selectedBeneficiary ? `${selectedBeneficiary.firstName} ${selectedBeneficiary.lastName}` : ''}`}
                 </Modal.Title>
               </Modal.Header>
+              {transferReceipt ? (
+                <>
+                  <Modal.Body>
+                    <TransactionReceipt receipt={transferReceipt} />
+                  </Modal.Body>
+                  <Modal.Footer>
+                    <Button variant="dark" onClick={closeTransferModal}>
+                      Done
+                    </Button>
+                  </Modal.Footer>
+                </>
+              ) : (
               <Form onSubmit={handleTransfer}>
                 <Modal.Body>
+                  {transferError && (
+                    <Alert variant="danger" className="py-2 small" role="alert">
+                      {transferError}
+                    </Alert>
+                  )}
+
                   {selectedBeneficiary && (
                     <Card className="mb-3 bg-light">
                       <Card.Body className="py-2">
@@ -610,14 +631,8 @@ const BeneficiaryManagement = ({ styles }) => {
                         <span className="beneficiary-limit-title">Transfer Limits</span>
                         <span className="beneficiary-limit-tier">Tier: {transferLimits?.tier || 'unverified'}</span>
                       </div>
-                      <p className={`beneficiary-limit-line ${transferDailySeverity}`}>
-                        Daily Remaining:
-                        <strong>{formatCurrencyValue(transferOperationLimits?.daily?.remaining)}</strong>
-                      </p>
-                      <p className={`beneficiary-limit-line ${transferMonthlySeverity} mb-0`}>
-                        Monthly Remaining:
-                        <strong>{formatCurrencyValue(transferOperationLimits?.monthly?.remaining)}</strong>
-                      </p>
+                      <LimitMeter label="Daily" bucket={transferOperationLimits?.daily} />
+                      <LimitMeter label="Monthly" bucket={transferOperationLimits?.monthly} />
                     </div>
                   ) : null}
 
@@ -639,7 +654,7 @@ const BeneficiaryManagement = ({ styles }) => {
                       step="0.01"
                     />
                     <Form.Text className="text-muted">
-                      Available Balance: ₦{user?.balance?.toLocaleString() || 0}
+                      Available Balance: {formatMoney(user?.balance)}
                     </Form.Text>
                   </Form.Group>
 
@@ -672,7 +687,7 @@ const BeneficiaryManagement = ({ styles }) => {
                   </Form.Group>
                 </Modal.Body>
                 <Modal.Footer>
-                  <Button variant="secondary" onClick={() => setShowTransferModal(false)}>
+                  <Button variant="secondary" onClick={closeTransferModal}>
                     Cancel
                   </Button>
                   <Button
@@ -684,6 +699,7 @@ const BeneficiaryManagement = ({ styles }) => {
                   </Button>
                 </Modal.Footer>
               </Form>
+              )}
             </Modal>
           </Container>
         </div>

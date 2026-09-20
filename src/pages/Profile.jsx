@@ -22,6 +22,8 @@ import {
 } from '../services/profileService';
 import { getNotificationPreferences, updateNotificationPreferences } from '../services/notificationService';
 import { getPremiumStatus } from '../utils/premiumStatus';
+import { formatMoney } from '../utils/formatters';
+import CopyButton from '../components/CopyButton';
 
 const Profile = ({ styles }) => {
   const { user, logout, refreshUser } = useAuth();
@@ -415,7 +417,7 @@ const Profile = ({ styles }) => {
   };
 
   const formatCurrency = (amount) => {
-    return `₦${(amount || 0).toLocaleString()}`;
+    return `${formatMoney((amount || 0))}`;
   };
 
   return (
@@ -574,7 +576,15 @@ const Profile = ({ styles }) => {
                         <div className="account-details">
                           <div className="detail-item">
                             <span className="label">Account Number</span>
-                            <span className="value">{profileData.accountNumber}</span>
+                            <span className="value">
+                              {profileData.accountNumber}
+                              <CopyButton
+                                value={profileData.accountNumber}
+                                label="Copy"
+                                ariaLabel="Copy your account number"
+                                className="ms-2 small"
+                              />
+                            </span>
                           </div>
                           <div className="detail-item">
                             <span className="label">Member Since</span>

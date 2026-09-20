@@ -10,6 +10,7 @@ import {
 import ZurichBrand from '../components/ZurichBrand';
 import { renderSidebarNavLinks } from '../components/sidebarNavLinks';
 import { ArrowDown, CheckCircleFill, ClockFill, PeopleFill } from 'react-bootstrap-icons';
+import { formatDate, formatMoney } from '../utils/formatters';
 
 const AdminDashboard = ({ styles }) => {
   const { user, logout } = useAuth();
@@ -223,7 +224,7 @@ const AdminDashboard = ({ styles }) => {
                     <div className="d-flex justify-content-between">
                       <div>
                         <h6 className="card-title mb-0">Total Deposits</h6>
-                        <h2 className="mb-0">₦{totalDeposits.toLocaleString()}</h2>
+                        <h2 className="mb-0">{formatMoney(totalDeposits)}</h2>
                       </div>
                       <div className="align-self-center">
                         <ArrowDown size={32} className="opacity-75" />
@@ -333,7 +334,7 @@ const AdminDashboard = ({ styles }) => {
                     <tbody>
                       {filteredTransactions.map((transaction) => (
                         <tr key={transaction._id}>
-                          <td>{new Date(transaction.date).toLocaleDateString()}</td>
+                          <td>{formatDate(transaction.date)}</td>
                           <td>
                             <Badge bg={
                               transaction.type === 'deposit' ? 'success' :
@@ -342,7 +343,7 @@ const AdminDashboard = ({ styles }) => {
                               {transaction.type?.toUpperCase()}
                             </Badge>
                           </td>
-                          <td className="amount-cell">₦{Number(transaction.amount || 0).toLocaleString()}</td>
+                          <td className="amount-cell">{formatMoney(Number(transaction.amount || 0))}</td>
                           <td className="party-cell">
                             {transaction.sender
                               ? `${transaction.sender.firstName || ''} ${transaction.sender.lastName || ''} (${transaction.sender.accountNumber || 'N/A'})`

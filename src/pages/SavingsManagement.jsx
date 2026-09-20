@@ -22,19 +22,9 @@ import {
 } from '../services/savingsService';
 import { getTransactionLimits } from '../services/transactionService';
 import { ClockHistory, GraphUp, PiggyBankFill, Wallet2 } from 'react-bootstrap-icons';
+import { formatDate, formatMoney, formatTime } from '../utils/formatters';
+import LimitMeter from '../components/LimitMeter';
 
-const getLimitSeverity = (bucket) => {
-  const limit = Number(bucket?.limit || 0);
-  const remaining = Number(bucket?.remaining || 0);
-
-  if (!Number.isFinite(limit) || limit <= 0) return 'normal';
-  if (!Number.isFinite(remaining) || remaining <= 0) return 'danger';
-
-  const ratio = remaining / limit;
-  if (ratio <= 0.1) return 'danger';
-  if (ratio <= 0.25) return 'warning';
-  return 'normal';
-};
 
 const SavingsManagement = ({ styles }) => {
   const { user, logout } = useAuth();
@@ -157,7 +147,7 @@ const SavingsManagement = ({ styles }) => {
         } else {
           setWithdrawLimits(null);
         }
-      } catch (error) {
+      } catch {
         if (isActive) {
           setWithdrawLimits(null);
         }
@@ -292,10 +282,7 @@ const SavingsManagement = ({ styles }) => {
     setLoading(false);
   };
 
-  const formatCurrencyValue = (value) => `₦${Number(value || 0).toLocaleString()}`;
   const withdrawOperationLimits = withdrawLimits?.operations?.withdraw;
-  const withdrawDailySeverity = getLimitSeverity(withdrawOperationLimits?.daily);
-  const withdrawMonthlySeverity = getLimitSeverity(withdrawOperationLimits?.monthly);
 
   return (
     <>
@@ -440,7 +427,7 @@ const SavingsManagement = ({ styles }) => {
                     <div className="d-flex justify-content-between">
                       <div>
                         <h6 className="mb-0">Main Balance</h6>
-                        <h3 className="mb-0">₦{savingsData.balances.mainBalance?.toLocaleString() || 0}</h3>
+                        <h3 className="mb-0">{formatMoney(savingsData.balances.mainBalance)}</h3>
                       </div>
                       <div className="align-self-center">
                         <Wallet2 size={32} className="opacity-75" />
@@ -456,7 +443,7 @@ const SavingsManagement = ({ styles }) => {
                     <div className="d-flex justify-content-between">
                       <div>
                         <h6 className="mb-0">Savings Balance</h6>
-                        <h3 className="mb-0">₦{savingsData.balances.savingsBalance?.toLocaleString() || 0}</h3>
+                        <h3 className="mb-0">{formatMoney(savingsData.balances.savingsBalance)}</h3>
                       </div>
                       <div className="align-self-center">
                         <PiggyBankFill size={32} className="opacity-75" />
@@ -472,7 +459,7 @@ const SavingsManagement = ({ styles }) => {
                     <div className="d-flex justify-content-between">
                       <div>
                         <h6 className="mb-0">Total Wealth</h6>
-                        <h3 className="mb-0">₦{savingsData.balances.totalBalance?.toLocaleString() || 0}</h3>
+                        <h3 className="mb-0">{formatMoney(savingsData.balances.totalBalance)}</h3>
                       </div>
                       <div className="align-self-center">
                         <GraphUp size={32} className="opacity-75" />
@@ -491,7 +478,7 @@ const SavingsManagement = ({ styles }) => {
                     <div className="d-flex justify-content-between align-items-center">
                       <h5 className="mb-0">Savings Statistics</h5>
                       <small className="text-muted">
-                        Last updated: {statsLastUpdated ? statsLastUpdated.toLocaleTimeString() : '—'}
+                        Last updated: {statsLastUpdated ? formatTime(statsLastUpdated) : '—'}
                       </small>
                     </div>
                   </Card.Header>
@@ -499,15 +486,15 @@ const SavingsManagement = ({ styles }) => {
                     <div className="row text-center">
                       <div className="col-4 px-2">
                         <h6 className="text-muted">Total Deposited</h6>
-                        <h4 className="text-success text-truncate">₦{savingsStatistics.totalDeposited.toLocaleString()}</h4>
+                        <h4 className="text-success text-truncate">{formatMoney(savingsStatistics.totalDeposited)}</h4>
                       </div>
                       <div className="col-4 px-2">
                         <h6 className="text-muted">Total Withdrawn</h6>
-                        <h4 className="text-warning text-truncate">₦{savingsStatistics.totalWithdrawn.toLocaleString()}</h4>
+                        <h4 className="text-warning text-truncate">{formatMoney(savingsStatistics.totalWithdrawn)}</h4>
                       </div>
                       <div className="col-4 px-2">
                         <h6 className="text-muted">Net Savings</h6>
-                        <h4 className="text-primary text-truncate">₦{savingsStatistics.netSavings.toLocaleString()}</h4>
+                        <h4 className="text-primary text-truncate">{formatMoney(savingsStatistics.netSavings)}</h4>
                       </div>
                     </div>
                   </Card.Body>
@@ -566,6 +553,9 @@ const SavingsManagement = ({ styles }) => {
                     <ClockHistory size={48} className="text-muted mb-3" />
                     <h5 className="text-muted">No transactions yet</h5>
                     <p className="text-muted">Start saving to see your transaction history</p>
+                    <Button variant="dark" onClick={() => openSavingsAction(setShowDepositModal)}>
+                      Make your first savings deposit
+                    </Button>
                   </div>
                 ) : (
                   <div className="table-responsive savings-recent-transactions-table-wrap">
@@ -582,13 +572,13 @@ const SavingsManagement = ({ styles }) => {
                       <tbody>
                         {transactions.map((transaction) => (
                           <tr key={transaction._id || transaction.transactionId}>
-                            <td className="savings-text-cell" data-label="Date">{new Date(transaction.createdAt).toLocaleDateString()}</td>
+                            <td className="savings-text-cell" data-label="Date">{formatDate(transaction.createdAt)}</td>
                             <td data-label="Type">
                               <Badge bg={transaction.type === 'deposit' ? 'success' : 'warning'}>
                                 {transaction.type}
                               </Badge>
                             </td>
-                            <td className="savings-amount-cell" data-label="Amount">₦{transaction.amount?.toLocaleString()}</td>
+                            <td className="savings-amount-cell" data-label="Amount">{formatMoney(transaction.amount)}</td>
                             <td className="savings-text-cell" data-label="Description">{transaction.description}</td>
                             <td data-label="Status">
                               <Badge bg={transaction.status === 'completed' ? 'success' : 'secondary'}>
@@ -649,7 +639,7 @@ const SavingsManagement = ({ styles }) => {
                       step="0.01"
                     />
                     <Form.Text className="text-muted">
-                      Available Balance: ₦{savingsData.balances.mainBalance?.toLocaleString() || 0}
+                      Available Balance: {formatMoney(savingsData.balances.mainBalance)}
                     </Form.Text>
                   </Form.Group>
 
@@ -699,14 +689,8 @@ const SavingsManagement = ({ styles }) => {
                         <span className="savings-limit-title">Withdrawal Limits</span>
                         <span className="savings-limit-tier">Tier: {withdrawLimits?.tier || 'unverified'}</span>
                       </div>
-                      <p className={`savings-limit-line ${withdrawDailySeverity}`}>
-                        Daily Remaining:
-                        <strong>{formatCurrencyValue(withdrawOperationLimits?.daily?.remaining)}</strong>
-                      </p>
-                      <p className={`savings-limit-line ${withdrawMonthlySeverity} mb-0`}>
-                        Monthly Remaining:
-                        <strong>{formatCurrencyValue(withdrawOperationLimits?.monthly?.remaining)}</strong>
-                      </p>
+                      <LimitMeter label="Daily" bucket={withdrawOperationLimits?.daily} />
+                      <LimitMeter label="Monthly" bucket={withdrawOperationLimits?.monthly} />
                     </div>
                   ) : null}
 
@@ -724,7 +708,7 @@ const SavingsManagement = ({ styles }) => {
                       step="0.01"
                     />
                     <Form.Text className="text-muted">
-                      Available Savings: ₦{savingsData.balances.savingsBalance?.toLocaleString() || 0}
+                      Available Savings: {formatMoney(savingsData.balances.savingsBalance)}
                     </Form.Text>
                   </Form.Group>
 
@@ -794,8 +778,8 @@ const SavingsManagement = ({ styles }) => {
                     />
                     <Form.Text className="text-muted">
                       {quickTransferData.direction === 'to-savings'
-                        ? `Available: ₦${savingsData.balances.mainBalance?.toLocaleString() || 0}`
-                        : `Available: ₦${savingsData.balances.savingsBalance?.toLocaleString() || 0}`
+                        ? `Available: ${formatMoney(savingsData.balances.mainBalance)}`
+                        : `Available: ${formatMoney(savingsData.balances.savingsBalance)}`
                       }
                     </Form.Text>
                   </Form.Group>
