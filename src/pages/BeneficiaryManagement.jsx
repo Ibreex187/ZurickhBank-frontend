@@ -1,6 +1,5 @@
 import { formatWithCommas, unformatCommas } from '../utils/formatAmount';
 import { useEffect, useRef, useState } from 'react';
-import PropTypes from 'prop-types';
 import { useAuth } from '../context/AuthContext';
 import {
   getBeneficiaries,
@@ -11,7 +10,7 @@ import {
 import { getTransactionLimits } from '../services/transactionService';
 import {
   Container, Card, Form, Button, Alert, Table, Row, Col,
-  Modal
+  Modal, Badge
 } from 'react-bootstrap';
 import LoadingWatch from '../components/LoadingWatch';
 import RefreshingBadge from '../components/RefreshingBadge';
@@ -21,7 +20,7 @@ import LimitMeter from '../components/LimitMeter';
 import TransactionReceipt from '../components/TransactionReceipt';
 import { useToast } from '../context/ToastContext';
 
-const BeneficiaryManagement = ({ styles }) => {
+const BeneficiaryManagement = () => {
   const { user, refreshUser } = useAuth();
   const { notify } = useToast();
   const [beneficiaries, setBeneficiaries] = useState([]);
@@ -260,8 +259,6 @@ const BeneficiaryManagement = ({ styles }) => {
 
   return (
     <>
-      {styles && <style>{styles}</style>}
-
       <Container fluid className="px-lg-4 py-4">
         {/* Header Section */}
         <Row className="mb-4">
@@ -282,12 +279,12 @@ const BeneficiaryManagement = ({ styles }) => {
 
         {/* Stats Cards */}
         <Row className="g-4 mb-4">
-          <Col md={4}>
-            <Card className="border-0 shadow-sm premium-stat-card">
+          <Col md={6}>
+            <Card className="border-0 shadow-sm">
               <Card.Body>
                 <div className="d-flex justify-content-between">
                   <div>
-                    <h6 className="mb-0">Total Beneficiaries</h6>
+                    <h6 className="mb-0 text-muted">Total Beneficiaries</h6>
                     <h3 className="mb-0">{beneficiaries.length}</h3>
                   </div>
                   <div className="align-self-center">
@@ -298,28 +295,12 @@ const BeneficiaryManagement = ({ styles }) => {
             </Card>
           </Col>
 
-          <Col md={4}>
-            <Card className="border-0 shadow-sm premium-stat-card">
+          <Col md={6}>
+            <Card className="border-0 shadow-sm">
               <Card.Body>
                 <div className="d-flex justify-content-between">
                   <div>
-                    <h6 className="mb-0">Total Beneficiaries</h6>
-                    <h3 className="mb-0">{beneficiaries.length}</h3>
-                  </div>
-                  <div className="align-self-center">
-                    <PersonLinesFill size={32} className="opacity-75" />
-                  </div>
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
-
-          <Col md={4}>
-            <Card className="border-0 shadow-sm premium-stat-card">
-              <Card.Body>
-                <div className="d-flex justify-content-between">
-                  <div>
-                    <h6 className="mb-0">Quick Access</h6>
+                    <h6 className="mb-0 text-muted">Quick Access</h6>
                     <h3 className="mb-0">{beneficiaries.length}</h3>
                   </div>
                   <div className="align-self-center">
@@ -363,11 +344,11 @@ const BeneficiaryManagement = ({ styles }) => {
                   <tbody>
                     {beneficiaries.map((beneficiary) => (
                       <tr key={beneficiary._id}>
-                        <td className="beneficiary-text-cell">
+                        <td>
                           <strong>{beneficiary.firstName} {beneficiary.lastName}</strong>
                         </td>
-                        <td className="beneficiary-text-cell">{beneficiary.userName}</td>
-                        <td className="font-monospace beneficiary-account-cell">{beneficiary.accountNumber}</td>
+                        <td>{beneficiary.userName}</td>
+                        <td className="font-monospace">{beneficiary.accountNumber}</td>
                         <td>
                           <Button
                             variant="outline-primary"
@@ -496,21 +477,19 @@ const BeneficiaryManagement = ({ styles }) => {
                 <Card className="mb-3 bg-light">
                   <Card.Body className="py-2">
                     <small className="text-muted">Recipient Details:</small>
-                    <p className="mb-1 beneficiary-text-cell"><strong>{selectedBeneficiary.firstName} {selectedBeneficiary.lastName}</strong></p>
-                    <p className="mb-0 text-muted beneficiary-text-cell">@{selectedBeneficiary.userName} • {selectedBeneficiary.accountNumber}</p>
+                    <p className="mb-1"><strong>{selectedBeneficiary.firstName} {selectedBeneficiary.lastName}</strong></p>
+                    <p className="mb-0 text-muted">@{selectedBeneficiary.userName} • {selectedBeneficiary.accountNumber}</p>
                   </Card.Body>
                 </Card>
               )}
 
               {limitsLoading ? (
-                <div className="beneficiary-limit-panel mb-3">
-                  <p className="beneficiary-limit-muted mb-0">Loading transfer limits...</p>
-                </div>
+                <p className="text-muted small mb-3">Loading transfer limits...</p>
               ) : transferOperationLimits ? (
-                <div className="beneficiary-limit-panel mb-3">
-                  <div className="beneficiary-limit-header">
-                    <span className="beneficiary-limit-title">Transfer Limits</span>
-                    <span className="beneficiary-limit-tier">Tier: {transferLimits?.tier || 'unverified'}</span>
+                <div className="p-3 mb-3 bg-light border rounded">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <span className="fw-semibold small">Transfer Limits</span>
+                    <Badge bg="light" text="dark" className="border">Tier: {transferLimits?.tier || 'unverified'}</Badge>
                   </div>
                   <LimitMeter label="Daily" bucket={transferOperationLimits?.daily} />
                   <LimitMeter label="Monthly" bucket={transferOperationLimits?.monthly} />
@@ -588,7 +567,3 @@ const BeneficiaryManagement = ({ styles }) => {
 };
 
 export default BeneficiaryManagement;
-
-BeneficiaryManagement.propTypes = {
-  styles: PropTypes.string,
-};

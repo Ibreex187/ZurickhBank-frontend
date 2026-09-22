@@ -8,7 +8,6 @@ import AppLayout from './components/AppLayout';
 import { LANDING_STYLES } from './pages/Land.styles';
 import { PROFILE_STYLES } from './pages/Profile.styles';
 import { INVESTMENT_PLANS_STYLES } from './pages/InvestmentPlans.styles';
-import { BENEFICIARY_MANAGEMENT_STYLES } from './pages/BeneficiaryManagement.styles';
 import { AUTH_STYLES } from './pages/Auth.styles';
 import { ADMIN_DASHBOARD_STYLES } from './pages/AdminDashboard.styles';
 import LoadingWatch from './components/LoadingWatch';
@@ -53,7 +52,7 @@ function App() {
                 }
               >
                 <Route path="/dashboard" element={<Dashboard_new />} />
-                <Route path="/beneficiaries" element={<BeneficiaryManagement styles={BENEFICIARY_MANAGEMENT_STYLES} />} />
+                <Route path="/beneficiaries" element={<BeneficiaryManagement />} />
                 <Route path="/investments" element={<InvestmentPlans styles={INVESTMENT_PLANS_STYLES} />} />
                 <Route path="/savings" element={<SavingsManagement />} />
                 <Route path="/ledger" element={<Ledger />} />
