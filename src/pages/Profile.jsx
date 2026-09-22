@@ -20,6 +20,7 @@ import {
 } from '../services/profileService';
 import { getNotificationPreferences, updateNotificationPreferences } from '../services/notificationService';
 import { formatMoney } from '../utils/formatters';
+import { useToast } from '../context/ToastContext';
 import CopyButton from '../components/CopyButton';
 import { useCountdown } from '../hooks/useCountdown';
 import { getRetryAfterSeconds } from '../utils/authErrors';
@@ -30,6 +31,7 @@ const OTP_RESEND_SECONDS = 60;
 
 const Profile = ({ styles }) => {
   const { user, refreshUser } = useAuth();
+  const { notify } = useToast();
 
   const [loading, setLoading] = useState(false);
 
@@ -79,16 +81,14 @@ const Profile = ({ styles }) => {
       if (!response?.success) {
         throw new Error(response?.message || 'Failed to update preferences');
       }
-      setMessage({ type: 'success', text: 'Email preferences updated successfully' });
+      notify({ variant: 'success', text: 'Email preferences updated successfully' });
     } catch (preferenceError) {
       setPreferences((prev) => ({ ...prev, [category]: !enabled }));
-      setMessage({ type: 'error', text: preferenceError?.response?.data?.message || 'Failed to update preferences' });
+      notify({ variant: 'danger', text: preferenceError?.response?.data?.message || 'Failed to update preferences' });
     } finally {
       setPreferencesSavingKey('');
     }
   };
-  const [message, setMessage] = useState({ type: '', text: '' });
-
   // Profile data state
   const [profileData, setProfileData] = useState({
     firstName: '',
@@ -170,16 +170,10 @@ const Profile = ({ styles }) => {
         setProfileData(response.data);
         setEditFormData(response.data);
       } else {
-        setMessage({
-          type: 'error',
-          text: response.message || 'Failed to load profile data'
-        });
+        notify({ variant: 'danger', text: response.message || 'Failed to load profile data' });
       }
     } catch {
-      setMessage({
-        type: 'error',
-        text: 'Error loading profile data'
-      });
+      notify({ variant: 'danger', text: 'Error loading profile data' });
     } finally {
       setLoading(false);
     }
@@ -201,7 +195,6 @@ const Profile = ({ styles }) => {
     setEditFormData({ ...profileData });
     setEditErrors({});
     setEditOtp('');
-    setMessage({ type: '', text: '' });
   };
 
   const handleCancelEdit = () => {
@@ -213,7 +206,6 @@ const Profile = ({ styles }) => {
 
   const handleRequestProfileOtp = async () => {
     setEditOtpLoading(true);
-    setMessage({ type: '', text: '' });
     try {
       const response = await requestProfileUpdateOtp();
 
@@ -223,8 +215,8 @@ const Profile = ({ styles }) => {
         otpCountdown.start(waitSeconds);
       }
 
-      setMessage({
-        type: response.success ? 'success' : 'error',
+      notify({
+        variant: response.success ? 'success' : 'danger',
         text: response.message || (response.success ? 'OTP sent' : 'Failed to send OTP')
       });
     } finally {
@@ -259,13 +251,13 @@ const Profile = ({ styles }) => {
       });
 
       if (Object.keys(changedFields).length === 0) {
-        setMessage({ type: 'info', text: 'No changes to save' });
+        notify({ variant: 'info', text: 'No changes to save' });
         setIsEditing(false);
         return;
       }
 
       if (!editOtp) {
-        setMessage({ type: 'error', text: 'Enter OTP sent to your email before saving changes' });
+        notify({ variant: 'danger', text: 'Enter OTP sent to your email before saving changes' });
         setLoading(false);
         return;
       }
@@ -274,10 +266,7 @@ const Profile = ({ styles }) => {
 
       const response = await updateUserProfile(changedFields);
       if (response.success) {
-        setMessage({
-          type: 'success',
-          text: 'Profile updated successfully'
-        });
+        notify({ variant: 'success', text: 'Profile updated successfully' });
         setProfileData(response.data);
         setEditFormData(response.data);
         setIsEditing(false);
@@ -285,16 +274,10 @@ const Profile = ({ styles }) => {
         // Refresh user data in context
         await refreshUser();
       } else {
-        setMessage({
-          type: 'error',
-          text: response.message || 'Failed to update profile'
-        });
+        notify({ variant: 'danger', text: response.message || 'Failed to update profile' });
       }
     } catch {
-      setMessage({
-        type: 'error',
-        text: 'Error updating profile'
-      });
+      notify({ variant: 'danger', text: 'Error updating profile' });
     } finally {
       setLoading(false);
     }
@@ -322,10 +305,7 @@ const Profile = ({ styles }) => {
     try {
       const response = await changeUserPassword(passwordData);
       if (response.success) {
-        setMessage({
-          type: 'success',
-          text: 'Password changed successfully'
-        });
+        notify({ variant: 'success', text: 'Password changed successfully' });
         setPasswordData({
           currentPassword: '',
           newPassword: '',
@@ -334,16 +314,10 @@ const Profile = ({ styles }) => {
         setShowPasswordForm(false);
         setPasswordErrors({});
       } else {
-        setMessage({
-          type: 'error',
-          text: response.message || 'Failed to change password'
-        });
+        notify({ variant: 'danger', text: response.message || 'Failed to change password' });
       }
     } catch {
-      setMessage({
-        type: 'error',
-        text: 'Error changing password'
-      });
+      notify({ variant: 'danger', text: 'Error changing password' });
     } finally {
       setLoading(false);
     }
@@ -372,10 +346,7 @@ const Profile = ({ styles }) => {
       const response = await setUserTransactionPin(pinData);
 
       if (response.success) {
-        setMessage({
-          type: 'success',
-          text: response.message || 'Transaction PIN updated successfully'
-        });
+        notify({ variant: 'success', text: response.message || 'Transaction PIN updated successfully' });
         setPinData({
           currentPassword: '',
           transactionPin: '',
@@ -386,16 +357,10 @@ const Profile = ({ styles }) => {
         await refreshUser();
         await fetchProfileData();
       } else {
-        setMessage({
-          type: 'error',
-          text: response.message || 'Failed to set transaction PIN'
-        });
+        notify({ variant: 'danger', text: response.message || 'Failed to set transaction PIN' });
       }
     } catch {
-      setMessage({
-        type: 'error',
-        text: 'Error setting transaction PIN'
-      });
+      notify({ variant: 'danger', text: 'Error setting transaction PIN' });
     } finally {
       setLoading(false);
     }
@@ -410,19 +375,6 @@ const Profile = ({ styles }) => {
       <style>{styles || PROFILE_STYLES}</style>
 
       <div className="profile-container">
-        {/* Messages */}
-        {message.text && (
-          <div className={`alert alert-${message.type}`}>
-            <span>{message.text}</span>
-            <button
-              className="alert-close"
-              onClick={() => setMessage({ type: '', text: '' })}
-            >
-              ×
-            </button>
-          </div>
-        )}
-
         {/* Profile Tabs */}
         <div className="profile-tabs">
           <button

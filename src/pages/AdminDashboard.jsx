@@ -2,20 +2,21 @@ import { useState, useEffect, useMemo } from 'react';
 import PropTypes from 'prop-types';
 import api from '../config/api';
 import {
-  Card, Form, Button, Alert, Table, Row, Col,
+  Card, Form, Button, Table, Row, Col,
   Badge
 } from 'react-bootstrap';
 import { ArrowDown, CheckCircleFill, ClockFill, PeopleFill } from 'react-bootstrap-icons';
 import { formatDate, formatMoney } from '../utils/formatters';
+import { useToast } from '../context/ToastContext';
 
 const AdminDashboard = ({ styles }) => {
+  const { notify } = useToast();
 
   const [allTransactions, setAllTransactions] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
 
   useEffect(() => {
     fetchAllTransactions();
@@ -29,8 +30,8 @@ const AdminDashboard = ({ styles }) => {
         setAllTransactions(response.data.data);
       }
     } catch (error) {
-      setMessage({
-        type: 'error',
+      notify({
+        variant: 'danger',
         text: error.response?.data?.message || 'Failed to fetch transactions'
       });
     }
@@ -164,12 +165,6 @@ const AdminDashboard = ({ styles }) => {
             </Card>
           </Col>
         </Row>
-
-        {message.text && (
-          <Alert variant={message.type === 'success' ? 'success' : 'danger'} className="mb-4">
-            {message.text}
-          </Alert>
-        )}
 
         {/* Admin Management Tabs */}
         <Card className="shadow-sm">

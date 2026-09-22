@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import LoadingWatch from '../components/LoadingWatch';
+import RefreshingBadge from '../components/RefreshingBadge';
 import {
   getNotifications,
   markNotificationAsRead,
@@ -9,6 +10,7 @@ import {
 import { publishUnreadNotifications } from '../utils/notificationEvents';
 import AppButton from '../components/AppButton';
 import { formatDateTime } from '../utils/formatters';
+import { useToast } from '../context/ToastContext';
 
 const CATEGORY_OPTIONS = [
   { label: 'All Categories', value: '' },
@@ -21,11 +23,11 @@ const CATEGORY_OPTIONS = [
 const LIMIT_OPTIONS = [10, 20, 50, 100];
 
 const Notifications = ({ styles }) => {
-
+  const { notify } = useToast();
 
   const [loading, setLoading] = useState(false);
+  const hasLoadedRef = useRef(false);
   const [notifications, setNotifications] = useState([]);
-  const [error, setError] = useState('');
   const [filters, setFilters] = useState({
     unreadOnly: false,
     category: '',
@@ -46,7 +48,6 @@ const Notifications = ({ styles }) => {
 
   const fetchNotificationList = useCallback(async () => {
     setLoading(true);
-    setError('');
 
     try {
       const response = await getNotifications({
@@ -75,11 +76,14 @@ const Notifications = ({ styles }) => {
         publishUnreadNotifications(0);
       }
     } catch (fetchError) {
-      setError(fetchError?.response?.data?.message || 'Failed to fetch notifications');
+      notify({ variant: 'danger', text: fetchError?.response?.data?.message || 'Failed to fetch notifications' });
       setNotifications([]);
     } finally {
       setLoading(false);
+      hasLoadedRef.current = true;
     }
+    // notify is stable (from context) and intentionally excluded so this only re-runs on filter changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters]);
 
   useEffect(() => {
@@ -96,7 +100,6 @@ const Notifications = ({ styles }) => {
 
   const handleMarkAsRead = async (notificationId) => {
     setMarkingNotificationId(notificationId);
-    setError('');
 
     try {
       const response = await markNotificationAsRead(notificationId);
@@ -104,7 +107,7 @@ const Notifications = ({ styles }) => {
         await fetchNotificationList();
       }
     } catch (markError) {
-      setError(markError?.response?.data?.message || 'Failed to mark notification as read');
+      notify({ variant: 'danger', text: markError?.response?.data?.message || 'Failed to mark notification as read' });
     } finally {
       setMarkingNotificationId('');
     }
@@ -112,7 +115,6 @@ const Notifications = ({ styles }) => {
 
   const handleMarkAllAsRead = async () => {
     setMarkingAll(true);
-    setError('');
 
     try {
       const response = await markAllNotificationsAsRead();
@@ -120,7 +122,7 @@ const Notifications = ({ styles }) => {
         await fetchNotificationList();
       }
     } catch (markAllError) {
-      setError(markAllError?.response?.data?.message || 'Failed to mark all notifications as read');
+      notify({ variant: 'danger', text: markAllError?.response?.data?.message || 'Failed to mark all notifications as read' });
     } finally {
       setMarkingAll(false);
     }
@@ -133,8 +135,6 @@ const Notifications = ({ styles }) => {
       {styles && <style>{styles}</style>}
 
       <div className="dashboard-container">
-        {error && <div className="alert alert-danger">{error}</div>}
-
         <div className="notifications-controls">
           <div className="filter-row">
             <div className="filter-group">
@@ -204,10 +204,11 @@ const Notifications = ({ styles }) => {
             <h3>Inbox</h3>
           </div>
 
-          {loading ? (
+          {loading && !hasLoadedRef.current ? (
             <LoadingWatch label="Loading notifications..." minHeight="120px" />
           ) : (
             <div className="table-container">
+              {loading && <RefreshingBadge />}
               <table className="transactions-table">
                 <thead>
                   <tr>
@@ -299,8 +300,6 @@ const Notifications = ({ styles }) => {
             </AppButton>
           </div>
         </div>
-
-        
       </div>
     </>
   );

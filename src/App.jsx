@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { ToastProvider } from './context/ToastContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
 import AppLayout from './components/AppLayout';
@@ -34,43 +35,45 @@ function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Suspense fallback={<LoadingWatch />}>
-          <Routes>
-            <Route path="/" element={<Land styles={LANDING_STYLES} />} />
-            <Route path="/login" element={<Login styles={AUTH_STYLES} />} />
-            <Route path="/register" element={<Registerrr />} />
-            <Route path="/forgot-password" element={<ForgotPassword styles={AUTH_STYLES} />} />
-            <Route path="/terms" element={<Terms />} />
-            <Route path="/privacy" element={<Privacy />} />
+        <ToastProvider>
+          <Suspense fallback={<LoadingWatch />}>
+            <Routes>
+              <Route path="/" element={<Land styles={LANDING_STYLES} />} />
+              <Route path="/login" element={<Login styles={AUTH_STYLES} />} />
+              <Route path="/register" element={<Registerrr />} />
+              <Route path="/forgot-password" element={<ForgotPassword styles={AUTH_STYLES} />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/privacy" element={<Privacy />} />
 
-            {/* Signed-in pages share one layout (sidebar + header) that stays mounted between pages */}
-            <Route
-              element={
-                <ProtectedRoute>
-                  <AppLayout />
-                </ProtectedRoute>
-              }
-            >
-              <Route path="/dashboard" element={<Dashboard_new />} />
-              <Route path="/beneficiaries" element={<BeneficiaryManagement styles={BENEFICIARY_MANAGEMENT_STYLES} />} />
-              <Route path="/investments" element={<InvestmentPlans styles={INVESTMENT_PLANS_STYLES} />} />
-              <Route path="/savings" element={<SavingsManagement styles={SAVINGS_MANAGEMENT_STYLES} />} />
-              <Route path="/ledger" element={<Ledger />} />
-              <Route path="/notifications" element={<Notifications />} />
-              <Route path="/profile" element={<Profile styles={PROFILE_STYLES} />} />
+              {/* Signed-in pages share one layout (sidebar + header) that stays mounted between pages */}
               <Route
-                path="/admin"
                 element={
-                  <AdminRoute>
-                    <AdminDashboard styles={ADMIN_DASHBOARD_STYLES} />
-                  </AdminRoute>
+                  <ProtectedRoute>
+                    <AppLayout />
+                  </ProtectedRoute>
                 }
-              />
-            </Route>
+              >
+                <Route path="/dashboard" element={<Dashboard_new />} />
+                <Route path="/beneficiaries" element={<BeneficiaryManagement styles={BENEFICIARY_MANAGEMENT_STYLES} />} />
+                <Route path="/investments" element={<InvestmentPlans styles={INVESTMENT_PLANS_STYLES} />} />
+                <Route path="/savings" element={<SavingsManagement styles={SAVINGS_MANAGEMENT_STYLES} />} />
+                <Route path="/ledger" element={<Ledger />} />
+                <Route path="/notifications" element={<Notifications />} />
+                <Route path="/profile" element={<Profile styles={PROFILE_STYLES} />} />
+                <Route
+                  path="/admin"
+                  element={
+                    <AdminRoute>
+                      <AdminDashboard styles={ADMIN_DASHBOARD_STYLES} />
+                    </AdminRoute>
+                  }
+                />
+              </Route>
 
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        </ToastProvider>
       </AuthProvider>
     </BrowserRouter>
   );

@@ -1,18 +1,21 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import LoadingWatch from '../components/LoadingWatch';
+import RefreshingBadge from '../components/RefreshingBadge';
 import { getAccountStatement, getLedgerHistory } from '../services/ledgerService';
 import { formatDateTime, formatMoney } from '../utils/formatters';
+import { useToast } from '../context/ToastContext';
 
 const formatCurrency = (value) => formatMoney(value);
 
 const Ledger = () => {
-
+  const { notify } = useToast();
 
   const [entries, setEntries] = useState([]);
   const [accounts, setAccounts] = useState([]);
   const [loadingHistory, setLoadingHistory] = useState(false);
+  const hasLoadedHistoryRef = useRef(false);
   const [loadingStatement, setLoadingStatement] = useState(false);
-  const [error, setError] = useState('');
+  const hasLoadedStatementRef = useRef(false);
 
   const [filters, setFilters] = useState({
     accountType: '',
@@ -44,7 +47,6 @@ const Ledger = () => {
   useEffect(() => {
     const fetchLedgerHistory = async () => {
       setLoadingHistory(true);
-      setError('');
 
       try {
         const response = await getLedgerHistory(queryOptions);
@@ -62,14 +64,17 @@ const Ledger = () => {
           setEntries([]);
         }
       } catch (fetchError) {
-        setError(fetchError?.response?.data?.message || 'Failed to fetch ledger history');
+        notify({ variant: 'danger', text: fetchError?.response?.data?.message || 'Failed to fetch ledger history' });
         setEntries([]);
       } finally {
         setLoadingHistory(false);
+        hasLoadedHistoryRef.current = true;
       }
     };
 
     fetchLedgerHistory();
+    // notify is stable (from context) and intentionally excluded so this only re-runs on filter changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [queryOptions, filters.limit]);
 
   useEffect(() => {
@@ -90,13 +95,16 @@ const Ledger = () => {
         }
       } catch (statementError) {
         setAccounts([]);
-        setError(statementError?.response?.data?.message || 'Failed to fetch account statement');
+        notify({ variant: 'danger', text: statementError?.response?.data?.message || 'Failed to fetch account statement' });
       } finally {
         setLoadingStatement(false);
+        hasLoadedStatementRef.current = true;
       }
     };
 
     fetchStatement();
+    // notify is stable (from context) and intentionally excluded so this only re-runs on filter changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filters.accountType, filters.startDate, filters.endDate]);
 
   const handleFilterChange = (field, value) => {
@@ -114,8 +122,6 @@ const Ledger = () => {
   return (
     <>
       <div className="dashboard-container">
-        {error && <div className="alert error">{error}</div>}
-
         <div className="filters-panel" style={{ marginBottom: '1rem' }}>
           <div className="filter-row">
             <div className="filter-group">
@@ -187,21 +193,24 @@ const Ledger = () => {
             <h3>Account Statement</h3>
           </div>
 
-          {loadingStatement ? (
+          {loadingStatement && !hasLoadedStatementRef.current ? (
             <LoadingWatch label="Loading statement..." minHeight="100px" />
           ) : (
-            <div className="dashboard-grid" style={{ marginBottom: '1rem' }}>
-              {(accounts || []).map((account) => (
-                <div className="dashboard-card" key={account.accountType}>
-                  <h4 className="ledger-cell-text" style={{ marginBottom: '0.75rem' }}>{account.accountType}</h4>
-                  <p className="ledger-statement-line">Opening: <span className="ledger-cell-amount">{formatCurrency(account.openingBalance)}</span></p>
-                  <p className="ledger-statement-line">Debits: <span className="ledger-cell-amount">{formatCurrency(account.totalDebits)}</span></p>
-                  <p className="ledger-statement-line">Credits: <span className="ledger-cell-amount">{formatCurrency(account.totalCredits)}</span></p>
-                  <p className="ledger-statement-line">Net: <span className="ledger-cell-amount">{formatCurrency(account.netMovement)}</span></p>
-                  <p className="ledger-statement-line">Closing: <span className="ledger-cell-amount">{formatCurrency(account.closingBalance)}</span></p>
-                </div>
-              ))}
-            </div>
+            <>
+              {loadingStatement && <RefreshingBadge />}
+              <div className="dashboard-grid" style={{ marginBottom: '1rem' }}>
+                {(accounts || []).map((account) => (
+                  <div className="dashboard-card" key={account.accountType}>
+                    <h4 className="ledger-cell-text" style={{ marginBottom: '0.75rem' }}>{account.accountType}</h4>
+                    <p className="ledger-statement-line">Opening: <span className="ledger-cell-amount">{formatCurrency(account.openingBalance)}</span></p>
+                    <p className="ledger-statement-line">Debits: <span className="ledger-cell-amount">{formatCurrency(account.totalDebits)}</span></p>
+                    <p className="ledger-statement-line">Credits: <span className="ledger-cell-amount">{formatCurrency(account.totalCredits)}</span></p>
+                    <p className="ledger-statement-line">Net: <span className="ledger-cell-amount">{formatCurrency(account.netMovement)}</span></p>
+                    <p className="ledger-statement-line">Closing: <span className="ledger-cell-amount">{formatCurrency(account.closingBalance)}</span></p>
+                  </div>
+                ))}
+              </div>
+            </>
           )}
         </div>
 
@@ -210,6 +219,7 @@ const Ledger = () => {
             <h3>Ledger History</h3>
           </div>
 
+          {loadingHistory && <RefreshingBadge />}
           <div className="table-container">
             <table className="transactions-table">
               <thead>
@@ -223,7 +233,7 @@ const Ledger = () => {
                 </tr>
               </thead>
               <tbody>
-                {loadingHistory ? (
+                {loadingHistory && !hasLoadedHistoryRef.current ? (
                   <tr>
                     <td colSpan="6" className="text-center">
                       <LoadingWatch label="Loading ledger history..." minHeight="90px" />

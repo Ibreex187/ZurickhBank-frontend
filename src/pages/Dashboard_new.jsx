@@ -2,6 +2,7 @@ import { formatWithCommas, unformatCommas } from '../utils/formatAmount';
 import { useState, useEffect, useCallback, useRef } from 'react';
 import PropTypes from 'prop-types';
 import { useAuth } from '../context/AuthContext';
+import { useToast } from '../context/ToastContext';
 import { useNavigate } from 'react-router-dom';
 import PasswordField from '../components/PasswordField';
 import LoadingWatch from '../components/LoadingWatch';
@@ -24,6 +25,8 @@ import { Alert, Button, ListGroup } from 'react-bootstrap';
 import CopyButton from '../components/CopyButton';
 import LimitMeter from '../components/LimitMeter';
 import TransactionReceipt from '../components/TransactionReceipt';
+import RefreshingBadge from '../components/RefreshingBadge';
+import { useDebouncedValue } from '../hooks/useDebouncedValue';
 
 const BALANCE_VISIBILITY_COOKIE = 'dashboard_balance_visible';
 
@@ -57,9 +60,12 @@ const getLimitSeverity = (bucket) => {
 
 const Dashboard = ({ styles }) => {
   const { user, refreshUser } = useAuth();
+  const { notify } = useToast();
   const navigate = useNavigate();
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const hasLoadedHistoryRef = useRef(false);
   const [actionType, setActionType] = useState('');
   const [amount, setAmount] = useState('');
   const [description, setDescription] = useState('');
@@ -110,7 +116,6 @@ const Dashboard = ({ styles }) => {
   const [receipt, setReceipt] = useState(null);
   const [saveBeneficiaryState, setSaveBeneficiaryState] = useState({ status: 'idle', text: '' });
   const [exporting, setExporting] = useState(false);
-  const [exportNotice, setExportNotice] = useState({ variant: '', text: '' });
   const hasTransactionPin = Boolean(user?.hasTransactionPin);
   const receiverAccountInputRef = useRef(null);
 
@@ -236,6 +241,19 @@ const Dashboard = ({ styles }) => {
     setPagination(prev => ({ ...prev, currentPage: 1 })); // Reset to first page
   };
 
+  // The search box updates immediately for a responsive feel; the value that actually
+  // triggers a fetch (filters.search) only catches up once typing pauses for a moment
+  const [searchInput, setSearchInput] = useState(filters.search);
+  const debouncedSearch = useDebouncedValue(searchInput, 400);
+
+  useEffect(() => {
+    if (debouncedSearch !== filters.search) {
+      handleFilterChange('search', debouncedSearch);
+    }
+    // Only react to the debounced value settling, not to every filters change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedSearch]);
+
   // Handle pagination
   const handlePageChange = (newPage) => {
     setPagination(prev => ({ ...prev, currentPage: newPage }));
@@ -252,6 +270,7 @@ const Dashboard = ({ styles }) => {
       minAmount: '',
       maxAmount: ''
     });
+    setSearchInput('');
     setPagination(prev => ({ ...prev, currentPage: 1 }));
   };
 
@@ -269,7 +288,6 @@ const Dashboard = ({ styles }) => {
 
   // Export every transaction matching the current filters (up to EXPORT_ROW_LIMIT), not just the visible page
   const handleExportTransactions = async () => {
-    setExportNotice({ variant: '', text: '' });
     setExporting(true);
 
     try {
@@ -291,7 +309,7 @@ const Dashboard = ({ styles }) => {
       total = total || rows.length;
 
       if (rows.length === 0) {
-        setExportNotice({ variant: 'warning', text: 'There are no transactions to export for the current filters.' });
+        notify({ variant: 'warning', text: 'There are no transactions to export for the current filters.' });
         return;
       }
 
@@ -329,15 +347,17 @@ const Dashboard = ({ styles }) => {
       link.click();
       window.URL.revokeObjectURL(url);
 
-      setExportNotice({
-        variant: 'success',
-        text: total > rows.length
-          ? `Exported the ${rows.length} most recent of ${total} matching transactions. Narrow the date range to export the rest.`
-          : `Exported ${rows.length} transaction${rows.length === 1 ? '' : 's'}.`,
-      });
+      if (total > rows.length) {
+        notify({
+          variant: 'warning',
+          text: `Exported the ${rows.length} most recent of ${total} matching transactions. Narrow the date range to export the rest.`,
+        });
+      } else {
+        notify({ variant: 'success', text: `Exported ${rows.length} transaction${rows.length === 1 ? '' : 's'}.` });
+      }
     } catch (error) {
       console.error('Failed to export transactions:', error);
-      setExportNotice({ variant: 'danger', text: 'Could not export transactions. Please try again.' });
+      notify({ variant: 'danger', text: 'Could not export transactions. Please try again.' });
     } finally {
       setExporting(false);
     }
@@ -366,7 +386,7 @@ const Dashboard = ({ styles }) => {
   };
 
   const fetchTransactions = useCallback(async () => {
-    setLoading(true);
+    setHistoryLoading(true);
     try {
       const response = await getTransactionHistory({
         page: pagination.currentPage,
@@ -391,7 +411,8 @@ const Dashboard = ({ styles }) => {
       console.error('Failed to fetch transactions:', error);
       setTransactions([]);
     } finally {
-      setLoading(false);
+      setHistoryLoading(false);
+      hasLoadedHistoryRef.current = true;
     }
   }, [filters, pagination.currentPage, pagination.limit]);
 
@@ -1044,17 +1065,6 @@ const Dashboard = ({ styles }) => {
           </div>
         </div>
 
-        {exportNotice.text && (
-          <Alert
-            variant={exportNotice.variant || 'info'}
-            dismissible
-            onClose={() => setExportNotice({ variant: '', text: '' })}
-            className="small py-2"
-          >
-            {exportNotice.text}
-          </Alert>
-        )}
-
         {/* Advanced Filters */}
         {showFilters && (
           <div className="filters-panel">
@@ -1078,8 +1088,8 @@ const Dashboard = ({ styles }) => {
                 <div className="search-group">
                   <input
                     type="text"
-                    value={filters.search}
-                    onChange={(e) => handleFilterChange('search', e.target.value)}
+                    value={searchInput}
+                    onChange={(e) => setSearchInput(e.target.value)}
                     placeholder="Search transactions..."
                     maxLength={100}
                     className="search-input"
@@ -1153,9 +1163,11 @@ const Dashboard = ({ styles }) => {
         )}
 
         <div className="table-container">
-          {loading ? (
+          {historyLoading && !hasLoadedHistoryRef.current ? (
             <LoadingWatch label="Loading transactions..." minHeight="200px" />
           ) : (
+          <>
+          {historyLoading && <RefreshingBadge label="Refreshing transactions…" />}
           <table className="transactions-table">
             <thead>
               <tr>
@@ -1283,6 +1295,7 @@ const Dashboard = ({ styles }) => {
               )}
             </tbody>
           </table>
+          </>
           )}
         </div>
 
@@ -1301,7 +1314,7 @@ const Dashboard = ({ styles }) => {
               <button
                 className="pagination-btn"
                 onClick={() => handlePageChange(pagination.currentPage - 1)}
-                disabled={!pagination.hasPrevPage}
+                disabled={!pagination.hasPrevPage || historyLoading}
               >
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M15.41,16.58L10.83,12L15.41,7.41L14,6L8,12L14,18L15.41,16.58Z" />
@@ -1337,7 +1350,7 @@ const Dashboard = ({ styles }) => {
               <button
                 className="pagination-btn"
                 onClick={() => handlePageChange(pagination.currentPage + 1)}
-                disabled={!pagination.hasNextPage}
+                disabled={!pagination.hasNextPage || historyLoading}
               >
                 Next
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">

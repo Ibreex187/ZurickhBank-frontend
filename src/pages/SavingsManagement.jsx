@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
@@ -8,6 +8,7 @@ import {
 } from 'react-bootstrap';
 import PasswordField from '../components/PasswordField';
 import LoadingWatch from '../components/LoadingWatch';
+import RefreshingBadge from '../components/RefreshingBadge';
 import { formatWithCommas, unformatCommas } from '../utils/formatAmount';
 import {
   depositToSavings,
@@ -21,10 +22,12 @@ import { getTransactionLimits } from '../services/transactionService';
 import { ClockHistory, GraphUp, PiggyBankFill, Wallet2 } from 'react-bootstrap-icons';
 import { formatDate, formatMoney, formatTime } from '../utils/formatters';
 import LimitMeter from '../components/LimitMeter';
+import { useToast } from '../context/ToastContext';
 
 
 const SavingsManagement = ({ styles }) => {
   const { user } = useAuth();
+  const { notify } = useToast();
   const navigate = useNavigate();
   const hasTransactionPin = Boolean(user?.hasTransactionPin);
 
@@ -39,8 +42,10 @@ const SavingsManagement = ({ styles }) => {
   const [statsLastUpdated, setStatsLastUpdated] = useState(null);
 
   // UI state
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
+  const [loading, setLoading] = useState(false); // deposit/withdraw/transfer submission (modals)
+  const [modalError, setModalError] = useState(''); // shown inline in whichever of the 3 modals is open
+  const [dataLoading, setDataLoading] = useState(false); // background fetch of overview/history/insights
+  const hasLoadedDataRef = useRef(false);
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [showWithdrawModal, setShowWithdrawModal] = useState(false);
   const [showQuickTransferModal, setShowQuickTransferModal] = useState(false);
@@ -138,6 +143,8 @@ const SavingsManagement = ({ styles }) => {
   }, [showWithdrawModal]);
 
   const openSavingsAction = (openModal) => {
+    setModalError('');
+
     if (!hasTransactionPin) {
       setShowPinGuardModal(true);
       return;
@@ -147,7 +154,7 @@ const SavingsManagement = ({ styles }) => {
   };
 
   const fetchSavingsData = async () => {
-    setLoading(true);
+    setDataLoading(true);
     try {
       const [overviewRes, historyRes, insightsRes] = await Promise.all([
         getSavingsOverview(),
@@ -170,64 +177,53 @@ const SavingsManagement = ({ styles }) => {
 
     } catch (error) {
       console.error('Failed to fetch savings data:', error);
-      setMessage({
-        type: 'error',
-        text: 'Failed to load savings data'
-      });
+      notify({ variant: 'danger', text: 'Failed to load savings data' });
     }
-    setLoading(false);
+    setDataLoading(false);
+    hasLoadedDataRef.current = true;
   };
 
   const handleDeposit = async (e) => {
     e.preventDefault();
+    setModalError('');
     setLoading(true);
     try {
       const response = await depositToSavings(Number(depositAmount), transactionPin);
       if (response.success) {
-        setMessage({
-          type: 'success',
-          text: response.message || 'Deposit successful!'
-        });
+        notify({ variant: 'success', text: response.message || 'Deposit successful!' });
         setDepositAmount('');
         setTransactionPin('');
         setShowDepositModal(false);
         fetchSavingsData();
       }
     } catch (error) {
-      setMessage({
-        type: 'error',
-        text: error.response?.data?.message || 'Deposit failed'
-      });
+      setModalError(error.response?.data?.message || 'Deposit failed');
     }
     setLoading(false);
   };
 
   const handleWithdraw = async (e) => {
     e.preventDefault();
+    setModalError('');
     setLoading(true);
     try {
       const response = await withdrawFromSavings(Number(withdrawAmount), transactionPin);
       if (response.success) {
-        setMessage({
-          type: 'success',
-          text: response.message || 'Withdrawal successful!'
-        });
+        notify({ variant: 'success', text: response.message || 'Withdrawal successful!' });
         setWithdrawAmount('');
         setTransactionPin('');
         setShowWithdrawModal(false);
         fetchSavingsData();
       }
     } catch (error) {
-      setMessage({
-        type: 'error',
-        text: error.response?.data?.message || 'Withdrawal failed'
-      });
+      setModalError(error.response?.data?.message || 'Withdrawal failed');
     }
     setLoading(false);
   };
 
   const handleQuickTransfer = async (e) => {
     e.preventDefault();
+    setModalError('');
     setLoading(true);
     try {
       const response = await quickTransfer(
@@ -236,20 +232,14 @@ const SavingsManagement = ({ styles }) => {
         transactionPin
       );
       if (response.success) {
-        setMessage({
-          type: 'success',
-          text: response.message || 'Transfer successful!'
-        });
+        notify({ variant: 'success', text: response.message || 'Transfer successful!' });
         setQuickTransferData({ amount: '', direction: 'to-savings' });
         setTransactionPin('');
         setShowQuickTransferModal(false);
         fetchSavingsData();
       }
     } catch (error) {
-      setMessage({
-        type: 'error',
-        text: error.response?.data?.message || 'Transfer failed'
-      });
+      setModalError(error.response?.data?.message || 'Transfer failed');
     }
     setLoading(false);
   };
@@ -292,17 +282,6 @@ const SavingsManagement = ({ styles }) => {
             </div>
           </Col>
         </Row>
-
-        {message.text && (
-          <Alert
-            variant={message.type === 'success' ? 'success' : 'danger'}
-            className="mb-4"
-            onClose={() => setMessage({ type: '', text: '' })}
-            dismissible
-          >
-            {message.text}
-          </Alert>
-        )}
 
         {!hasTransactionPin && (
           <Alert variant="warning" className="mb-4 d-flex align-items-center justify-content-between" style={{ gap: '0.75rem' }}>
@@ -446,7 +425,9 @@ const SavingsManagement = ({ styles }) => {
             <h5 className="mb-0">Recent Transactions</h5>
           </Card.Header>
           <Card.Body>
-            {transactions.length === 0 ? (
+            {dataLoading && !hasLoadedDataRef.current ? (
+              <LoadingWatch label="Loading transactions..." minHeight="160px" />
+            ) : transactions.length === 0 ? (
               <div className="text-center py-5">
                 <ClockHistory size={48} className="text-muted mb-3" />
                 <h5 className="text-muted">No transactions yet</h5>
@@ -456,6 +437,8 @@ const SavingsManagement = ({ styles }) => {
                 </Button>
               </div>
             ) : (
+              <>
+              {dataLoading && <RefreshingBadge />}
               <div className="table-responsive savings-recent-transactions-table-wrap">
                 <Table hover className="savings-recent-transactions-table">
                   <thead className="table-light">
@@ -488,6 +471,7 @@ const SavingsManagement = ({ styles }) => {
                   </tbody>
                 </Table>
               </div>
+              </>
             )}
           </Card.Body>
         </Card>
@@ -517,12 +501,17 @@ const SavingsManagement = ({ styles }) => {
         </Modal>
 
         {/* Deposit Modal */}
-        <Modal show={showDepositModal} onHide={() => setShowDepositModal(false)}>
+        <Modal show={showDepositModal} onHide={() => { setShowDepositModal(false); setModalError(''); }}>
           <Modal.Header closeButton>
             <Modal.Title>Deposit to Savings</Modal.Title>
           </Modal.Header>
           <Form onSubmit={handleDeposit}>
             <Modal.Body>
+              {modalError && (
+                <Alert variant="danger" className="py-2 small" role="alert">
+                  {modalError}
+                </Alert>
+              )}
               <Form.Group className="mb-3">
                 <Form.Label>Amount *</Form.Label>
                 <Form.Control
@@ -556,6 +545,7 @@ const SavingsManagement = ({ styles }) => {
               <Button variant="secondary" onClick={() => {
                 setShowDepositModal(false);
                 setTransactionPin('');
+                setModalError('');
               }}>
                 Cancel
               </Button>
@@ -571,12 +561,17 @@ const SavingsManagement = ({ styles }) => {
         </Modal>
 
         {/* Withdraw Modal */}
-        <Modal show={showWithdrawModal} onHide={() => setShowWithdrawModal(false)}>
+        <Modal show={showWithdrawModal} onHide={() => { setShowWithdrawModal(false); setModalError(''); }}>
           <Modal.Header closeButton>
             <Modal.Title>Withdraw from Savings</Modal.Title>
           </Modal.Header>
           <Form onSubmit={handleWithdraw}>
             <Modal.Body>
+              {modalError && (
+                <Alert variant="danger" className="py-2 small" role="alert">
+                  {modalError}
+                </Alert>
+              )}
               {withdrawLimitsLoading ? (
                 <div className="savings-limit-panel mb-3">
                   <p className="savings-limit-muted mb-0">Loading withdrawal limits...</p>
@@ -625,6 +620,7 @@ const SavingsManagement = ({ styles }) => {
               <Button variant="secondary" onClick={() => {
                 setShowWithdrawModal(false);
                 setTransactionPin('');
+                setModalError('');
               }}>
                 Cancel
               </Button>
@@ -640,12 +636,17 @@ const SavingsManagement = ({ styles }) => {
         </Modal>
 
         {/* Quick Transfer Modal */}
-        <Modal show={showQuickTransferModal} onHide={() => setShowQuickTransferModal(false)}>
+        <Modal show={showQuickTransferModal} onHide={() => { setShowQuickTransferModal(false); setModalError(''); }}>
           <Modal.Header closeButton>
             <Modal.Title>Quick Transfer</Modal.Title>
           </Modal.Header>
           <Form onSubmit={handleQuickTransfer}>
             <Modal.Body>
+              {modalError && (
+                <Alert variant="danger" className="py-2 small" role="alert">
+                  {modalError}
+                </Alert>
+              )}
               <Form.Group className="mb-3">
                 <Form.Label>Transfer Direction *</Form.Label>
                 <Form.Select
@@ -697,6 +698,7 @@ const SavingsManagement = ({ styles }) => {
               <Button variant="secondary" onClick={() => {
                 setShowQuickTransferModal(false);
                 setTransactionPin('');
+                setModalError('');
               }}>
                 Cancel
               </Button>

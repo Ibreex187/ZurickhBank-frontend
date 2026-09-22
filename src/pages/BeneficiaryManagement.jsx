@@ -1,5 +1,5 @@
 import { formatWithCommas, unformatCommas } from '../utils/formatAmount';
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import PropTypes from 'prop-types';
 import { useAuth } from '../context/AuthContext';
 import {
@@ -14,19 +14,24 @@ import {
   Modal
 } from 'react-bootstrap';
 import LoadingWatch from '../components/LoadingWatch';
+import RefreshingBadge from '../components/RefreshingBadge';
 import { LightningChargeFill, PersonLinesFill, PlusLg } from 'react-bootstrap-icons';
 import { formatMoney } from '../utils/formatters';
 import LimitMeter from '../components/LimitMeter';
 import TransactionReceipt from '../components/TransactionReceipt';
+import { useToast } from '../context/ToastContext';
 
 const BeneficiaryManagement = ({ styles }) => {
   const { user, refreshUser } = useAuth();
+  const { notify } = useToast();
   const [beneficiaries, setBeneficiaries] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // Add Beneficiary modal submit
+  const [beneficiariesLoading, setBeneficiariesLoading] = useState(false); // background list fetch
+  const hasLoadedBeneficiariesRef = useRef(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [addError, setAddError] = useState('');
   const [beneficiaryToDelete, setBeneficiaryToDelete] = useState(null);
   const [deleting, setDeleting] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
   const [newBeneficiary, setNewBeneficiary] = useState({
     accountNumber: ''
   });
@@ -111,32 +116,28 @@ const BeneficiaryManagement = ({ styles }) => {
   };
 
   const fetchBeneficiaries = async () => {
-    setLoading(true);
+    setBeneficiariesLoading(true);
     try {
       const data = await getBeneficiaries();
       if (data.success) {
         setBeneficiaries(data.data);
       }
     } catch (error) {
-      setMessage({
-        type: 'error',
-        text: error.response?.data?.message || 'Failed to fetch beneficiaries'
-      });
+      notify({ variant: 'danger', text: error.response?.data?.message || 'Failed to fetch beneficiaries' });
     }
-    setLoading(false);
+    setBeneficiariesLoading(false);
+    hasLoadedBeneficiariesRef.current = true;
   };
 
   const addBeneficiary = async (e) => {
     e.preventDefault();
+    setAddError('');
     const normalizedAccountNumber = newBeneficiary.accountNumber.toString().replace(/\D/g, '');
 
     // Validate account number
     const validationError = validateAccountNumber(normalizedAccountNumber);
     if (validationError) {
-      setMessage({
-        type: 'error',
-        text: validationError
-      });
+      setAddError(validationError);
       return;
     }
 
@@ -144,10 +145,7 @@ const BeneficiaryManagement = ({ styles }) => {
     try {
       const data = await createBeneficiary(normalizedAccountNumber);
       if (data.success) {
-        setMessage({
-          type: 'success',
-          text: data.message || 'Beneficiary added successfully!'
-        });
+        notify({ variant: 'success', text: data.message || 'Beneficiary added successfully!' });
         setNewBeneficiary({
           accountNumber: ''
         });
@@ -155,10 +153,7 @@ const BeneficiaryManagement = ({ styles }) => {
         fetchBeneficiaries();
       }
     } catch (error) {
-      setMessage({
-        type: 'error',
-        text: error.response?.data?.message || 'Failed to add beneficiary'
-      });
+      setAddError(error.response?.data?.message || 'Failed to add beneficiary');
     }
     setLoading(false);
   };
@@ -170,17 +165,11 @@ const BeneficiaryManagement = ({ styles }) => {
     try {
       const data = await removeBeneficiary(beneficiaryToDelete._id);
       if (data.success) {
-        setMessage({
-          type: 'success',
-          text: 'Beneficiary deleted successfully!'
-        });
+        notify({ variant: 'success', text: 'Beneficiary deleted successfully!' });
         fetchBeneficiaries();
       }
     } catch (error) {
-      setMessage({
-        type: 'error',
-        text: error.response?.data?.message || 'Failed to delete beneficiary'
-      });
+      notify({ variant: 'danger', text: error.response?.data?.message || 'Failed to delete beneficiary' });
     } finally {
       setDeleting(false);
       setBeneficiaryToDelete(null);
@@ -281,7 +270,7 @@ const BeneficiaryManagement = ({ styles }) => {
               <h2 className="mb-0">Beneficiary Management</h2>
               <Button
                 variant="primary"
-                onClick={() => setShowAddModal(true)}
+                onClick={() => { setAddError(''); setShowAddModal(true); }}
                 className="px-4"
               >
                 <PlusLg size="1em" className="me-2" />
@@ -290,17 +279,6 @@ const BeneficiaryManagement = ({ styles }) => {
             </div>
           </Col>
         </Row>
-
-        {message.text && (
-          <Alert
-            variant={message.type === 'success' ? 'success' : 'danger'}
-            className="mb-4"
-            onClose={() => setMessage({ type: '', text: '' })}
-            dismissible
-          >
-            {message.text}
-          </Alert>
-        )}
 
         {/* Stats Cards */}
         <Row className="g-4 mb-4">
@@ -359,19 +337,20 @@ const BeneficiaryManagement = ({ styles }) => {
             <h5 className="mb-0">Your Beneficiaries</h5>
           </Card.Header>
           <Card.Body className="p-0">
-            {loading ? (
+            {beneficiariesLoading && !hasLoadedBeneficiariesRef.current ? (
               <LoadingWatch label="Loading beneficiaries..." minHeight="160px" />
             ) : beneficiaries.length === 0 ? (
               <div className="text-center py-5">
                 <PersonLinesFill size={48} className="text-muted mb-3" />
                 <h5 className="text-muted">No beneficiaries added yet</h5>
                 <p className="text-muted">Add your first beneficiary to start making quick transfers</p>
-                <Button variant="dark" onClick={() => setShowAddModal(true)}>
+                <Button variant="dark" onClick={() => { setAddError(''); setShowAddModal(true); }}>
                   Add your first beneficiary
                 </Button>
               </div>
             ) : (
               <div className="table-responsive">
+                {beneficiariesLoading && <div className="px-3 pt-3"><RefreshingBadge /></div>}
                 <Table hover className="mb-0">
                   <thead className="table-light">
                     <tr>
@@ -416,12 +395,17 @@ const BeneficiaryManagement = ({ styles }) => {
         </Card>
 
         {/* Add Beneficiary Modal */}
-        <Modal show={showAddModal} onHide={() => setShowAddModal(false)} size="lg">
+        <Modal show={showAddModal} onHide={() => { setShowAddModal(false); setAddError(''); }} size="lg">
           <Modal.Header closeButton>
             <Modal.Title>Add New Beneficiary</Modal.Title>
           </Modal.Header>
           <Form onSubmit={addBeneficiary}>
             <Modal.Body>
+              {addError && (
+                <Alert variant="danger" className="py-2 small" role="alert">
+                  {addError}
+                </Alert>
+              )}
               <Form.Group className="mb-3">
                 <Form.Label>Account Number *</Form.Label>
                 <Form.Control
@@ -443,7 +427,7 @@ const BeneficiaryManagement = ({ styles }) => {
               </Form.Group>
             </Modal.Body>
             <Modal.Footer>
-              <Button variant="secondary" onClick={() => setShowAddModal(false)}>
+              <Button variant="secondary" onClick={() => { setShowAddModal(false); setAddError(''); }}>
                 Cancel
               </Button>
               <Button

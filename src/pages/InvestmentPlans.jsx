@@ -18,14 +18,15 @@ import TransactionReceipt from '../components/TransactionReceipt';
 import LoadingWatch from '../components/LoadingWatch';
 import { ArrowRepeat, BriefcaseFill, CashCoin, CheckLg, GraphUp, GraphUpArrow, Search } from 'react-bootstrap-icons';
 import { formatDate, formatMoney } from '../utils/formatters';
+import { useToast } from '../context/ToastContext';
 
 const InvestmentPlans = ({ styles }) => {
   const { user, refreshUser } = useAuth();
+  const { notify } = useToast();
   const [investments, setInvestments] = useState([]);
   const [availableStocks, setAvailableStocks] = useState([]);
   const [stocksError, setStocksError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState({ type: '', text: '' });
   const [showBuyModal, setShowBuyModal] = useState(false);
   const [showSellModal, setShowSellModal] = useState(false);
   const [showStockDetailsModal, setShowStockDetailsModal] = useState(false);
@@ -78,10 +79,7 @@ const InvestmentPlans = ({ styles }) => {
       setInvestments(latestInvestments);
     } catch (error) {
       console.error('Failed to fetch portfolio:', error);
-      setMessage({
-        type: 'error',
-        text: 'Failed to refresh portfolio. Please try again.'
-      });
+      notify({ variant: 'danger', text: 'Failed to refresh portfolio. Please try again.' });
     } finally {
       setLoading(false);
     }
@@ -359,17 +357,6 @@ const InvestmentPlans = ({ styles }) => {
             </div>
           </Col>
         </Row>
-
-        {message.text && (
-          <Alert
-            variant={message.type === 'success' ? 'success' : 'danger'}
-            className="mb-4"
-            onClose={() => setMessage({ type: '', text: '' })}
-            dismissible
-          >
-            {message.text}
-          </Alert>
-        )}
 
         {/* Portfolio Summary */}
         <Row className="g-4 mb-4">
