@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import PropTypes from 'prop-types';
+import { Badge, Button, Card, Col, Container, Form, Pagination, Row, Spinner, Table } from 'react-bootstrap';
 import LoadingWatch from '../components/LoadingWatch';
 import RefreshingBadge from '../components/RefreshingBadge';
 import {
@@ -8,7 +8,6 @@ import {
   markAllNotificationsAsRead,
 } from '../services/notificationService';
 import { publishUnreadNotifications } from '../utils/notificationEvents';
-import AppButton from '../components/AppButton';
 import { formatDateTime } from '../utils/formatters';
 import { useToast } from '../context/ToastContext';
 
@@ -22,7 +21,14 @@ const CATEGORY_OPTIONS = [
 
 const LIMIT_OPTIONS = [10, 20, 50, 100];
 
-const Notifications = ({ styles }) => {
+const CATEGORY_BADGE_VARIANT = {
+  debit: 'danger',
+  credit: 'success',
+  transfer: 'info',
+  security: 'dark',
+};
+
+const Notifications = () => {
   const { notify } = useToast();
 
   const [loading, setLoading] = useState(false);
@@ -131,182 +137,175 @@ const Notifications = ({ styles }) => {
   const hasUnreadNotifications = unreadCount > 0;
 
   return (
-    <>
-      {styles && <style>{styles}</style>}
+    <Container fluid className="px-lg-4 py-4">
+      <Card className="shadow-sm mb-4">
+        <Card.Body>
+          <Row className="g-3 align-items-end">
+            <Col sm={6} md={3}>
+              <Form.Group controlId="notif-category">
+                <Form.Label>Category</Form.Label>
+                <Form.Select
+                  value={filters.category}
+                  onChange={(event) => handleFilterChange('category', event.target.value)}
+                >
+                  {CATEGORY_OPTIONS.map((option) => (
+                    <option key={option.value || 'all'} value={option.value}>{option.label}</option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+            </Col>
 
-      <div className="dashboard-container">
-        <div className="notifications-controls">
-          <div className="filter-row">
-            <div className="filter-group">
-              <label>Category</label>
-              <select
-                className="filter-select"
-                value={filters.category}
-                onChange={(event) => handleFilterChange('category', event.target.value)}
-              >
-                {CATEGORY_OPTIONS.map((option) => (
-                  <option key={option.value || 'all'} value={option.value}>{option.label}</option>
-                ))}
-              </select>
-            </div>
+            <Col sm={6} md={3}>
+              <Form.Group controlId="notif-show">
+                <Form.Label>Show</Form.Label>
+                <Form.Select
+                  value={filters.unreadOnly ? 'unread' : 'all'}
+                  onChange={(event) => handleFilterChange('unreadOnly', event.target.value === 'unread')}
+                >
+                  <option value="all">All Notifications</option>
+                  <option value="unread">Unread Only</option>
+                </Form.Select>
+              </Form.Group>
+            </Col>
 
-            <div className="filter-group">
-              <label>Show</label>
-              <select
-                className="filter-select"
-                value={filters.unreadOnly ? 'unread' : 'all'}
-                onChange={(event) => handleFilterChange('unreadOnly', event.target.value === 'unread')}
-              >
-                <option value="all">All Notifications</option>
-                <option value="unread">Unread Only</option>
-              </select>
-            </div>
+            <Col sm={6} md={2}>
+              <Form.Group controlId="notif-rows">
+                <Form.Label>Rows</Form.Label>
+                <Form.Select
+                  value={filters.limit}
+                  onChange={(event) => handleFilterChange('limit', Number(event.target.value))}
+                >
+                  {LIMIT_OPTIONS.map((size) => (
+                    <option key={size} value={size}>{size}</option>
+                  ))}
+                </Form.Select>
+              </Form.Group>
+            </Col>
 
-            <div className="filter-group">
-              <label>Rows</label>
-              <select
-                className="filter-select"
-                value={filters.limit}
-                onChange={(event) => handleFilterChange('limit', Number(event.target.value))}
-              >
-                {LIMIT_OPTIONS.map((size) => (
-                  <option key={size} value={size}>{size}</option>
-                ))}
-              </select>
-            </div>
-
-            <div className="filter-actions" style={{ display: 'flex', gap: '12px' }}>
-              <AppButton
+            <Col sm={6} md={4} className="d-flex gap-2 justify-content-md-end">
+              <Button
                 type="button"
-                className="clear-filters-btn"
-                backgroundColor="transparent"
-                textColor="var(--navy)"
-                borderColor="var(--border-light, #D1D5DB)"
+                variant="outline-secondary"
                 onClick={() => setFilters({ unreadOnly: false, category: '', page: 1, limit: 20 })}
               >
                 Reset
-              </AppButton>
-              <AppButton
+              </Button>
+              <Button
                 type="button"
-                className="submit-btn primary"
-                backgroundColor="var(--navy)"
+                variant="dark"
                 onClick={handleMarkAllAsRead}
                 disabled={markingAll || !hasUnreadNotifications}
               >
-                {markingAll ? 'Marking...' : 'Mark all as read'}
-              </AppButton>
-            </div>
-          </div>
-        </div>
+                {markingAll ? (
+                  <>
+                    <Spinner as="span" animation="border" size="sm" className="me-2" aria-hidden="true" />
+                    Marking...
+                  </>
+                ) : (
+                  'Mark all as read'
+                )}
+              </Button>
+            </Col>
+          </Row>
+        </Card.Body>
+      </Card>
 
-        <div className="transactions-section" style={{ marginBottom: '1rem' }}>
-          <div className="section-header">
-            <h3>Inbox</h3>
-          </div>
+      <Card className="shadow-sm">
+        <Card.Header className="bg-white border-bottom d-flex justify-content-between align-items-center">
+          <h5 className="mb-0">Inbox</h5>
+          <span className={hasUnreadNotifications ? 'text-primary fw-semibold small' : 'text-muted small'}>
+            {hasUnreadNotifications ? `${unreadCount} unread` : 'All caught up'}
+          </span>
+        </Card.Header>
 
+        <Card.Body className={notifications.length === 0 && hasLoadedRef.current ? '' : 'p-0'}>
           {loading && !hasLoadedRef.current ? (
             <LoadingWatch label="Loading notifications..." minHeight="120px" />
           ) : (
-            <div className="table-container">
-              {loading && <RefreshingBadge />}
-              <table className="transactions-table">
-                <thead>
-                  <tr>
-                    <th>Title</th>
-                    <th>Category</th>
-                    <th>Message</th>
-                    <th>Status</th>
-                    <th>Created</th>
-                    <th>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {notifications.length === 0 ? (
-                    <tr>
-                      <td colSpan="6" className="text-center py-4">
-                        <p className="mb-1 fw-semibold">
-                          {filters.unreadOnly || filters.category ? 'No notifications match these filters.' : "You're all caught up."}
-                        </p>
-                        <p className="text-muted small mb-0">
-                          {filters.unreadOnly || filters.category
-                            ? 'Try resetting the filters to see everything.'
-                            : 'Alerts about your money and account security will show up here.'}
-                        </p>
-                      </td>
-                    </tr>
-                  ) : (
-                    notifications.map((notification) => (
-                      <tr key={notification._id}>
-                        <td>{notification.title}</td>
-                        <td>
-                          <span className={`notification-category notification-${notification.category}`}>
-                            {String(notification.category || '').toUpperCase()}
-                          </span>
-                        </td>
-                        <td>{notification.message}</td>
-                        <td>{notification.isRead ? 'Read' : 'Unread'}</td>
-                        <td>{formatDateTime(notification.createdAt)}</td>
-                        <td>
-                          {!notification.isRead ? (
-                            <AppButton
-                              type="button"
-                              size="sm"
-                              backgroundColor="transparent"
-                              textColor="var(--accent, #3B82F6)"
-                              borderColor="var(--accent, #3B82F6)"
-                              className="mark-read-btn"
-                              onClick={() => handleMarkAsRead(notification._id)}
-                              disabled={markingNotificationId === notification._id}
-                            >
-                              {markingNotificationId === notification._id ? 'Marking...' : 'Mark as read'}
-                            </AppButton>
-                          ) : (
-                            <span className="notification-read-tag">Done</span>
-                          )}
-                        </td>
+            <>
+              {loading && <div className="px-3 pt-3"><RefreshingBadge /></div>}
+
+              {notifications.length === 0 ? (
+                <div className="text-center py-4">
+                  <p className="mb-1 fw-semibold">
+                    {filters.unreadOnly || filters.category ? 'No notifications match these filters.' : "You're all caught up."}
+                  </p>
+                  <p className="text-muted small mb-0">
+                    {filters.unreadOnly || filters.category
+                      ? 'Try resetting the filters to see everything.'
+                      : 'Alerts about your money and account security will show up here.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="table-responsive">
+                  <Table hover className="mb-0">
+                    <thead className="table-light">
+                      <tr>
+                        <th>Title</th>
+                        <th>Category</th>
+                        <th>Message</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Action</th>
                       </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                    </thead>
+                    <tbody>
+                      {notifications.map((notification) => (
+                        <tr key={notification._id}>
+                          <td>{notification.title}</td>
+                          <td>
+                            <Badge bg={CATEGORY_BADGE_VARIANT[notification.category] || 'secondary'}>
+                              {String(notification.category || '').toUpperCase()}
+                            </Badge>
+                          </td>
+                          <td>{notification.message}</td>
+                          <td>{notification.isRead ? 'Read' : 'Unread'}</td>
+                          <td>{formatDateTime(notification.createdAt)}</td>
+                          <td>
+                            {!notification.isRead ? (
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline-primary"
+                                onClick={() => handleMarkAsRead(notification._id)}
+                                disabled={markingNotificationId === notification._id}
+                              >
+                                {markingNotificationId === notification._id ? 'Marking...' : 'Mark as read'}
+                              </Button>
+                            ) : (
+                              <Badge bg="secondary-subtle" text="secondary-emphasis">Done</Badge>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </Table>
+                </div>
+              )}
+            </>
           )}
+        </Card.Body>
 
-          <div className="pagination-controls" style={{ display: 'flex', gap: '12px', alignItems: 'center', marginTop: '1rem', justifyContent: 'flex-start' }}>
-            <AppButton
-              type="button"
-              size="sm"
-              backgroundColor="var(--silver-light, #f4f4f5)"
-              textColor="var(--navy)"
-              className="pagination-btn"
-              onClick={() => handleFilterChange('page', Math.max(1, filters.page - 1))}
-              disabled={!pagination.hasPrevPage || loading}
-            >
-              Previous
-            </AppButton>
-            <span className="pagination-info" style={{ fontSize: '0.9rem', color: 'var(--muted)' }}>
-              Page {pagination.currentPage || filters.page} of {pagination.totalPages || 1}
-            </span>
-            <AppButton
-              type="button"
-              size="sm"
-              backgroundColor="var(--silver-light, #f4f4f5)"
-              textColor="var(--navy)"
-              className="pagination-btn"
-              onClick={() => handleFilterChange('page', filters.page + 1)}
-              disabled={!pagination.hasNextPage || loading}
-            >
-              Next
-            </AppButton>
-          </div>
-        </div>
-      </div>
-    </>
+        {pagination.totalPages > 0 && (
+          <Card.Footer className="bg-white d-flex justify-content-start">
+            <Pagination className="mb-0">
+              <Pagination.Prev
+                onClick={() => handleFilterChange('page', Math.max(1, filters.page - 1))}
+                disabled={!pagination.hasPrevPage || loading}
+              />
+              <Pagination.Item active disabled>
+                {pagination.currentPage || filters.page} of {pagination.totalPages || 1}
+              </Pagination.Item>
+              <Pagination.Next
+                onClick={() => handleFilterChange('page', filters.page + 1)}
+                disabled={!pagination.hasNextPage || loading}
+              />
+            </Pagination>
+          </Card.Footer>
+        )}
+      </Card>
+    </Container>
   );
-};
-
-Notifications.propTypes = {
-  styles: PropTypes.string,
 };
 
 export default Notifications;
