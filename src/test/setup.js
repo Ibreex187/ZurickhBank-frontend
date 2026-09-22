@@ -19,7 +19,6 @@ const blankStyles = vi.hoisted(() => async (importOriginal) => {
 vi.mock('../pages/Land.styles', blankStyles);
 vi.mock('../pages/Dashboard.styles', blankStyles);
 vi.mock('../pages/Profile.styles', blankStyles);
-vi.mock('../pages/InvestmentPlans.styles', blankStyles);
 vi.mock('../pages/Auth.styles', blankStyles);
 vi.mock('../pages/AdminDashboard.styles', blankStyles);
 

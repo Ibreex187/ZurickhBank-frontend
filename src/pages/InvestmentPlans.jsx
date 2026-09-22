@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import PropTypes from 'prop-types';
 import { useAuth } from '../context/AuthContext';
 import {
   getAvailableStocks,
@@ -20,13 +19,15 @@ import { ArrowRepeat, BriefcaseFill, CashCoin, CheckLg, GraphUp, GraphUpArrow, S
 import { formatDate, formatMoney } from '../utils/formatters';
 import { useToast } from '../context/ToastContext';
 
-const InvestmentPlans = ({ styles }) => {
+const InvestmentPlans = () => {
   const { user, refreshUser } = useAuth();
   const { notify } = useToast();
   const [investments, setInvestments] = useState([]);
   const [availableStocks, setAvailableStocks] = useState([]);
   const [stocksError, setStocksError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [stocksLoading, setStocksLoading] = useState(false);
+  const [portfolioLoading, setPortfolioLoading] = useState(false);
+  const [orderSubmitting, setOrderSubmitting] = useState(false);
   const [showBuyModal, setShowBuyModal] = useState(false);
   const [showSellModal, setShowSellModal] = useState(false);
   const [showStockDetailsModal, setShowStockDetailsModal] = useState(false);
@@ -57,6 +58,7 @@ const InvestmentPlans = ({ styles }) => {
 
   const fetchAvailableStocks = async () => {
     setStocksError('');
+    setStocksLoading(true);
     try {
       const response = await getAvailableStocks();
       if (response.success && response.data.length > 0) {
@@ -68,11 +70,13 @@ const InvestmentPlans = ({ styles }) => {
       console.error('Failed to fetch available stocks:', error);
       setAvailableStocks([]);
       setStocksError('We could not load the stock list right now. Please try again in a moment.');
+    } finally {
+      setStocksLoading(false);
     }
   };
 
   const fetchMyPortfolio = async (forceFresh = false) => {
-    setLoading(true);
+    setPortfolioLoading(true);
     try {
       const response = await getStockPortfolio(forceFresh);
       const latestInvestments = Array.isArray(response?.data) ? response.data : [];
@@ -81,7 +85,7 @@ const InvestmentPlans = ({ styles }) => {
       console.error('Failed to fetch portfolio:', error);
       notify({ variant: 'danger', text: 'Failed to refresh portfolio. Please try again.' });
     } finally {
-      setLoading(false);
+      setPortfolioLoading(false);
     }
   };
 
@@ -200,7 +204,7 @@ const InvestmentPlans = ({ styles }) => {
       return;
     }
 
-    setLoading(true);
+    setOrderSubmitting(true);
     try {
       const isBuy = stockData.action === 'buy';
       const payload = { stockSymbol: selectedStock.symbol, quantity };
@@ -246,7 +250,7 @@ const InvestmentPlans = ({ styles }) => {
         orderFailure.response?.data?.message || orderFailure.message || 'Order failed. Please try again.'
       );
     } finally {
-      setLoading(false);
+      setOrderSubmitting(false);
     }
   };
 
@@ -300,13 +304,13 @@ const InvestmentPlans = ({ styles }) => {
           </Alert>
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="outline-secondary" onClick={() => setOrderStep('form')} disabled={loading}>
+          <Button variant="outline-secondary" onClick={() => setOrderStep('form')} disabled={orderSubmitting}>
             Back
           </Button>
           <AppButton
             backgroundColor={isBuy ? '#151e31' : '#dc3545'}
             onClick={placeOrder}
-            loading={loading}
+            loading={orderSubmitting}
             loadingText="Placing order..."
           >
             {isBuy ? 'Place buy order' : 'Place sell order'}
@@ -340,8 +344,6 @@ const InvestmentPlans = ({ styles }) => {
 
   return (
     <>
-      {styles && <style>{styles}</style>}
-
       <Container fluid className="px-lg-4 py-4">
         {/* Header Section */}
         <Row className="mb-4">
@@ -361,11 +363,11 @@ const InvestmentPlans = ({ styles }) => {
         {/* Portfolio Summary */}
         <Row className="g-4 mb-4">
           <Col md={3}>
-            <Card className="border-0 shadow-sm premium-stat-card">
+            <Card className="border-0 shadow-sm">
               <Card.Body>
                 <div className="d-flex justify-content-between">
                   <div>
-                    <h6 className="mb-0">Total Invested</h6>
+                    <h6 className="mb-0 text-muted">Total Invested</h6>
                     <h3 className="mb-0">{formatMoney(investments.reduce((sum, inv) => sum + inv.amount, 0))}</h3>
                   </div>
                   <div className="align-self-center">
@@ -377,11 +379,11 @@ const InvestmentPlans = ({ styles }) => {
           </Col>
 
           <Col md={3}>
-            <Card className="border-0 shadow-sm premium-stat-card">
+            <Card className="border-0 shadow-sm">
               <Card.Body>
                 <div className="d-flex justify-content-between">
                   <div>
-                    <h6 className="mb-0">Current Value</h6>
+                    <h6 className="mb-0 text-muted">Current Value</h6>
                     <h3 className="mb-0">{formatMoney(investments.reduce((sum, inv) => sum + inv.currentValue, 0))}</h3>
                   </div>
                   <div className="align-self-center">
@@ -393,11 +395,11 @@ const InvestmentPlans = ({ styles }) => {
           </Col>
 
           <Col md={3}>
-            <Card className="border-0 shadow-sm premium-stat-card">
+            <Card className="border-0 shadow-sm">
               <Card.Body>
                 <div className="d-flex justify-content-between">
                   <div>
-                    <h6 className="mb-0">Total Returns</h6>
+                    <h6 className="mb-0 text-muted">Total Returns</h6>
                     <h3 className="mb-0">{formatMoney(investments.reduce((sum, inv) => sum + (inv.currentValue - inv.amount), 0))}</h3>
                   </div>
                   <div className="align-self-center">
@@ -409,11 +411,11 @@ const InvestmentPlans = ({ styles }) => {
           </Col>
 
           <Col md={3}>
-            <Card className="border-0 shadow-sm premium-stat-card">
+            <Card className="border-0 shadow-sm">
               <Card.Body>
                 <div className="d-flex justify-content-between">
                   <div>
-                    <h6 className="mb-0">Active Plans</h6>
+                    <h6 className="mb-0 text-muted">Active Plans</h6>
                     <h3 className="mb-0">{investments.filter(inv => inv.status === 'active').length}</h3>
                   </div>
                   <div className="align-self-center">
@@ -437,7 +439,7 @@ const InvestmentPlans = ({ styles }) => {
                   textColor="#151e31"
                   borderColor="#151e31"
                   onClick={() => fetchMyPortfolio(true)}
-                  loading={loading}
+                  loading={portfolioLoading}
                   loadingText="Refreshing..."
                 >
                   <>
@@ -464,21 +466,21 @@ const InvestmentPlans = ({ styles }) => {
                   <tbody>
                     {investments.map((investment) => (
                       <tr key={investment._id}>
-                        <td className="investment-text-cell">
+                        <td>
                           <strong>{investment.planName}</strong>
                           <br />
                           <small className="text-muted">{investment.symbol}</small>
                         </td>
-                        <td className="investment-amount-cell">{(investment.quantity || 0).toLocaleString()}</td>
-                        <td className="investment-amount-cell">{formatMoney((investment.averagePrice || 0))}</td>
-                        <td className="investment-amount-cell">{formatMoney((investment.currentPrice || 0))}</td>
-                        <td className="investment-amount-cell">
-                          <span className="fw-bold investment-amount-cell">
+                        <td>{(investment.quantity || 0).toLocaleString()}</td>
+                        <td>{formatMoney((investment.averagePrice || 0))}</td>
+                        <td>{formatMoney((investment.currentPrice || 0))}</td>
+                        <td>
+                          <span className="fw-bold">
                             {formatMoney((investment.currentValue || 0))}
                           </span>
                         </td>
-                        <td className="investment-amount-cell">
-                          <span className={`fw-bold investment-amount-cell ${getProfitColor(investment.profitLoss)}`}>
+                        <td>
+                          <span className={`fw-bold ${getProfitColor(investment.profitLoss)}`}>
                             {formatMoney((investment.profitLoss || 0))}
                             {investment.profitLossPercent && (
                               <small className="d-block">
@@ -537,14 +539,14 @@ const InvestmentPlans = ({ styles }) => {
           </Col>
         </Row>
 
-        {loading && availableStocks.length === 0 ? (
+        {stocksLoading && availableStocks.length === 0 ? (
           <LoadingWatch label="Loading available stocks..." minHeight="180px" />
         ) : (
           <Row className="g-4">
             {filteredStocks.length > 0 ? (
               filteredStocks.map((stock) => (
                 <Col lg={4} md={6} key={stock.id}>
-                  <Card className={`h-100 shadow-sm investment-plan-card ${stock.category}`}>
+                  <Card className="h-100 shadow-sm">
                     <Card.Header>
                       <div className="d-flex justify-content-between align-items-center">
                         <h5 className="mb-0">{stock.name}</h5>
@@ -675,10 +677,10 @@ const InvestmentPlans = ({ styles }) => {
                   <tbody>
                     {investmentHistory.map((item) => (
                       <tr key={item._id}>
-                        <td className="investment-text-cell">{formatDate(item.purchaseDate || item.createdAt || Date.now())}</td>
-                        <td className="investment-text-cell">{item.stockSymbol}</td>
-                        <td className="investment-amount-cell">{Number(item.quantity || 0).toLocaleString()}</td>
-                        <td className="investment-amount-cell">{formatMoney(Number(item.totalInvested || 0))}</td>
+                        <td>{formatDate(item.purchaseDate || item.createdAt || Date.now())}</td>
+                        <td>{item.stockSymbol}</td>
+                        <td>{Number(item.quantity || 0).toLocaleString()}</td>
+                        <td>{formatMoney(Number(item.totalInvested || 0))}</td>
                         <td>
                           <Badge bg={item.status === 'active' ? 'success' : 'secondary'}>
                             {item.status || 'unknown'}
@@ -805,7 +807,7 @@ const InvestmentPlans = ({ styles }) => {
               <AppButton
                 backgroundColor="#151e31"
                 type="submit"
-                disabled={loading || !stockData.quantity}
+                disabled={orderSubmitting || !stockData.quantity}
               >
                 Review order
               </AppButton>
@@ -896,7 +898,7 @@ const InvestmentPlans = ({ styles }) => {
               <AppButton
                 backgroundColor="#dc3545"
                 type="submit"
-                disabled={loading || !stockData.quantity}
+                disabled={orderSubmitting || !stockData.quantity}
               >
                 Review order
               </AppButton>
@@ -910,7 +912,3 @@ const InvestmentPlans = ({ styles }) => {
 };
 
 export default InvestmentPlans;
-
-InvestmentPlans.propTypes = {
-  styles: PropTypes.string,
-};
