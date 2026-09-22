@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { Card, Col, Container, Form, Pagination, Row, Table } from 'react-bootstrap';
 import LoadingWatch from '../components/LoadingWatch';
 import RefreshingBadge from '../components/RefreshingBadge';
 import { getAccountStatement, getLedgerHistory } from '../services/ledgerService';
@@ -120,167 +121,192 @@ const Ledger = () => {
   };
 
   return (
-    <>
-      <div className="dashboard-container">
-        <div className="filters-panel" style={{ marginBottom: '1rem' }}>
-          <div className="filter-row">
-            <div className="filter-group">
-              <label>Account Type</label>
-              <select
-                value={filters.accountType}
-                onChange={(event) => handleFilterChange('accountType', event.target.value)}
-                className="filter-select"
-              >
-                <option value="">All Accounts</option>
-                <option value="user_main">Main Account</option>
-                <option value="user_savings">Savings Account</option>
-              </select>
-            </div>
+    <Container fluid className="px-lg-4 py-4">
+      <Card className="shadow-sm mb-4">
+        <Card.Body>
+          <Row className="g-3">
+            <Col sm={6} md={3}>
+              <Form.Group controlId="ledger-account-type">
+                <Form.Label>Account Type</Form.Label>
+                <Form.Select
+                  value={filters.accountType}
+                  onChange={(event) => handleFilterChange('accountType', event.target.value)}
+                >
+                  <option value="">All Accounts</option>
+                  <option value="user_main">Main Account</option>
+                  <option value="user_savings">Savings Account</option>
+                </Form.Select>
+              </Form.Group>
+            </Col>
 
-            <div className="filter-group">
-              <label>Reference Type</label>
-              <select
-                value={filters.referenceType}
-                onChange={(event) => handleFilterChange('referenceType', event.target.value)}
-                className="filter-select"
-              >
-                <option value="">All References</option>
-                <option value="transaction">Transaction</option>
-                <option value="savings_transaction">Savings Transaction</option>
-                <option value="investment_trade">Investment Trade</option>
-              </select>
-            </div>
-          </div>
+            <Col sm={6} md={3}>
+              <Form.Group controlId="ledger-reference-type">
+                <Form.Label>Reference Type</Form.Label>
+                <Form.Select
+                  value={filters.referenceType}
+                  onChange={(event) => handleFilterChange('referenceType', event.target.value)}
+                >
+                  <option value="">All References</option>
+                  <option value="transaction">Transaction</option>
+                  <option value="savings_transaction">Savings Transaction</option>
+                  <option value="investment_trade">Investment Trade</option>
+                </Form.Select>
+              </Form.Group>
+            </Col>
 
-          <div className="filter-row">
-            <div className="filter-group">
-              <label>Date Range</label>
-              <div className="date-range">
-                <input
+            <Col sm={8} md={4}>
+              <Form.Label>Date Range</Form.Label>
+              <div className="d-flex align-items-center gap-2">
+                <Form.Control
                   type="date"
+                  aria-label="Start date"
                   value={filters.startDate}
                   onChange={(event) => handleFilterChange('startDate', event.target.value)}
-                  className="date-input"
                 />
-                <span className="date-separator">to</span>
-                <input
+                <span className="text-muted">to</span>
+                <Form.Control
                   type="date"
+                  aria-label="End date"
                   value={filters.endDate}
                   onChange={(event) => handleFilterChange('endDate', event.target.value)}
-                  className="date-input"
                 />
               </div>
-            </div>
+            </Col>
 
-            <div className="filter-group">
-              <label>Rows</label>
-              <select
-                value={filters.limit}
-                onChange={(event) => handleFilterChange('limit', Number(event.target.value))}
-                className="filter-select"
-              >
-                <option value={10}>10</option>
-                <option value={20}>20</option>
-                <option value={50}>50</option>
-                <option value={100}>100</option>
-              </select>
-            </div>
-          </div>
-        </div>
+            <Col sm={4} md={2}>
+              <Form.Group controlId="ledger-rows">
+                <Form.Label>Rows</Form.Label>
+                <Form.Select
+                  value={filters.limit}
+                  onChange={(event) => handleFilterChange('limit', Number(event.target.value))}
+                >
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                  <option value={100}>100</option>
+                </Form.Select>
+              </Form.Group>
+            </Col>
+          </Row>
+        </Card.Body>
+      </Card>
 
-        <div className="transactions-section">
-          <div className="section-header">
-            <h3>Account Statement</h3>
-          </div>
-
+      <Card className="shadow-sm mb-4">
+        <Card.Header className="bg-white border-bottom">
+          <h5 className="mb-0">Account Statement</h5>
+        </Card.Header>
+        <Card.Body>
           {loadingStatement && !hasLoadedStatementRef.current ? (
             <LoadingWatch label="Loading statement..." minHeight="100px" />
           ) : (
             <>
               {loadingStatement && <RefreshingBadge />}
-              <div className="dashboard-grid" style={{ marginBottom: '1rem' }}>
-                {(accounts || []).map((account) => (
-                  <div className="dashboard-card" key={account.accountType}>
-                    <h4 className="ledger-cell-text" style={{ marginBottom: '0.75rem' }}>{account.accountType}</h4>
-                    <p className="ledger-statement-line">Opening: <span className="ledger-cell-amount">{formatCurrency(account.openingBalance)}</span></p>
-                    <p className="ledger-statement-line">Debits: <span className="ledger-cell-amount">{formatCurrency(account.totalDebits)}</span></p>
-                    <p className="ledger-statement-line">Credits: <span className="ledger-cell-amount">{formatCurrency(account.totalCredits)}</span></p>
-                    <p className="ledger-statement-line">Net: <span className="ledger-cell-amount">{formatCurrency(account.netMovement)}</span></p>
-                    <p className="ledger-statement-line">Closing: <span className="ledger-cell-amount">{formatCurrency(account.closingBalance)}</span></p>
-                  </div>
-                ))}
+              {accounts.length === 0 ? (
+                <p className="text-muted mb-0">No account activity for this range.</p>
+              ) : (
+                <Row className="g-3">
+                  {accounts.map((account) => (
+                    <Col md={6} lg={4} key={account.accountType}>
+                      <Card className="h-100 bg-light border-0">
+                        <Card.Body>
+                          <h6 className="mb-3">{account.accountType}</h6>
+                          <p className="d-flex justify-content-between mb-1">
+                            <span className="text-muted">Opening</span>
+                            <span>{formatCurrency(account.openingBalance)}</span>
+                          </p>
+                          <p className="d-flex justify-content-between mb-1">
+                            <span className="text-muted">Debits</span>
+                            <span>{formatCurrency(account.totalDebits)}</span>
+                          </p>
+                          <p className="d-flex justify-content-between mb-1">
+                            <span className="text-muted">Credits</span>
+                            <span>{formatCurrency(account.totalCredits)}</span>
+                          </p>
+                          <p className="d-flex justify-content-between mb-1">
+                            <span className="text-muted">Net</span>
+                            <span>{formatCurrency(account.netMovement)}</span>
+                          </p>
+                          <p className="d-flex justify-content-between mb-0 fw-semibold">
+                            <span>Closing</span>
+                            <span>{formatCurrency(account.closingBalance)}</span>
+                          </p>
+                        </Card.Body>
+                      </Card>
+                    </Col>
+                  ))}
+                </Row>
+              )}
+            </>
+          )}
+        </Card.Body>
+      </Card>
+
+      <Card className="shadow-sm">
+        <Card.Header className="bg-white border-bottom">
+          <h5 className="mb-0">Ledger History</h5>
+        </Card.Header>
+
+        <Card.Body className="p-0">
+          {loadingHistory && !hasLoadedHistoryRef.current ? (
+            <LoadingWatch label="Loading ledger history..." minHeight="90px" />
+          ) : (
+            <>
+              {loadingHistory && <div className="px-3 pt-3"><RefreshingBadge /></div>}
+              <div className="table-responsive">
+                <Table hover className="mb-0">
+                  <thead className="table-light">
+                    <tr>
+                      <th>Description</th>
+                      <th>Reference</th>
+                      <th>Account</th>
+                      <th>Debit</th>
+                      <th>Credit</th>
+                      <th>Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {entries.length === 0 ? (
+                      <tr>
+                        <td colSpan="6" className="text-center py-4">No ledger entries found.</td>
+                      </tr>
+                    ) : (
+                      entries.map((entry) => (
+                        <tr key={entry._id}>
+                          <td>{entry.description || '-'}</td>
+                          <td>{entry.referenceType}</td>
+                          <td>{entry.accountType}</td>
+                          <td>{formatCurrency(entry.debit)}</td>
+                          <td>{formatCurrency(entry.credit)}</td>
+                          <td>{formatDateTime(entry.createdAt)}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </Table>
               </div>
             </>
           )}
-        </div>
+        </Card.Body>
 
-        <div className="transactions-section">
-          <div className="section-header">
-            <h3>Ledger History</h3>
-          </div>
-
-          {loadingHistory && <RefreshingBadge />}
-          <div className="table-container">
-            <table className="transactions-table">
-              <thead>
-                <tr>
-                  <th>Description</th>
-                  <th>Reference</th>
-                  <th>Account</th>
-                  <th>Debit</th>
-                  <th>Credit</th>
-                  <th>Date</th>
-                </tr>
-              </thead>
-              <tbody>
-                {loadingHistory && !hasLoadedHistoryRef.current ? (
-                  <tr>
-                    <td colSpan="6" className="text-center">
-                      <LoadingWatch label="Loading ledger history..." minHeight="90px" />
-                    </td>
-                  </tr>
-                ) : entries.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" className="text-center">No ledger entries found.</td>
-                  </tr>
-                ) : (
-                  entries.map((entry) => (
-                    <tr key={entry._id}>
-                      <td className="ledger-cell-text">{entry.description || '-'}</td>
-                      <td className="ledger-cell-text">{entry.referenceType}</td>
-                      <td className="ledger-cell-text">{entry.accountType}</td>
-                      <td className="ledger-cell-amount">{formatCurrency(entry.debit)}</td>
-                      <td className="ledger-cell-amount">{formatCurrency(entry.credit)}</td>
-                      <td className="ledger-cell-text">{formatDateTime(entry.createdAt)}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="pagination-controls" style={{ marginTop: '1rem' }}>
-            <button
-              className="pagination-btn"
-              disabled={!pagination.hasPrevPage || loadingHistory}
-              onClick={() => goToPage((pagination.page || 1) - 1)}
-            >
-              Previous
-            </button>
-            <span className="pagination-info">
-              Page {pagination.page || 1} of {pagination.totalPages || 1}
-            </span>
-            <button
-              className="pagination-btn"
-              disabled={!pagination.hasNextPage || loadingHistory}
-              onClick={() => goToPage((pagination.page || 1) + 1)}
-            >
-              Next
-            </button>
-          </div>
-        </div>
-      </div>
-    </>
+        {pagination.totalPages > 0 && (
+          <Card.Footer className="bg-white d-flex justify-content-start">
+            <Pagination className="mb-0">
+              <Pagination.Prev
+                onClick={() => goToPage((pagination.page || 1) - 1)}
+                disabled={!pagination.hasPrevPage || loadingHistory}
+              />
+              <Pagination.Item active disabled>
+                {pagination.page || 1} of {pagination.totalPages || 1}
+              </Pagination.Item>
+              <Pagination.Next
+                onClick={() => goToPage((pagination.page || 1) + 1)}
+                disabled={!pagination.hasNextPage || loadingHistory}
+              />
+            </Pagination>
+          </Card.Footer>
+        )}
+      </Card>
+    </Container>
   );
 };
 
