@@ -3,8 +3,8 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
 import AdminRoute from './components/AdminRoute';
+import AppLayout from './components/AppLayout';
 import { LANDING_STYLES } from './pages/Land.styles';
-import { DASHBOARD_STYLES } from './pages/Dashboard.styles';
 import { PROFILE_STYLES } from './pages/Profile.styles';
 import { INVESTMENT_PLANS_STYLES } from './pages/InvestmentPlans.styles';
 import { SAVINGS_MANAGEMENT_STYLES } from './pages/SavingsManagement.styles';
@@ -31,9 +31,6 @@ const Privacy = lazy(() => import('./pages/Privacy'));
 const NotFound = lazy(() => import('./pages/NotFound'));
 
 function App() {
-
-
-  
   return (
     <BrowserRouter>
       <AuthProvider>
@@ -46,77 +43,30 @@ function App() {
             <Route path="/terms" element={<Terms />} />
             <Route path="/privacy" element={<Privacy />} />
 
+            {/* Signed-in pages share one layout (sidebar + header) that stays mounted between pages */}
             <Route
-              path="/dashboard"
               element={
                 <ProtectedRoute>
-                  <Dashboard_new styles={DASHBOARD_STYLES} />
+                  <AppLayout />
                 </ProtectedRoute>
               }
-            />
-
-            <Route
-              path="/beneficiaries"
-              element={
-                <ProtectedRoute>
-                  <BeneficiaryManagement styles={BENEFICIARY_MANAGEMENT_STYLES} />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/investments"
-              element={
-                <ProtectedRoute>
-                  <InvestmentPlans styles={INVESTMENT_PLANS_STYLES} />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/savings"
-              element={
-                <ProtectedRoute>
-                  <SavingsManagement styles={SAVINGS_MANAGEMENT_STYLES} />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/ledger"
-              element={
-                <ProtectedRoute>
-                  <Ledger />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/notifications"
-              element={
-                <ProtectedRoute>
-                  <Notifications styles={DASHBOARD_STYLES} />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <Profile styles={PROFILE_STYLES} />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
-              path="/admin"
-              element={
-                <AdminRoute>
-                  <AdminDashboard styles={ADMIN_DASHBOARD_STYLES} />
-                </AdminRoute>
-              }
-            />
+            >
+              <Route path="/dashboard" element={<Dashboard_new />} />
+              <Route path="/beneficiaries" element={<BeneficiaryManagement styles={BENEFICIARY_MANAGEMENT_STYLES} />} />
+              <Route path="/investments" element={<InvestmentPlans styles={INVESTMENT_PLANS_STYLES} />} />
+              <Route path="/savings" element={<SavingsManagement styles={SAVINGS_MANAGEMENT_STYLES} />} />
+              <Route path="/ledger" element={<Ledger />} />
+              <Route path="/notifications" element={<Notifications />} />
+              <Route path="/profile" element={<Profile styles={PROFILE_STYLES} />} />
+              <Route
+                path="/admin"
+                element={
+                  <AdminRoute>
+                    <AdminDashboard styles={ADMIN_DASHBOARD_STYLES} />
+                  </AdminRoute>
+                }
+              />
+            </Route>
 
             <Route path="*" element={<NotFound />} />
           </Routes>

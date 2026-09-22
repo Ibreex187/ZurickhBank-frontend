@@ -2,7 +2,6 @@ import { formatWithCommas, unformatCommas } from '../utils/formatAmount';
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useAuth } from '../context/AuthContext';
-import { useLocation } from 'react-router-dom';
 import {
   getBeneficiaries,
   createBeneficiary,
@@ -10,23 +9,18 @@ import {
   transferToBeneficiary,
 } from '../services/beneficiaryService';
 import { getTransactionLimits } from '../services/transactionService';
-import { getPremiumStatus } from '../utils/premiumStatus';
 import {
   Container, Card, Form, Button, Alert, Table, Row, Col,
   Modal
 } from 'react-bootstrap';
-import ZurichBrand from '../components/ZurichBrand';
 import LoadingWatch from '../components/LoadingWatch';
-import { renderSidebarNavLinks } from '../components/sidebarNavLinks';
 import { LightningChargeFill, PersonLinesFill, PlusLg } from 'react-bootstrap-icons';
 import { formatMoney } from '../utils/formatters';
 import LimitMeter from '../components/LimitMeter';
 import TransactionReceipt from '../components/TransactionReceipt';
 
 const BeneficiaryManagement = ({ styles }) => {
-  const { user, logout, refreshUser } = useAuth();
-  const isAdmin = user?.roles === 'admin' || user?.role === 'admin' || user?.isAdmin === true;
-  const [premiumStatus, setPremiumStatus] = useState({ isPremium: false });
+  const { user, refreshUser } = useAuth();
   const [beneficiaries, setBeneficiaries] = useState([]);
   const [loading, setLoading] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
@@ -50,32 +44,9 @@ const BeneficiaryManagement = ({ styles }) => {
   const [transferLimits, setTransferLimits] = useState(null);
   const [limitsLoading, setLimitsLoading] = useState(false);
 
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false); // mobile off-canvas state
-  const location = useLocation();
-
-  useEffect(() => {
-    setSidebarOpen(false);
-  }, [location.pathname]);
-
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === 'Escape' && sidebarOpen) setSidebarOpen(false);
-    };
-    const onResize = () => {
-      if (window.innerWidth > 768 && sidebarOpen) setSidebarOpen(false);
-    };
-    window.addEventListener('keydown', onKey);
-    window.addEventListener('resize', onResize);
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      window.removeEventListener('resize', onResize);
-    };
-  }, [sidebarOpen]);
 
   useEffect(() => {
     fetchBeneficiaries();
-    getPremiumStatus().then(setPremiumStatus);
   }, []);
 
   useEffect(() => {
@@ -301,409 +272,333 @@ const BeneficiaryManagement = ({ styles }) => {
   return (
     <>
       {styles && <style>{styles}</style>}
-      <div className="fintech-dashboard beneficiary-management">
-        {/* Sidebar */}
-        <div className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''} ${sidebarOpen ? 'open' : ''}`}>
-          <div className="sidebar-header">
-            <div className="brand">
-              <ZurichBrand showText={!sidebarCollapsed} className="sidebar-brand" />
-            </div>
-            <button
-              className="collapse-btn"
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M3,6V8H21V6H3M3,11H21V13H3V11M3,16H21V18H3V16Z" />
-              </svg>
-            </button>
-          </div>
 
-          <nav className="sidebar-nav">
-            <ul>
-              {renderSidebarNavLinks({
-                pathname: location.pathname,
-                sidebarCollapsed,
-                onNavClick: () => setSidebarOpen(false),
-                isAdmin,
-              })}
-            </ul>
-
-            <div className="sidebar-footer">
-              <button onClick={logout} className="logout-btn">
-                <svg className="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M16,17V14H9V10H16V7L21,12L16,17M14,2A2,2 0 0,1 16,4V6H14V4H5V20H14V18H16V20A2,2 0 0,1 14,22H5A2,2 0 0,1 3,20V4A2,2 0 0,1 5,2H14Z" />
-                </svg>
-                {!sidebarCollapsed && <span>Logout</span>}
-              </button>
-            </div>
-          </nav>
-        </div>
-
-        {/* Mobile overlay */}
-        <div className={`sidebar-overlay ${sidebarOpen ? 'active' : ''}`} onClick={() => setSidebarOpen(false)} />
-
-        {/* Main Content */}
-        <div className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-          {/* Header */}
-          <header className="main-header">
-            <div className="header-left">
-              <button
-                className="mobile-menu-btn"
-                aria-label="Toggle menu"
-                onClick={() => setSidebarOpen(prev => !prev)}
+      <Container fluid className="px-lg-4 py-4">
+        {/* Header Section */}
+        <Row className="mb-4">
+          <Col>
+            <div className="d-flex justify-content-between align-items-center">
+              <h2 className="mb-0">Beneficiary Management</h2>
+              <Button
+                variant="primary"
+                onClick={() => setShowAddModal(true)}
+                className="px-4"
               >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z" />
-                </svg>
-              </button>
-              <div>
-                <h1 className="page-title">Beneficiaries</h1>
-                <p className="page-subtitle">Manage your transfer recipients</p>
-              </div>
+                <PlusLg size="1em" className="me-2" />
+                Add Beneficiary
+              </Button>
             </div>
-            <div className="header-right">
-              <div className="user-profile">
-                <div className="user-avatar">
-                  {(user?.firstName?.[0] || user?.userName?.[0] || 'U').toUpperCase()}
-                </div>
-                <div className="user-info">
-                  <span className="user-name">{user?.firstName} {user?.lastName}</span>
-                  <span className={`user-role ${premiumStatus.isPremium ? 'premium' : 'standard'}`}>
-                    {premiumStatus.isPremium ? 'Premium Account' : 'Standard Account'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </header>
+          </Col>
+        </Row>
 
-          <Container fluid className="px-lg-4 py-4">
-            {/* Header Section */}
-            <Row className="mb-4">
-              <Col>
-                <div className="d-flex justify-content-between align-items-center">
-                  <h2 className="mb-0">Beneficiary Management</h2>
-                  <Button
-                    variant="primary"
-                    onClick={() => setShowAddModal(true)}
-                    className="px-4"
-                  >
-                    <PlusLg size="1em" className="me-2" />
-                    Add Beneficiary
-                  </Button>
-                </div>
-              </Col>
-            </Row>
+        {message.text && (
+          <Alert
+            variant={message.type === 'success' ? 'success' : 'danger'}
+            className="mb-4"
+            onClose={() => setMessage({ type: '', text: '' })}
+            dismissible
+          >
+            {message.text}
+          </Alert>
+        )}
 
-            {message.text && (
-              <Alert
-                variant={message.type === 'success' ? 'success' : 'danger'}
-                className="mb-4"
-                onClose={() => setMessage({ type: '', text: '' })}
-                dismissible
-              >
-                {message.text}
-              </Alert>
-            )}
-
-            {/* Stats Cards */}
-            <Row className="g-4 mb-4">
-              <Col md={4}>
-                <Card className="border-0 shadow-sm premium-stat-card">
-                  <Card.Body>
-                    <div className="d-flex justify-content-between">
-                      <div>
-                        <h6 className="mb-0">Total Beneficiaries</h6>
-                        <h3 className="mb-0">{beneficiaries.length}</h3>
-                      </div>
-                      <div className="align-self-center">
-                        <PersonLinesFill size={32} className="opacity-75" />
-                      </div>
-                    </div>
-                  </Card.Body>
-                </Card>
-              </Col>
-
-              <Col md={4}>
-                <Card className="border-0 shadow-sm premium-stat-card">
-                  <Card.Body>
-                    <div className="d-flex justify-content-between">
-                      <div>
-                        <h6 className="mb-0">Total Beneficiaries</h6>
-                        <h3 className="mb-0">{beneficiaries.length}</h3>
-                      </div>
-                      <div className="align-self-center">
-                        <PersonLinesFill size={32} className="opacity-75" />
-                      </div>
-                    </div>
-                  </Card.Body>
-                </Card>
-              </Col>
-
-              <Col md={4}>
-                <Card className="border-0 shadow-sm premium-stat-card">
-                  <Card.Body>
-                    <div className="d-flex justify-content-between">
-                      <div>
-                        <h6 className="mb-0">Quick Access</h6>
-                        <h3 className="mb-0">{beneficiaries.length}</h3>
-                      </div>
-                      <div className="align-self-center">
-                        <LightningChargeFill size={32} className="opacity-75" />
-                      </div>
-                    </div>
-                  </Card.Body>
-                </Card>
-              </Col>
-            </Row>
-
-            {/* Beneficiaries Table */}
-            <Card className="shadow-sm">
-              <Card.Header className="bg-white border-bottom">
-                <h5 className="mb-0">Your Beneficiaries</h5>
-              </Card.Header>
-              <Card.Body className="p-0">
-                {loading ? (
-                  <LoadingWatch label="Loading beneficiaries..." minHeight="160px" />
-                ) : beneficiaries.length === 0 ? (
-                  <div className="text-center py-5">
-                    <PersonLinesFill size={48} className="text-muted mb-3" />
-                    <h5 className="text-muted">No beneficiaries added yet</h5>
-                    <p className="text-muted">Add your first beneficiary to start making quick transfers</p>
-                    <Button variant="dark" onClick={() => setShowAddModal(true)}>
-                      Add your first beneficiary
-                    </Button>
+        {/* Stats Cards */}
+        <Row className="g-4 mb-4">
+          <Col md={4}>
+            <Card className="border-0 shadow-sm premium-stat-card">
+              <Card.Body>
+                <div className="d-flex justify-content-between">
+                  <div>
+                    <h6 className="mb-0">Total Beneficiaries</h6>
+                    <h3 className="mb-0">{beneficiaries.length}</h3>
                   </div>
-                ) : (
-                  <div className="table-responsive">
-                    <Table hover className="mb-0">
-                      <thead className="table-light">
-                        <tr>
-                          <th>Name</th>
-                          <th>Username</th>
-                          <th>Account Number</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {beneficiaries.map((beneficiary) => (
-                          <tr key={beneficiary._id}>
-                            <td className="beneficiary-text-cell">
-                              <strong>{beneficiary.firstName} {beneficiary.lastName}</strong>
-                            </td>
-                            <td className="beneficiary-text-cell">{beneficiary.userName}</td>
-                            <td className="font-monospace beneficiary-account-cell">{beneficiary.accountNumber}</td>
-                            <td>
-                              <Button
-                                variant="outline-primary"
-                                size="sm"
-                                className="me-2"
-                                onClick={() => initiateTransfer(beneficiary)}
-                              >
-                                Transfer
-                              </Button>
-                              <Button
-                                variant="outline-danger"
-                                size="sm"
-                                onClick={() => setBeneficiaryToDelete(beneficiary)}
-                              >
-                                Delete
-                              </Button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </Table>
+                  <div className="align-self-center">
+                    <PersonLinesFill size={32} className="opacity-75" />
                   </div>
-                )}
+                </div>
               </Card.Body>
             </Card>
+          </Col>
 
-            {/* Add Beneficiary Modal */}
-            <Modal show={showAddModal} onHide={() => setShowAddModal(false)} size="lg">
-              <Modal.Header closeButton>
-                <Modal.Title>Add New Beneficiary</Modal.Title>
-              </Modal.Header>
-              <Form onSubmit={addBeneficiary}>
-                <Modal.Body>
-                  <Form.Group className="mb-3">
-                    <Form.Label>Account Number *</Form.Label>
-                    <Form.Control
-                      type="text"
-                      value={newBeneficiary.accountNumber}
-                      onChange={(e) => {
-                        const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 10);
-                        setNewBeneficiary({ ...newBeneficiary, accountNumber: digitsOnly });
-                      }}
-                      placeholder="Enter 10-digit account number"
-                      required
-                      maxLength="10"
-                      pattern="[0-9]{10}"
-                      title="Account number must be exactly 10 digits"
-                    />
-                    <Form.Text className="text-muted">
-                      Enter the recipient&apos;s 10-digit account number. System will automatically fetch account details.
-                    </Form.Text>
-                  </Form.Group>
-                </Modal.Body>
-                <Modal.Footer>
-                  <Button variant="secondary" onClick={() => setShowAddModal(false)}>
-                    Cancel
-                  </Button>
-                  <Button
-                    variant="primary"
-                    type="submit"
-                    disabled={loading || newBeneficiary.accountNumber.length !== 10}
-                  >
-                    {loading ? 'Adding...' : 'Add Beneficiary'}
-                  </Button>
-                </Modal.Footer>
-              </Form>
-            </Modal>
+          <Col md={4}>
+            <Card className="border-0 shadow-sm premium-stat-card">
+              <Card.Body>
+                <div className="d-flex justify-content-between">
+                  <div>
+                    <h6 className="mb-0">Total Beneficiaries</h6>
+                    <h3 className="mb-0">{beneficiaries.length}</h3>
+                  </div>
+                  <div className="align-self-center">
+                    <PersonLinesFill size={32} className="opacity-75" />
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
 
-            {/* Delete Confirmation Modal */}
-            <Modal show={Boolean(beneficiaryToDelete)} onHide={() => !deleting && setBeneficiaryToDelete(null)} centered>
-              <Modal.Header closeButton>
-                <Modal.Title>Remove beneficiary?</Modal.Title>
-              </Modal.Header>
+          <Col md={4}>
+            <Card className="border-0 shadow-sm premium-stat-card">
+              <Card.Body>
+                <div className="d-flex justify-content-between">
+                  <div>
+                    <h6 className="mb-0">Quick Access</h6>
+                    <h3 className="mb-0">{beneficiaries.length}</h3>
+                  </div>
+                  <div className="align-self-center">
+                    <LightningChargeFill size={32} className="opacity-75" />
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
+
+        {/* Beneficiaries Table */}
+        <Card className="shadow-sm">
+          <Card.Header className="bg-white border-bottom">
+            <h5 className="mb-0">Your Beneficiaries</h5>
+          </Card.Header>
+          <Card.Body className="p-0">
+            {loading ? (
+              <LoadingWatch label="Loading beneficiaries..." minHeight="160px" />
+            ) : beneficiaries.length === 0 ? (
+              <div className="text-center py-5">
+                <PersonLinesFill size={48} className="text-muted mb-3" />
+                <h5 className="text-muted">No beneficiaries added yet</h5>
+                <p className="text-muted">Add your first beneficiary to start making quick transfers</p>
+                <Button variant="dark" onClick={() => setShowAddModal(true)}>
+                  Add your first beneficiary
+                </Button>
+              </div>
+            ) : (
+              <div className="table-responsive">
+                <Table hover className="mb-0">
+                  <thead className="table-light">
+                    <tr>
+                      <th>Name</th>
+                      <th>Username</th>
+                      <th>Account Number</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {beneficiaries.map((beneficiary) => (
+                      <tr key={beneficiary._id}>
+                        <td className="beneficiary-text-cell">
+                          <strong>{beneficiary.firstName} {beneficiary.lastName}</strong>
+                        </td>
+                        <td className="beneficiary-text-cell">{beneficiary.userName}</td>
+                        <td className="font-monospace beneficiary-account-cell">{beneficiary.accountNumber}</td>
+                        <td>
+                          <Button
+                            variant="outline-primary"
+                            size="sm"
+                            className="me-2"
+                            onClick={() => initiateTransfer(beneficiary)}
+                          >
+                            Transfer
+                          </Button>
+                          <Button
+                            variant="outline-danger"
+                            size="sm"
+                            onClick={() => setBeneficiaryToDelete(beneficiary)}
+                          >
+                            Delete
+                          </Button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </div>
+            )}
+          </Card.Body>
+        </Card>
+
+        {/* Add Beneficiary Modal */}
+        <Modal show={showAddModal} onHide={() => setShowAddModal(false)} size="lg">
+          <Modal.Header closeButton>
+            <Modal.Title>Add New Beneficiary</Modal.Title>
+          </Modal.Header>
+          <Form onSubmit={addBeneficiary}>
+            <Modal.Body>
+              <Form.Group className="mb-3">
+                <Form.Label>Account Number *</Form.Label>
+                <Form.Control
+                  type="text"
+                  value={newBeneficiary.accountNumber}
+                  onChange={(e) => {
+                    const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    setNewBeneficiary({ ...newBeneficiary, accountNumber: digitsOnly });
+                  }}
+                  placeholder="Enter 10-digit account number"
+                  required
+                  maxLength="10"
+                  pattern="[0-9]{10}"
+                  title="Account number must be exactly 10 digits"
+                />
+                <Form.Text className="text-muted">
+                  Enter the recipient&apos;s 10-digit account number. System will automatically fetch account details.
+                </Form.Text>
+              </Form.Group>
+            </Modal.Body>
+            <Modal.Footer>
+              <Button variant="secondary" onClick={() => setShowAddModal(false)}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                type="submit"
+                disabled={loading || newBeneficiary.accountNumber.length !== 10}
+              >
+                {loading ? 'Adding...' : 'Add Beneficiary'}
+              </Button>
+            </Modal.Footer>
+          </Form>
+        </Modal>
+
+        {/* Delete Confirmation Modal */}
+        <Modal show={Boolean(beneficiaryToDelete)} onHide={() => !deleting && setBeneficiaryToDelete(null)} centered>
+          <Modal.Header closeButton>
+            <Modal.Title>Remove beneficiary?</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            <p className="mb-1">
+              <strong>{beneficiaryToDelete?.firstName} {beneficiaryToDelete?.lastName}</strong>
+              {' '}(<span className="font-monospace">{beneficiaryToDelete?.accountNumber}</span>) will be removed from your list.
+            </p>
+            <p className="text-muted small mb-0">You can add them again later using their account number.</p>
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setBeneficiaryToDelete(null)} disabled={deleting}>
+              Keep
+            </Button>
+            <Button variant="danger" onClick={confirmDeleteBeneficiary} disabled={deleting}>
+              {deleting ? 'Removing...' : 'Remove'}
+            </Button>
+          </Modal.Footer>
+        </Modal>
+
+        {/* Transfer Modal */}
+        <Modal show={showTransferModal} onHide={closeTransferModal}>
+          <Modal.Header closeButton>
+            <Modal.Title>
+              {transferReceipt
+                ? 'Receipt'
+                : `Transfer to ${selectedBeneficiary ? `${selectedBeneficiary.firstName} ${selectedBeneficiary.lastName}` : ''}`}
+            </Modal.Title>
+          </Modal.Header>
+          {transferReceipt ? (
+            <>
               <Modal.Body>
-                <p className="mb-1">
-                  <strong>{beneficiaryToDelete?.firstName} {beneficiaryToDelete?.lastName}</strong>
-                  {' '}(<span className="font-monospace">{beneficiaryToDelete?.accountNumber}</span>) will be removed from your list.
-                </p>
-                <p className="text-muted small mb-0">You can add them again later using their account number.</p>
+                <TransactionReceipt receipt={transferReceipt} />
               </Modal.Body>
               <Modal.Footer>
-                <Button variant="secondary" onClick={() => setBeneficiaryToDelete(null)} disabled={deleting}>
-                  Keep
-                </Button>
-                <Button variant="danger" onClick={confirmDeleteBeneficiary} disabled={deleting}>
-                  {deleting ? 'Removing...' : 'Remove'}
+                <Button variant="dark" onClick={closeTransferModal}>
+                  Done
                 </Button>
               </Modal.Footer>
-            </Modal>
-
-            {/* Transfer Modal */}
-            <Modal show={showTransferModal} onHide={closeTransferModal}>
-              <Modal.Header closeButton>
-                <Modal.Title>
-                  {transferReceipt
-                    ? 'Receipt'
-                    : `Transfer to ${selectedBeneficiary ? `${selectedBeneficiary.firstName} ${selectedBeneficiary.lastName}` : ''}`}
-                </Modal.Title>
-              </Modal.Header>
-              {transferReceipt ? (
-                <>
-                  <Modal.Body>
-                    <TransactionReceipt receipt={transferReceipt} />
-                  </Modal.Body>
-                  <Modal.Footer>
-                    <Button variant="dark" onClick={closeTransferModal}>
-                      Done
-                    </Button>
-                  </Modal.Footer>
-                </>
-              ) : (
-              <Form onSubmit={handleTransfer}>
-                <Modal.Body>
-                  {transferError && (
-                    <Alert variant="danger" className="py-2 small" role="alert">
-                      {transferError}
-                    </Alert>
-                  )}
-
-                  {selectedBeneficiary && (
-                    <Card className="mb-3 bg-light">
-                      <Card.Body className="py-2">
-                        <small className="text-muted">Recipient Details:</small>
-                        <p className="mb-1 beneficiary-text-cell"><strong>{selectedBeneficiary.firstName} {selectedBeneficiary.lastName}</strong></p>
-                        <p className="mb-0 text-muted beneficiary-text-cell">@{selectedBeneficiary.userName} • {selectedBeneficiary.accountNumber}</p>
-                      </Card.Body>
-                    </Card>
-                  )}
-
-                  {limitsLoading ? (
-                    <div className="beneficiary-limit-panel mb-3">
-                      <p className="beneficiary-limit-muted mb-0">Loading transfer limits...</p>
-                    </div>
-                  ) : transferOperationLimits ? (
-                    <div className="beneficiary-limit-panel mb-3">
-                      <div className="beneficiary-limit-header">
-                        <span className="beneficiary-limit-title">Transfer Limits</span>
-                        <span className="beneficiary-limit-tier">Tier: {transferLimits?.tier || 'unverified'}</span>
-                      </div>
-                      <LimitMeter label="Daily" bucket={transferOperationLimits?.daily} />
-                      <LimitMeter label="Monthly" bucket={transferOperationLimits?.monthly} />
-                    </div>
-                  ) : null}
-
-                  <Form.Group className="mb-3">
-                    <Form.Label>Amount *</Form.Label>
-                    <Form.Control
-                      type="text"
-                      inputMode="decimal"
-                      value={formatWithCommas(transferData.amount)}
-                      onChange={e => {
-                        const raw = unformatCommas(e.target.value.replace(/[^\d.]/g, ''));
-                        if (/^\d*(\.\d{0,2})?$/.test(raw)) {
-                          setTransferData({ ...transferData, amount: raw });
-                        }
-                      }}
-                      placeholder="Enter amount"
-                      required
-                      min="1"
-                      step="0.01"
-                    />
-                    <Form.Text className="text-muted">
-                      Available Balance: {formatMoney(user?.balance)}
-                    </Form.Text>
-                  </Form.Group>
-
-                  <Form.Group className="mb-3">
-                    <Form.Label>Description (Optional)</Form.Label>
-                    <Form.Control
-                      as="textarea"
-                      rows={2}
-                      value={transferData.description}
-                      onChange={(e) => setTransferData({ ...transferData, description: e.target.value })}
-                      placeholder="Payment description..."
-                    />
-                  </Form.Group>
-
-                  <Form.Group className="mb-3">
-                    <Form.Label>Transaction PIN *</Form.Label>
-                    <Form.Control
-                      type="password"
-                      value={transferData.transactionPin}
-                      onChange={(e) => {
-                        const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 4);
-                        setTransferData({ ...transferData, transactionPin: digitsOnly });
-                      }}
-                      placeholder="Enter 4-digit PIN"
-                      required
-                      maxLength="4"
-                      pattern="[0-9]{4}"
-                      title="Transaction PIN must be exactly 4 digits"
-                    />
-                  </Form.Group>
-                </Modal.Body>
-                <Modal.Footer>
-                  <Button variant="secondary" onClick={closeTransferModal}>
-                    Cancel
-                  </Button>
-                  <Button
-                    variant="primary"
-                    type="submit"
-                    disabled={transferLoading || !transferData.amount || transferData.transactionPin.length !== 4}
-                  >
-                    {transferLoading ? 'Processing...' : 'Transfer'}
-                  </Button>
-                </Modal.Footer>
-              </Form>
+            </>
+          ) : (
+          <Form onSubmit={handleTransfer}>
+            <Modal.Body>
+              {transferError && (
+                <Alert variant="danger" className="py-2 small" role="alert">
+                  {transferError}
+                </Alert>
               )}
-            </Modal>
-          </Container>
-        </div>
-      </div>
+
+              {selectedBeneficiary && (
+                <Card className="mb-3 bg-light">
+                  <Card.Body className="py-2">
+                    <small className="text-muted">Recipient Details:</small>
+                    <p className="mb-1 beneficiary-text-cell"><strong>{selectedBeneficiary.firstName} {selectedBeneficiary.lastName}</strong></p>
+                    <p className="mb-0 text-muted beneficiary-text-cell">@{selectedBeneficiary.userName} • {selectedBeneficiary.accountNumber}</p>
+                  </Card.Body>
+                </Card>
+              )}
+
+              {limitsLoading ? (
+                <div className="beneficiary-limit-panel mb-3">
+                  <p className="beneficiary-limit-muted mb-0">Loading transfer limits...</p>
+                </div>
+              ) : transferOperationLimits ? (
+                <div className="beneficiary-limit-panel mb-3">
+                  <div className="beneficiary-limit-header">
+                    <span className="beneficiary-limit-title">Transfer Limits</span>
+                    <span className="beneficiary-limit-tier">Tier: {transferLimits?.tier || 'unverified'}</span>
+                  </div>
+                  <LimitMeter label="Daily" bucket={transferOperationLimits?.daily} />
+                  <LimitMeter label="Monthly" bucket={transferOperationLimits?.monthly} />
+                </div>
+              ) : null}
+
+              <Form.Group className="mb-3">
+                <Form.Label>Amount *</Form.Label>
+                <Form.Control
+                  type="text"
+                  inputMode="decimal"
+                  value={formatWithCommas(transferData.amount)}
+                  onChange={e => {
+                    const raw = unformatCommas(e.target.value.replace(/[^\d.]/g, ''));
+                    if (/^\d*(\.\d{0,2})?$/.test(raw)) {
+                      setTransferData({ ...transferData, amount: raw });
+                    }
+                  }}
+                  placeholder="Enter amount"
+                  required
+                  min="1"
+                  step="0.01"
+                />
+                <Form.Text className="text-muted">
+                  Available Balance: {formatMoney(user?.balance)}
+                </Form.Text>
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label>Description (Optional)</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={2}
+                  value={transferData.description}
+                  onChange={(e) => setTransferData({ ...transferData, description: e.target.value })}
+                  placeholder="Payment description..."
+                />
+              </Form.Group>
+
+              <Form.Group className="mb-3">
+                <Form.Label>Transaction PIN *</Form.Label>
+                <Form.Control
+                  type="password"
+                  value={transferData.transactionPin}
+                  onChange={(e) => {
+                    const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 4);
+                    setTransferData({ ...transferData, transactionPin: digitsOnly });
+                  }}
+                  placeholder="Enter 4-digit PIN"
+                  required
+                  maxLength="4"
+                  pattern="[0-9]{4}"
+                  title="Transaction PIN must be exactly 4 digits"
+                />
+              </Form.Group>
+            </Modal.Body>
+            <Modal.Footer>
+              <Button variant="secondary" onClick={closeTransferModal}>
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                type="submit"
+                disabled={transferLoading || !transferData.amount || transferData.transactionPin.length !== 4}
+              >
+                {transferLoading ? 'Processing...' : 'Transfer'}
+              </Button>
+            </Modal.Footer>
+          </Form>
+          )}
+        </Modal>
+      </Container>
     </>
   );
 };

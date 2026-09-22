@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 import { useAuth } from '../context/AuthContext';
-import { useLocation } from 'react-router-dom';
 import {
   getAvailableStocks,
   getStockPortfolio,
@@ -16,16 +15,12 @@ import {
 } from 'react-bootstrap';
 import AppButton from '../components/AppButton';
 import TransactionReceipt from '../components/TransactionReceipt';
-import ZurichBrand from '../components/ZurichBrand';
 import LoadingWatch from '../components/LoadingWatch';
-import { renderSidebarNavLinks } from '../components/sidebarNavLinks';
-import { getPremiumStatus } from '../utils/premiumStatus';
 import { ArrowRepeat, BriefcaseFill, CashCoin, CheckLg, GraphUp, GraphUpArrow, Search } from 'react-bootstrap-icons';
 import { formatDate, formatMoney } from '../utils/formatters';
 
 const InvestmentPlans = ({ styles }) => {
-  const { user, logout, refreshUser } = useAuth();
-  const isAdmin = user?.roles === 'admin' || user?.role === 'admin' || user?.isAdmin === true;
+  const { user, refreshUser } = useAuth();
   const [investments, setInvestments] = useState([]);
   const [availableStocks, setAvailableStocks] = useState([]);
   const [stocksError, setStocksError] = useState('');
@@ -47,36 +42,12 @@ const InvestmentPlans = ({ styles }) => {
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [investmentHistory, setInvestmentHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
-  const [premiumStatus, setPremiumStatus] = useState({ isPremium: false });
 
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false); // mobile off-canvas state
-  const location = useLocation();
-
-  useEffect(() => {
-    setSidebarOpen(false);
-  }, [location.pathname]);
-
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.key === 'Escape' && sidebarOpen) setSidebarOpen(false);
-    };
-    const onResize = () => {
-      if (window.innerWidth > 768 && sidebarOpen) setSidebarOpen(false);
-    };
-    window.addEventListener('keydown', onKey);
-    window.addEventListener('resize', onResize);
-    return () => {
-      window.removeEventListener('keydown', onKey);
-      window.removeEventListener('resize', onResize);
-    };
-  }, [sidebarOpen]);
 
   useEffect(() => {
     fetchAvailableStocks();
     fetchMyPortfolio();
     fetchInvestmentHistoryData();
-    getPremiumStatus().then(setPremiumStatus);
   }, []);
 
   const filteredStocks = availableStocks.filter(stock =>
@@ -372,657 +343,581 @@ const InvestmentPlans = ({ styles }) => {
   return (
     <>
       {styles && <style>{styles}</style>}
-      <div className="fintech-dashboard investment-plans">
-        {/* Sidebar */}
-        <div className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''} ${sidebarOpen ? 'open' : ''}`}>
-          <div className="sidebar-header">
-            <div className="brand">
-              <ZurichBrand showText={!sidebarCollapsed} className="sidebar-brand" />
-            </div>
-            <button
-              className="collapse-btn"
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            >
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M3,6V8H21V6H3M3,11H21V13H3V11M3,16H21V18H3V16Z" />
-              </svg>
-            </button>
-          </div>
 
-          <nav className="sidebar-nav">
-            <ul>
-              {renderSidebarNavLinks({
-                pathname: location.pathname,
-                sidebarCollapsed,
-                onNavClick: () => setSidebarOpen(false),
-                isAdmin,
-              })}
-            </ul>
-
-            <div className="sidebar-footer">
-              <button onClick={logout} className="logout-btn">
-                <svg className="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M16,17V14H9V10H16V7L21,12L16,17M14,2A2,2 0 0,1 16,4V6H14V4H5V20H14V18H16V20A2,2 0 0,1 14,22H5A2,2 0 0,1 3,20V4A2,2 0 0,1 5,2H14Z" />
-                </svg>
-                {!sidebarCollapsed && <span>Logout</span>}
-              </button>
-            </div>
-          </nav>
-        </div>
-
-        {/* Mobile overlay */}
-        <div className={`sidebar-overlay ${sidebarOpen ? 'active' : ''}`} onClick={() => setSidebarOpen(false)} />
-
-        {/* Main Content */}
-        <div className={`main-content ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-          {/* Header */}
-          <header className="main-header">
-            <div className="header-left">
-              <button
-                className="mobile-menu-btn"
-                aria-label="Toggle menu"
-                onClick={() => setSidebarOpen(prev => !prev)}
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                  <path d="M3 6h18v2H3V6zm0 5h18v2H3v-2zm0 5h18v2H3v-2z" />
-                </svg>
-              </button>
+      <Container fluid className="px-lg-4 py-4">
+        {/* Header Section */}
+        <Row className="mb-4">
+          <Col>
+            <div className="d-flex justify-content-between align-items-center">
               <div>
-                <h1 className="page-title">Investments</h1>
-                <p className="page-subtitle">Manage your portfolio and wealth</p>
+                <h2 className="mb-1">Stock Trading & Investments</h2>
+                <p className="text-muted mb-0">
+                  Practice trading with simulated stocks. Prices are randomly generated for demonstration
+                  and are not real market data.
+                </p>
               </div>
             </div>
-            <div className="header-right">
-              <div className="user-profile">
-                <div className="user-avatar">
-                  {(user?.firstName?.[0] || user?.userName?.[0] || 'U').toUpperCase()}
-                </div>
-                <div className="user-info">
-                  <span className="user-name">{user?.firstName} {user?.lastName}</span>
-                  <span className={`user-role ${premiumStatus.isPremium ? 'premium' : 'standard'}`}>
-                    {premiumStatus.isPremium ? 'Premium Account' : 'Standard Account'}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </header>
+          </Col>
+        </Row>
 
-          <Container fluid className="px-lg-4 py-4">
-            {/* Header Section */}
-            <Row className="mb-4">
-              <Col>
-                <div className="d-flex justify-content-between align-items-center">
+        {message.text && (
+          <Alert
+            variant={message.type === 'success' ? 'success' : 'danger'}
+            className="mb-4"
+            onClose={() => setMessage({ type: '', text: '' })}
+            dismissible
+          >
+            {message.text}
+          </Alert>
+        )}
+
+        {/* Portfolio Summary */}
+        <Row className="g-4 mb-4">
+          <Col md={3}>
+            <Card className="border-0 shadow-sm premium-stat-card">
+              <Card.Body>
+                <div className="d-flex justify-content-between">
                   <div>
-                    <h2 className="mb-1">Stock Trading & Investments</h2>
-                    <p className="text-muted mb-0">
-                      Practice trading with simulated stocks. Prices are randomly generated for demonstration
-                      and are not real market data.
-                    </p>
+                    <h6 className="mb-0">Total Invested</h6>
+                    <h3 className="mb-0">{formatMoney(investments.reduce((sum, inv) => sum + inv.amount, 0))}</h3>
+                  </div>
+                  <div className="align-self-center">
+                    <GraphUp size={32} className="opacity-75" />
                   </div>
                 </div>
-              </Col>
-            </Row>
+              </Card.Body>
+            </Card>
+          </Col>
 
-            {message.text && (
-              <Alert
-                variant={message.type === 'success' ? 'success' : 'danger'}
-                className="mb-4"
-                onClose={() => setMessage({ type: '', text: '' })}
-                dismissible
-              >
-                {message.text}
-              </Alert>
-            )}
-
-            {/* Portfolio Summary */}
-            <Row className="g-4 mb-4">
-              <Col md={3}>
-                <Card className="border-0 shadow-sm premium-stat-card">
-                  <Card.Body>
-                    <div className="d-flex justify-content-between">
-                      <div>
-                        <h6 className="mb-0">Total Invested</h6>
-                        <h3 className="mb-0">{formatMoney(investments.reduce((sum, inv) => sum + inv.amount, 0))}</h3>
-                      </div>
-                      <div className="align-self-center">
-                        <GraphUp size={32} className="opacity-75" />
-                      </div>
-                    </div>
-                  </Card.Body>
-                </Card>
-              </Col>
-
-              <Col md={3}>
-                <Card className="border-0 shadow-sm premium-stat-card">
-                  <Card.Body>
-                    <div className="d-flex justify-content-between">
-                      <div>
-                        <h6 className="mb-0">Current Value</h6>
-                        <h3 className="mb-0">{formatMoney(investments.reduce((sum, inv) => sum + inv.currentValue, 0))}</h3>
-                      </div>
-                      <div className="align-self-center">
-                        <GraphUpArrow size={32} className="opacity-75" />
-                      </div>
-                    </div>
-                  </Card.Body>
-                </Card>
-              </Col>
-
-              <Col md={3}>
-                <Card className="border-0 shadow-sm premium-stat-card">
-                  <Card.Body>
-                    <div className="d-flex justify-content-between">
-                      <div>
-                        <h6 className="mb-0">Total Returns</h6>
-                        <h3 className="mb-0">{formatMoney(investments.reduce((sum, inv) => sum + (inv.currentValue - inv.amount), 0))}</h3>
-                      </div>
-                      <div className="align-self-center">
-                        <CashCoin size={32} className="opacity-75" />
-                      </div>
-                    </div>
-                  </Card.Body>
-                </Card>
-              </Col>
-
-              <Col md={3}>
-                <Card className="border-0 shadow-sm premium-stat-card">
-                  <Card.Body>
-                    <div className="d-flex justify-content-between">
-                      <div>
-                        <h6 className="mb-0">Active Plans</h6>
-                        <h3 className="mb-0">{investments.filter(inv => inv.status === 'active').length}</h3>
-                      </div>
-                      <div className="align-self-center">
-                        <BriefcaseFill size={32} className="opacity-75" />
-                      </div>
-                    </div>
-                  </Card.Body>
-                </Card>
-              </Col>
-            </Row>
-
-            {/* My Investments */}
-            {investments.length > 0 && (
-              <Card className="shadow-sm mb-4">
-                <Card.Header className="bg-white border-bottom">
-                  <div className="d-flex justify-content-between align-items-center">
-                    <h5 className="mb-0">My Stock Portfolio</h5>
-                    <AppButton
-                      size="sm"
-                      backgroundColor="transparent"
-                      textColor="#151e31"
-                      borderColor="#151e31"
-                      onClick={() => fetchMyPortfolio(true)}
-                      loading={loading}
-                      loadingText="Refreshing..."
-                    >
-                      <>
-                        <ArrowRepeat size="1em" className="me-1" />
-                        Refresh
-                      </>
-                    </AppButton>
+          <Col md={3}>
+            <Card className="border-0 shadow-sm premium-stat-card">
+              <Card.Body>
+                <div className="d-flex justify-content-between">
+                  <div>
+                    <h6 className="mb-0">Current Value</h6>
+                    <h3 className="mb-0">{formatMoney(investments.reduce((sum, inv) => sum + inv.currentValue, 0))}</h3>
                   </div>
-                </Card.Header>
-                <Card.Body className="p-0">
-                  <div className="table-responsive">
-                    <Table hover className="mb-0">
-                      <thead className="table-light">
-                        <tr>
-                          <th>Stock</th>
-                          <th>Quantity</th>
-                          <th>Avg Price</th>
-                          <th>Current Price</th>
-                          <th>Total Value</th>
-                          <th>P&L</th>
-                          <th>Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {investments.map((investment) => (
-                          <tr key={investment._id}>
-                            <td className="investment-text-cell">
-                              <strong>{investment.planName}</strong>
-                              <br />
-                              <small className="text-muted">{investment.symbol}</small>
-                            </td>
-                            <td className="investment-amount-cell">{(investment.quantity || 0).toLocaleString()}</td>
-                            <td className="investment-amount-cell">{formatMoney((investment.averagePrice || 0))}</td>
-                            <td className="investment-amount-cell">{formatMoney((investment.currentPrice || 0))}</td>
-                            <td className="investment-amount-cell">
-                              <span className="fw-bold investment-amount-cell">
-                                {formatMoney((investment.currentValue || 0))}
-                              </span>
-                            </td>
-                            <td className="investment-amount-cell">
-                              <span className={`fw-bold investment-amount-cell ${getProfitColor(investment.profitLoss)}`}>
-                                {formatMoney((investment.profitLoss || 0))}
-                                {investment.profitLossPercent && (
-                                  <small className="d-block">
-                                    ({investment.profitLossPercent > 0 ? '+' : ''}{investment.profitLossPercent.toFixed(2)}%)
-                                  </small>
-                                )}
-                              </span>
-                            </td>
-                            <td>
-                              <AppButton
-                                size="sm"
-                                backgroundColor="transparent"
-                                textColor="#151e31"
-                                borderColor="#151e31"
-                                className="me-2"
-                                onClick={() => openStockDetailsModal({ symbol: investment.symbol })}
-                              >
-                                Details
-                              </AppButton>
-                              <AppButton
-                                size="sm"
-                                backgroundColor="transparent"
-                                textColor="#dc3545"
-                                borderColor="#dc3545"
-                                onClick={() => openSellModal(investment)}
-                                disabled={!investment.quantity || investment.quantity === 0}
-                              >
-                                Sell
-                              </AppButton>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </Table>
+                  <div className="align-self-center">
+                    <GraphUpArrow size={32} className="opacity-75" />
                   </div>
-                </Card.Body>
-              </Card>
-            )}
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
 
-            {/* Available Investment Plans */}
-            <Row className="mb-3">
-              <Col md={6}>
-                <h4 className="mb-3">Available Stocks</h4>
-              </Col>
-              <Col md={6}>
-                <Form.Select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-auto ms-auto"
-                >
-                  <option value="all">All Categories</option>
-                  <option value="conservative">Conservative (Low Risk)</option>
-                  <option value="balanced">Balanced (Medium Risk)</option>
-                  <option value="aggressive">Aggressive (High Risk)</option>
-                </Form.Select>
-              </Col>
-            </Row>
+          <Col md={3}>
+            <Card className="border-0 shadow-sm premium-stat-card">
+              <Card.Body>
+                <div className="d-flex justify-content-between">
+                  <div>
+                    <h6 className="mb-0">Total Returns</h6>
+                    <h3 className="mb-0">{formatMoney(investments.reduce((sum, inv) => sum + (inv.currentValue - inv.amount), 0))}</h3>
+                  </div>
+                  <div className="align-self-center">
+                    <CashCoin size={32} className="opacity-75" />
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
 
-            {loading && availableStocks.length === 0 ? (
-              <LoadingWatch label="Loading available stocks..." minHeight="180px" />
-            ) : (
-              <Row className="g-4">
-                {filteredStocks.length > 0 ? (
-                  filteredStocks.map((stock) => (
-                    <Col lg={4} md={6} key={stock.id}>
-                      <Card className={`h-100 shadow-sm investment-plan-card ${stock.category}`}>
-                        <Card.Header>
-                          <div className="d-flex justify-content-between align-items-center">
-                            <h5 className="mb-0">{stock.name}</h5>
-                            <Badge bg={getRiskBadgeColor(stock.risk)} className="text-dark">
-                              {stock.risk} Risk
-                            </Badge>
-                          </div>
-                          <small>{stock.symbol}</small>
-                        </Card.Header>
-                        <Card.Body className="d-flex flex-column">
-                          <p className="text-muted mb-3">{stock.description}</p>
+          <Col md={3}>
+            <Card className="border-0 shadow-sm premium-stat-card">
+              <Card.Body>
+                <div className="d-flex justify-content-between">
+                  <div>
+                    <h6 className="mb-0">Active Plans</h6>
+                    <h3 className="mb-0">{investments.filter(inv => inv.status === 'active').length}</h3>
+                  </div>
+                  <div className="align-self-center">
+                    <BriefcaseFill size={32} className="opacity-75" />
+                  </div>
+                </div>
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row>
 
-                          <div className="text-center mb-3">
-                            <h2 className="text-primary mb-1">{formatMoney(stock.currentPrice)}</h2>
-                            <small className="text-muted">Current Price per Share</small>
-                            {stock.priceChange !== undefined && (
-                              <div className={`mt-1 ${getPriceChangeColor(stock.priceChange)}`}>
-                                <small>
-                                  {stock.priceChange > 0 ? '+' : ''}₦{stock.priceChange.toFixed(2)}
-                                  ({stock.priceChangePercent > 0 ? '+' : ''}{stock.priceChangePercent.toFixed(2)}%)
-                                </small>
-                              </div>
-                            )}
-                          </div>
-
-                          <div className="mb-3 flex-grow-1">
-                            <ul className="list-unstyled">
-                              {stock.features.map((feature, index) => (
-                                <li key={index} className="mb-2">
-                                  <CheckLg size="1em" className="text-success me-2" />
-                                  {feature}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-
-                          <div className="border-top pt-3 mb-3">
-                            <div className="row">
-                              <div className="col-6">
-                                <small className="text-muted">Min Investment</small>
-                                <p className="mb-0 fw-bold">{formatMoney(stock.currentPrice)}</p>
-                                <small className="text-muted">(1 share)</small>
-                              </div>
-                              <div className="col-6">
-                                <small className="text-muted">Trading</small>
-                                <p className="mb-0 fw-bold">{stock.duration}</p>
-                              </div>
-                            </div>
-                          </div>
-
-                          <AppButton
-                            backgroundColor="#151e31"
-                            className="mb-2"
-                            fullWidth
-                            onClick={() => openBuyModal(stock)}
-                          >
-                            Buy Stock
-                          </AppButton>
-                          <AppButton
-                            backgroundColor="transparent"
-                            textColor="#151e31"
-                            borderColor="#151e31"
-                            fullWidth
-                            onClick={() => openStockDetailsModal(stock)}
-                          >
-                            View Details
-                          </AppButton>
-                        </Card.Body>
-                      </Card>
-                    </Col>
-                  ))
-                ) : (
-                  <Col>
-                    <div className="text-center py-5">
-                      <Search size={48} className="text-muted mb-3" />
-                      <h5 className="text-muted">{stocksError ? 'Stocks unavailable' : 'No stocks found'}</h5>
-                      <p className="text-muted">
-                        {stocksError || 'Try selecting a different category or check back later.'}
-                      </p>
-                      {stocksError && (
-                        <AppButton
-                          size="sm"
-                          backgroundColor="transparent"
-                          textColor="#151e31"
-                          borderColor="#151e31"
-                          onClick={fetchAvailableStocks}
-                        >
-                          Try again
-                        </AppButton>
-                      )}
-                    </div>
-                  </Col>
-                )}
-              </Row>
-            )}
-
-            <Card className="shadow-sm mt-4 mb-4">
-              <Card.Header className="bg-white border-bottom d-flex justify-content-between align-items-center">
-                <h5 className="mb-0">Investment History</h5>
+        {/* My Investments */}
+        {investments.length > 0 && (
+          <Card className="shadow-sm mb-4">
+            <Card.Header className="bg-white border-bottom">
+              <div className="d-flex justify-content-between align-items-center">
+                <h5 className="mb-0">My Stock Portfolio</h5>
                 <AppButton
                   size="sm"
                   backgroundColor="transparent"
                   textColor="#151e31"
                   borderColor="#151e31"
-                  onClick={fetchInvestmentHistoryData}
-                  disabled={historyLoading}
+                  onClick={() => fetchMyPortfolio(true)}
+                  loading={loading}
+                  loadingText="Refreshing..."
                 >
-                  {historyLoading ? 'Refreshing...' : 'Refresh'}
-                </AppButton>
-              </Card.Header>
-              <Card.Body className="p-0">
-                {historyLoading ? (
-                  <LoadingWatch label="Loading history..." minHeight="120px" />
-                ) : investmentHistory.length === 0 ? (
-                  <div className="text-center py-4 text-muted">No investment history yet</div>
-                ) : (
-                  <div className="table-responsive">
-                    <Table hover className="mb-0">
-                      <thead className="table-light">
-                        <tr>
-                          <th>Date</th>
-                          <th>Stock</th>
-                          <th>Quantity</th>
-                          <th>Total Invested</th>
-                          <th>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {investmentHistory.map((item) => (
-                          <tr key={item._id}>
-                            <td className="investment-text-cell">{formatDate(item.purchaseDate || item.createdAt || Date.now())}</td>
-                            <td className="investment-text-cell">{item.stockSymbol}</td>
-                            <td className="investment-amount-cell">{Number(item.quantity || 0).toLocaleString()}</td>
-                            <td className="investment-amount-cell">{formatMoney(Number(item.totalInvested || 0))}</td>
-                            <td>
-                              <Badge bg={item.status === 'active' ? 'success' : 'secondary'}>
-                                {item.status || 'unknown'}
-                              </Badge>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </Table>
-                  </div>
-                )}
-              </Card.Body>
-            </Card>
-
-            <Modal show={showStockDetailsModal} onHide={() => setShowStockDetailsModal(false)}>
-              <Modal.Header closeButton>
-                <Modal.Title>Stock Details</Modal.Title>
-              </Modal.Header>
-              <Modal.Body>
-                {stockDetailsLoading ? (
-                  <LoadingWatch label="Loading stock details..." minHeight="100px" />
-                ) : selectedStockDetails ? (
                   <>
-                    <p><strong>Symbol:</strong> {selectedStockDetails.symbol}</p>
-                    <p><strong>Name:</strong> {selectedStockDetails.name}</p>
-                    <p><strong>Current Price:</strong> {formatMoney(Number(selectedStockDetails.currentPrice || 0))}</p>
-                    <p><strong>Base Price:</strong> {formatMoney(Number(selectedStockDetails.basePrice || 0))}</p>
-                    <p><strong>Risk:</strong> {selectedStockDetails.risk || 'N/A'}</p>
-                    <p className="mb-0"><strong>Description:</strong> {selectedStockDetails.description || 'N/A'}</p>
+                    <ArrowRepeat size="1em" className="me-1" />
+                    Refresh
                   </>
-                ) : (
-                  <div className="text-muted">No details available</div>
-                )}
-              </Modal.Body>
-            </Modal>
-
-            {/* Buy Stock Modal */}
-            <Modal show={showBuyModal} onHide={closeOrderModal} size="lg">
-              <Modal.Header closeButton>
-                <Modal.Title>Buy {selectedStock?.name} ({selectedStock?.symbol})</Modal.Title>
-              </Modal.Header>
-              {orderStep !== 'form' ? renderOrderReviewOrReceipt() : (
-              <Form onSubmit={handleOrderFormSubmit}>
-                <Modal.Body>
-                  {orderError && (
-                    <Alert variant="danger" className="py-2 small" role="alert">
-                      {orderError}
-                    </Alert>
-                  )}
-                  {selectedStock && (
-                    <>
-                      <Card className="mb-4 bg-light">
-                        <Card.Body>
-                          <h6>Stock Details:</h6>
-                          <Row>
-                            <Col md={6}>
-                              <p className="mb-1"><strong>Current Price:</strong> {formatMoney(selectedStock.currentPrice)}</p>
-                              <p className="mb-1"><strong>Stock Symbol:</strong> {selectedStock.symbol}</p>
-                            </Col>
-                            <Col md={6}>
-                              <p className="mb-1"><strong>Risk Level:</strong> {selectedStock.risk}</p>
-                              <p className="mb-1"><strong>Category:</strong> {selectedStock.category}</p>
-                            </Col>
-                          </Row>
-                          {selectedStock.priceChange !== undefined && (
-                            <div className={`mt-2 ${getPriceChangeColor(selectedStock.priceChange)}`}>
-                              <small>
-                                Today: {selectedStock.priceChange > 0 ? '+' : ''}₦{selectedStock.priceChange.toFixed(2)}
-                                ({selectedStock.priceChangePercent > 0 ? '+' : ''}{selectedStock.priceChangePercent.toFixed(2)}%)
+                </AppButton>
+              </div>
+            </Card.Header>
+            <Card.Body className="p-0">
+              <div className="table-responsive">
+                <Table hover className="mb-0">
+                  <thead className="table-light">
+                    <tr>
+                      <th>Stock</th>
+                      <th>Quantity</th>
+                      <th>Avg Price</th>
+                      <th>Current Price</th>
+                      <th>Total Value</th>
+                      <th>P&L</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {investments.map((investment) => (
+                      <tr key={investment._id}>
+                        <td className="investment-text-cell">
+                          <strong>{investment.planName}</strong>
+                          <br />
+                          <small className="text-muted">{investment.symbol}</small>
+                        </td>
+                        <td className="investment-amount-cell">{(investment.quantity || 0).toLocaleString()}</td>
+                        <td className="investment-amount-cell">{formatMoney((investment.averagePrice || 0))}</td>
+                        <td className="investment-amount-cell">{formatMoney((investment.currentPrice || 0))}</td>
+                        <td className="investment-amount-cell">
+                          <span className="fw-bold investment-amount-cell">
+                            {formatMoney((investment.currentValue || 0))}
+                          </span>
+                        </td>
+                        <td className="investment-amount-cell">
+                          <span className={`fw-bold investment-amount-cell ${getProfitColor(investment.profitLoss)}`}>
+                            {formatMoney((investment.profitLoss || 0))}
+                            {investment.profitLossPercent && (
+                              <small className="d-block">
+                                ({investment.profitLossPercent > 0 ? '+' : ''}{investment.profitLossPercent.toFixed(2)}%)
                               </small>
-                            </div>
-                          )}
-                        </Card.Body>
-                      </Card>
+                            )}
+                          </span>
+                        </td>
+                        <td>
+                          <AppButton
+                            size="sm"
+                            backgroundColor="transparent"
+                            textColor="#151e31"
+                            borderColor="#151e31"
+                            className="me-2"
+                            onClick={() => openStockDetailsModal({ symbol: investment.symbol })}
+                          >
+                            Details
+                          </AppButton>
+                          <AppButton
+                            size="sm"
+                            backgroundColor="transparent"
+                            textColor="#dc3545"
+                            borderColor="#dc3545"
+                            onClick={() => openSellModal(investment)}
+                            disabled={!investment.quantity || investment.quantity === 0}
+                          >
+                            Sell
+                          </AppButton>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </div>
+            </Card.Body>
+          </Card>
+        )}
 
+        {/* Available Investment Plans */}
+        <Row className="mb-3">
+          <Col md={6}>
+            <h4 className="mb-3">Available Stocks</h4>
+          </Col>
+          <Col md={6}>
+            <Form.Select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="w-auto ms-auto"
+            >
+              <option value="all">All Categories</option>
+              <option value="conservative">Conservative (Low Risk)</option>
+              <option value="balanced">Balanced (Medium Risk)</option>
+              <option value="aggressive">Aggressive (High Risk)</option>
+            </Form.Select>
+          </Col>
+        </Row>
+
+        {loading && availableStocks.length === 0 ? (
+          <LoadingWatch label="Loading available stocks..." minHeight="180px" />
+        ) : (
+          <Row className="g-4">
+            {filteredStocks.length > 0 ? (
+              filteredStocks.map((stock) => (
+                <Col lg={4} md={6} key={stock.id}>
+                  <Card className={`h-100 shadow-sm investment-plan-card ${stock.category}`}>
+                    <Card.Header>
+                      <div className="d-flex justify-content-between align-items-center">
+                        <h5 className="mb-0">{stock.name}</h5>
+                        <Badge bg={getRiskBadgeColor(stock.risk)} className="text-dark">
+                          {stock.risk} Risk
+                        </Badge>
+                      </div>
+                      <small>{stock.symbol}</small>
+                    </Card.Header>
+                    <Card.Body className="d-flex flex-column">
+                      <p className="text-muted mb-3">{stock.description}</p>
+
+                      <div className="text-center mb-3">
+                        <h2 className="text-primary mb-1">{formatMoney(stock.currentPrice)}</h2>
+                        <small className="text-muted">Current Price per Share</small>
+                        {stock.priceChange !== undefined && (
+                          <div className={`mt-1 ${getPriceChangeColor(stock.priceChange)}`}>
+                            <small>
+                              {stock.priceChange > 0 ? '+' : ''}₦{stock.priceChange.toFixed(2)}
+                              ({stock.priceChangePercent > 0 ? '+' : ''}{stock.priceChangePercent.toFixed(2)}%)
+                            </small>
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="mb-3 flex-grow-1">
+                        <ul className="list-unstyled">
+                          {stock.features.map((feature, index) => (
+                            <li key={index} className="mb-2">
+                              <CheckLg size="1em" className="text-success me-2" />
+                              {feature}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div className="border-top pt-3 mb-3">
+                        <div className="row">
+                          <div className="col-6">
+                            <small className="text-muted">Min Investment</small>
+                            <p className="mb-0 fw-bold">{formatMoney(stock.currentPrice)}</p>
+                            <small className="text-muted">(1 share)</small>
+                          </div>
+                          <div className="col-6">
+                            <small className="text-muted">Trading</small>
+                            <p className="mb-0 fw-bold">{stock.duration}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <AppButton
+                        backgroundColor="#151e31"
+                        className="mb-2"
+                        fullWidth
+                        onClick={() => openBuyModal(stock)}
+                      >
+                        Buy Stock
+                      </AppButton>
+                      <AppButton
+                        backgroundColor="transparent"
+                        textColor="#151e31"
+                        borderColor="#151e31"
+                        fullWidth
+                        onClick={() => openStockDetailsModal(stock)}
+                      >
+                        View Details
+                      </AppButton>
+                    </Card.Body>
+                  </Card>
+                </Col>
+              ))
+            ) : (
+              <Col>
+                <div className="text-center py-5">
+                  <Search size={48} className="text-muted mb-3" />
+                  <h5 className="text-muted">{stocksError ? 'Stocks unavailable' : 'No stocks found'}</h5>
+                  <p className="text-muted">
+                    {stocksError || 'Try selecting a different category or check back later.'}
+                  </p>
+                  {stocksError && (
+                    <AppButton
+                      size="sm"
+                      backgroundColor="transparent"
+                      textColor="#151e31"
+                      borderColor="#151e31"
+                      onClick={fetchAvailableStocks}
+                    >
+                      Try again
+                    </AppButton>
+                  )}
+                </div>
+              </Col>
+            )}
+          </Row>
+        )}
+
+        <Card className="shadow-sm mt-4 mb-4">
+          <Card.Header className="bg-white border-bottom d-flex justify-content-between align-items-center">
+            <h5 className="mb-0">Investment History</h5>
+            <AppButton
+              size="sm"
+              backgroundColor="transparent"
+              textColor="#151e31"
+              borderColor="#151e31"
+              onClick={fetchInvestmentHistoryData}
+              disabled={historyLoading}
+            >
+              {historyLoading ? 'Refreshing...' : 'Refresh'}
+            </AppButton>
+          </Card.Header>
+          <Card.Body className="p-0">
+            {historyLoading ? (
+              <LoadingWatch label="Loading history..." minHeight="120px" />
+            ) : investmentHistory.length === 0 ? (
+              <div className="text-center py-4 text-muted">No investment history yet</div>
+            ) : (
+              <div className="table-responsive">
+                <Table hover className="mb-0">
+                  <thead className="table-light">
+                    <tr>
+                      <th>Date</th>
+                      <th>Stock</th>
+                      <th>Quantity</th>
+                      <th>Total Invested</th>
+                      <th>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {investmentHistory.map((item) => (
+                      <tr key={item._id}>
+                        <td className="investment-text-cell">{formatDate(item.purchaseDate || item.createdAt || Date.now())}</td>
+                        <td className="investment-text-cell">{item.stockSymbol}</td>
+                        <td className="investment-amount-cell">{Number(item.quantity || 0).toLocaleString()}</td>
+                        <td className="investment-amount-cell">{formatMoney(Number(item.totalInvested || 0))}</td>
+                        <td>
+                          <Badge bg={item.status === 'active' ? 'success' : 'secondary'}>
+                            {item.status || 'unknown'}
+                          </Badge>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </Table>
+              </div>
+            )}
+          </Card.Body>
+        </Card>
+
+        <Modal show={showStockDetailsModal} onHide={() => setShowStockDetailsModal(false)}>
+          <Modal.Header closeButton>
+            <Modal.Title>Stock Details</Modal.Title>
+          </Modal.Header>
+          <Modal.Body>
+            {stockDetailsLoading ? (
+              <LoadingWatch label="Loading stock details..." minHeight="100px" />
+            ) : selectedStockDetails ? (
+              <>
+                <p><strong>Symbol:</strong> {selectedStockDetails.symbol}</p>
+                <p><strong>Name:</strong> {selectedStockDetails.name}</p>
+                <p><strong>Current Price:</strong> {formatMoney(Number(selectedStockDetails.currentPrice || 0))}</p>
+                <p><strong>Base Price:</strong> {formatMoney(Number(selectedStockDetails.basePrice || 0))}</p>
+                <p><strong>Risk:</strong> {selectedStockDetails.risk || 'N/A'}</p>
+                <p className="mb-0"><strong>Description:</strong> {selectedStockDetails.description || 'N/A'}</p>
+              </>
+            ) : (
+              <div className="text-muted">No details available</div>
+            )}
+          </Modal.Body>
+        </Modal>
+
+        {/* Buy Stock Modal */}
+        <Modal show={showBuyModal} onHide={closeOrderModal} size="lg">
+          <Modal.Header closeButton>
+            <Modal.Title>Buy {selectedStock?.name} ({selectedStock?.symbol})</Modal.Title>
+          </Modal.Header>
+          {orderStep !== 'form' ? renderOrderReviewOrReceipt() : (
+          <Form onSubmit={handleOrderFormSubmit}>
+            <Modal.Body>
+              {orderError && (
+                <Alert variant="danger" className="py-2 small" role="alert">
+                  {orderError}
+                </Alert>
+              )}
+              {selectedStock && (
+                <>
+                  <Card className="mb-4 bg-light">
+                    <Card.Body>
+                      <h6>Stock Details:</h6>
                       <Row>
-                        <Col md={12}>
-                          <Form.Group className="mb-3">
-                            <Form.Label>Number of Shares *</Form.Label>
-                            <Form.Control
-                              type="number"
-                              value={stockData.quantity}
-                              onChange={(e) => setStockData({ ...stockData, quantity: e.target.value })}
-                              placeholder="Enter quantity"
-                              required
-                              min="1"
-                              max="10000"
-                            />
-                            <Form.Text className="text-muted">
-                              Min: 1 share | Available Balance: {formatMoney((user?.balance || 0))}
-                            </Form.Text>
-                          </Form.Group>
+                        <Col md={6}>
+                          <p className="mb-1"><strong>Current Price:</strong> {formatMoney(selectedStock.currentPrice)}</p>
+                          <p className="mb-1"><strong>Stock Symbol:</strong> {selectedStock.symbol}</p>
+                        </Col>
+                        <Col md={6}>
+                          <p className="mb-1"><strong>Risk Level:</strong> {selectedStock.risk}</p>
+                          <p className="mb-1"><strong>Category:</strong> {selectedStock.category}</p>
                         </Col>
                       </Row>
-
-                      {stockData.quantity && selectedStock.currentPrice && (
-                        <Card className="bg-primary text-white">
-                          <Card.Body>
-                            <h6>Transaction Summary:</h6>
-                            <p className="mb-1">
-                              <strong>Shares: {stockData.quantity}</strong>
-                            </p>
-                            <p className="mb-1">
-                              <strong>Price per Share: {formatMoney(selectedStock.currentPrice)}</strong>
-                            </p>
-                            <p className="mb-0">
-                              <strong>Total Cost: {formatMoney((
-                                parseInt(stockData.quantity) * selectedStock.currentPrice
-                              ))}</strong>
-                            </p>
-                          </Card.Body>
-                        </Card>
+                      {selectedStock.priceChange !== undefined && (
+                        <div className={`mt-2 ${getPriceChangeColor(selectedStock.priceChange)}`}>
+                          <small>
+                            Today: {selectedStock.priceChange > 0 ? '+' : ''}₦{selectedStock.priceChange.toFixed(2)}
+                            ({selectedStock.priceChangePercent > 0 ? '+' : ''}{selectedStock.priceChangePercent.toFixed(2)}%)
+                          </small>
+                        </div>
                       )}
-                    </>
+                    </Card.Body>
+                  </Card>
+
+                  <Row>
+                    <Col md={12}>
+                      <Form.Group className="mb-3">
+                        <Form.Label>Number of Shares *</Form.Label>
+                        <Form.Control
+                          type="number"
+                          value={stockData.quantity}
+                          onChange={(e) => setStockData({ ...stockData, quantity: e.target.value })}
+                          placeholder="Enter quantity"
+                          required
+                          min="1"
+                          max="10000"
+                        />
+                        <Form.Text className="text-muted">
+                          Min: 1 share | Available Balance: {formatMoney((user?.balance || 0))}
+                        </Form.Text>
+                      </Form.Group>
+                    </Col>
+                  </Row>
+
+                  {stockData.quantity && selectedStock.currentPrice && (
+                    <Card className="bg-primary text-white">
+                      <Card.Body>
+                        <h6>Transaction Summary:</h6>
+                        <p className="mb-1">
+                          <strong>Shares: {stockData.quantity}</strong>
+                        </p>
+                        <p className="mb-1">
+                          <strong>Price per Share: {formatMoney(selectedStock.currentPrice)}</strong>
+                        </p>
+                        <p className="mb-0">
+                          <strong>Total Cost: {formatMoney((
+                            parseInt(stockData.quantity) * selectedStock.currentPrice
+                          ))}</strong>
+                        </p>
+                      </Card.Body>
+                    </Card>
                   )}
-                </Modal.Body>
-                <Modal.Footer>
-                  <AppButton
-                    backgroundColor="#6c757d"
-                    onClick={closeOrderModal}
-                  >
-                    Cancel
-                  </AppButton>
-                  <AppButton
-                    backgroundColor="#151e31"
-                    type="submit"
-                    disabled={loading || !stockData.quantity}
-                  >
-                    Review order
-                  </AppButton>
-                </Modal.Footer>
-              </Form>
+                </>
               )}
-            </Modal>
+            </Modal.Body>
+            <Modal.Footer>
+              <AppButton
+                backgroundColor="#6c757d"
+                onClick={closeOrderModal}
+              >
+                Cancel
+              </AppButton>
+              <AppButton
+                backgroundColor="#151e31"
+                type="submit"
+                disabled={loading || !stockData.quantity}
+              >
+                Review order
+              </AppButton>
+            </Modal.Footer>
+          </Form>
+          )}
+        </Modal>
 
-            {/* Sell Stock Modal */}
-            <Modal show={showSellModal} onHide={closeOrderModal} size="lg">
-              <Modal.Header closeButton>
-                <Modal.Title>Sell {selectedStock?.symbol} Shares</Modal.Title>
-              </Modal.Header>
-              {orderStep !== 'form' ? renderOrderReviewOrReceipt() : (
-              <Form onSubmit={handleOrderFormSubmit}>
-                <Modal.Body>
-                  {orderError && (
-                    <Alert variant="danger" className="py-2 small" role="alert">
-                      {orderError}
-                    </Alert>
-                  )}
-                  {selectedStock && (
-                    <>
-                      <Card className="mb-4 bg-light">
-                        <Card.Body>
-                          <h6>Portfolio Details:</h6>
-                          <Row>
-                            <Col md={6}>
-                              <p className="mb-1"><strong>Shares Owned:</strong> {selectedStock.maxQuantity || 0}</p>
-                              <p className="mb-1"><strong>Average Price:</strong> {selectedStock.averagePrice != null ? formatMoney(selectedStock.averagePrice) : 'N/A'}</p>
-                            </Col>
-                            <Col md={6}>
-                              <p className="mb-1"><strong>Current Price:</strong> {formatMoney(selectedStock.currentPrice)}</p>
-                              <p className="mb-1"><strong>Total Value:</strong> {formatMoney(((selectedStock.maxQuantity || 0) * (selectedStock.currentPrice || 0)))}</p>
-                            </Col>
-                          </Row>
-                        </Card.Body>
-                      </Card>
-
+        {/* Sell Stock Modal */}
+        <Modal show={showSellModal} onHide={closeOrderModal} size="lg">
+          <Modal.Header closeButton>
+            <Modal.Title>Sell {selectedStock?.symbol} Shares</Modal.Title>
+          </Modal.Header>
+          {orderStep !== 'form' ? renderOrderReviewOrReceipt() : (
+          <Form onSubmit={handleOrderFormSubmit}>
+            <Modal.Body>
+              {orderError && (
+                <Alert variant="danger" className="py-2 small" role="alert">
+                  {orderError}
+                </Alert>
+              )}
+              {selectedStock && (
+                <>
+                  <Card className="mb-4 bg-light">
+                    <Card.Body>
+                      <h6>Portfolio Details:</h6>
                       <Row>
-                        <Col md={12}>
-                          <Form.Group className="mb-3">
-                            <Form.Label>Number of Shares to Sell *</Form.Label>
-                            <Form.Control
-                              type="number"
-                              value={stockData.quantity}
-                              onChange={(e) => setStockData({ ...stockData, quantity: e.target.value })}
-                              placeholder="Enter quantity"
-                              required
-                              min="1"
-                              max={selectedStock.maxQuantity || 1}
-                            />
-                            <Form.Text className="text-muted">
-                              Max: {selectedStock.maxQuantity || 0} shares available
-                            </Form.Text>
-                          </Form.Group>
+                        <Col md={6}>
+                          <p className="mb-1"><strong>Shares Owned:</strong> {selectedStock.maxQuantity || 0}</p>
+                          <p className="mb-1"><strong>Average Price:</strong> {selectedStock.averagePrice != null ? formatMoney(selectedStock.averagePrice) : 'N/A'}</p>
+                        </Col>
+                        <Col md={6}>
+                          <p className="mb-1"><strong>Current Price:</strong> {formatMoney(selectedStock.currentPrice)}</p>
+                          <p className="mb-1"><strong>Total Value:</strong> {formatMoney(((selectedStock.maxQuantity || 0) * (selectedStock.currentPrice || 0)))}</p>
                         </Col>
                       </Row>
+                    </Card.Body>
+                  </Card>
 
-                      {stockData.quantity && selectedStock.currentPrice && (
-                        <Card className="bg-danger text-white">
-                          <Card.Body>
-                            <h6>Sale Summary:</h6>
-                            <p className="mb-1">
-                              <strong>Shares to Sell: {stockData.quantity}</strong>
-                            </p>
-                            <p className="mb-1">
-                              <strong>Current Price: {formatMoney(selectedStock.currentPrice)}</strong>
-                            </p>
-                            <p className="mb-0">
-                              <strong>Total Proceeds: {formatMoney((
-                                parseInt(stockData.quantity) * selectedStock.currentPrice
-                              ))}</strong>
-                            </p>
-                          </Card.Body>
-                        </Card>
-                      )}
-                    </>
+                  <Row>
+                    <Col md={12}>
+                      <Form.Group className="mb-3">
+                        <Form.Label>Number of Shares to Sell *</Form.Label>
+                        <Form.Control
+                          type="number"
+                          value={stockData.quantity}
+                          onChange={(e) => setStockData({ ...stockData, quantity: e.target.value })}
+                          placeholder="Enter quantity"
+                          required
+                          min="1"
+                          max={selectedStock.maxQuantity || 1}
+                        />
+                        <Form.Text className="text-muted">
+                          Max: {selectedStock.maxQuantity || 0} shares available
+                        </Form.Text>
+                      </Form.Group>
+                    </Col>
+                  </Row>
+
+                  {stockData.quantity && selectedStock.currentPrice && (
+                    <Card className="bg-danger text-white">
+                      <Card.Body>
+                        <h6>Sale Summary:</h6>
+                        <p className="mb-1">
+                          <strong>Shares to Sell: {stockData.quantity}</strong>
+                        </p>
+                        <p className="mb-1">
+                          <strong>Current Price: {formatMoney(selectedStock.currentPrice)}</strong>
+                        </p>
+                        <p className="mb-0">
+                          <strong>Total Proceeds: {formatMoney((
+                            parseInt(stockData.quantity) * selectedStock.currentPrice
+                          ))}</strong>
+                        </p>
+                      </Card.Body>
+                    </Card>
                   )}
-                </Modal.Body>
-                <Modal.Footer>
-                  <AppButton
-                    backgroundColor="#6c757d"
-                    onClick={closeOrderModal}
-                  >
-                    Cancel
-                  </AppButton>
-                  <AppButton
-                    backgroundColor="#dc3545"
-                    type="submit"
-                    disabled={loading || !stockData.quantity}
-                  >
-                    Review order
-                  </AppButton>
-                </Modal.Footer>
-              </Form>
+                </>
               )}
-            </Modal>
-          </Container>
-        </div>
-      </div>
+            </Modal.Body>
+            <Modal.Footer>
+              <AppButton
+                backgroundColor="#6c757d"
+                onClick={closeOrderModal}
+              >
+                Cancel
+              </AppButton>
+              <AppButton
+                backgroundColor="#dc3545"
+                type="submit"
+                disabled={loading || !stockData.quantity}
+              >
+                Review order
+              </AppButton>
+            </Modal.Footer>
+          </Form>
+          )}
+        </Modal>
+      </Container>
     </>
   );
 };
