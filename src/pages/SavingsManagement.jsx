@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import PropTypes from 'prop-types';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -25,7 +24,7 @@ import LimitMeter from '../components/LimitMeter';
 import { useToast } from '../context/ToastContext';
 
 
-const SavingsManagement = ({ styles }) => {
+const SavingsManagement = () => {
   const { user } = useAuth();
   const { notify } = useToast();
   const navigate = useNavigate();
@@ -248,8 +247,6 @@ const SavingsManagement = ({ styles }) => {
 
   return (
     <>
-      {styles && <style>{styles}</style>}
-
       <Container fluid className="px-lg-4 py-4">
         {/* Header Section */}
         <Row className="mb-4">
@@ -299,7 +296,7 @@ const SavingsManagement = ({ styles }) => {
         {/* Balances Overview */}
         <Row className="g-4 mb-4">
           <Col md={4}>
-            <Card className="border-0 shadow-sm premium-stat-card">
+            <Card className="border-0 shadow-sm">
               <Card.Body>
                 <div className="d-flex justify-content-between">
                   <div>
@@ -315,7 +312,7 @@ const SavingsManagement = ({ styles }) => {
           </Col>
 
           <Col md={4}>
-            <Card className="border-0 shadow-sm premium-stat-card">
+            <Card className="border-0 shadow-sm">
               <Card.Body>
                 <div className="d-flex justify-content-between">
                   <div>
@@ -331,7 +328,7 @@ const SavingsManagement = ({ styles }) => {
           </Col>
 
           <Col md={4}>
-            <Card className="border-0 shadow-sm premium-stat-card">
+            <Card className="border-0 shadow-sm">
               <Card.Body>
                 <div className="d-flex justify-content-between">
                   <div>
@@ -420,11 +417,11 @@ const SavingsManagement = ({ styles }) => {
         </Row>
 
         {/* Recent Transactions */}
-        <Card className="shadow-sm savings-recent-transactions-card">
+        <Card className="shadow-sm">
           <Card.Header>
             <h5 className="mb-0">Recent Transactions</h5>
           </Card.Header>
-          <Card.Body>
+          <Card.Body className={transactions.length === 0 ? '' : 'p-0'}>
             {dataLoading && !hasLoadedDataRef.current ? (
               <LoadingWatch label="Loading transactions..." minHeight="160px" />
             ) : transactions.length === 0 ? (
@@ -438,9 +435,9 @@ const SavingsManagement = ({ styles }) => {
               </div>
             ) : (
               <>
-              {dataLoading && <RefreshingBadge />}
-              <div className="table-responsive savings-recent-transactions-table-wrap">
-                <Table hover className="savings-recent-transactions-table">
+              {dataLoading && <div className="px-3 pt-3"><RefreshingBadge /></div>}
+              <div className="table-responsive">
+                <Table hover className="mb-0">
                   <thead className="table-light">
                     <tr>
                       <th>Date</th>
@@ -453,15 +450,15 @@ const SavingsManagement = ({ styles }) => {
                   <tbody>
                     {transactions.map((transaction) => (
                       <tr key={transaction._id || transaction.transactionId}>
-                        <td className="savings-text-cell" data-label="Date">{formatDate(transaction.createdAt)}</td>
-                        <td data-label="Type">
+                        <td>{formatDate(transaction.createdAt)}</td>
+                        <td>
                           <Badge bg={transaction.type === 'deposit' ? 'success' : 'warning'}>
                             {transaction.type}
                           </Badge>
                         </td>
-                        <td className="savings-amount-cell" data-label="Amount">{formatMoney(transaction.amount)}</td>
-                        <td className="savings-text-cell" data-label="Description">{transaction.description}</td>
-                        <td data-label="Status">
+                        <td>{formatMoney(transaction.amount)}</td>
+                        <td>{transaction.description}</td>
+                        <td>
                           <Badge bg={transaction.status === 'completed' ? 'success' : 'secondary'}>
                             {transaction.status}
                           </Badge>
@@ -573,14 +570,12 @@ const SavingsManagement = ({ styles }) => {
                 </Alert>
               )}
               {withdrawLimitsLoading ? (
-                <div className="savings-limit-panel mb-3">
-                  <p className="savings-limit-muted mb-0">Loading withdrawal limits...</p>
-                </div>
+                <p className="text-muted small mb-3">Loading withdrawal limits...</p>
               ) : withdrawOperationLimits ? (
-                <div className="savings-limit-panel mb-3">
-                  <div className="savings-limit-header">
-                    <span className="savings-limit-title">Withdrawal Limits</span>
-                    <span className="savings-limit-tier">Tier: {withdrawLimits?.tier || 'unverified'}</span>
+                <div className="p-3 mb-3 bg-light border rounded">
+                  <div className="d-flex justify-content-between align-items-center mb-2">
+                    <span className="fw-semibold small">Withdrawal Limits</span>
+                    <Badge bg="light" text="dark" className="border">Tier: {withdrawLimits?.tier || 'unverified'}</Badge>
                   </div>
                   <LimitMeter label="Daily" bucket={withdrawOperationLimits?.daily} />
                   <LimitMeter label="Monthly" bucket={withdrawOperationLimits?.monthly} />
@@ -718,7 +713,3 @@ const SavingsManagement = ({ styles }) => {
 };
 
 export default SavingsManagement;
-
-SavingsManagement.propTypes = {
-  styles: PropTypes.string,
-};
