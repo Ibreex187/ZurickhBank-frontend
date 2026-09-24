@@ -1644,21 +1644,21 @@ body {
   color: var(--danger);
 }
 
+/* No white-space/overflow/text-overflow here on purpose (dropped nowrap+ellipsis that used to
+   be here): this class is shared by the Transaction Details modal's .detail-item span (which
+   should wrap an unusually large amount instead of spilling past the card - see .detail-item
+   span above) and the transaction table's .dashboard-amount-cell (which still forces its own
+   nowrap+ellipsis at the table-cell level and is unaffected, since white-space inherits down to
+   this span either way). A money amount should never be silently truncated with "…". */
 .amount.positive {
   color: var(--success);
   font-weight: 700;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   font-variant-numeric: tabular-nums;
 }
 
 .amount.negative {
   color: var(--danger);
   font-weight: 700;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1764,9 +1764,13 @@ body {
   color: var(--text-main);
   font-size: 13px;
   font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  /* Not nowrap+ellipsis: this is a plain inline <span>, and text-overflow doesn't reliably
+     truncate inline elements in the first place - .detail-item has no overflow:hidden of its
+     own, so an unbreakable value (an unusually large amount) just spilled raw past the card
+     with no ellipsis shown at all. Money should never be silently truncated anyway - let it
+     wrap onto more lines within the (already width-constrained) card instead. */
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .ledger-cell-text {
