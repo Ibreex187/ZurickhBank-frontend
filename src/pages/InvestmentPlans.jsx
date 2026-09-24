@@ -451,7 +451,7 @@ const InvestmentPlans = () => {
             </Card.Header>
             <Card.Body className="p-0">
               <div className="table-responsive">
-                <Table hover className="mb-0">
+                <Table hover className="mb-0 table-mobile-cards">
                   <thead className="table-light">
                     <tr>
                       <th>Stock</th>
@@ -466,20 +466,20 @@ const InvestmentPlans = () => {
                   <tbody>
                     {investments.map((investment) => (
                       <tr key={investment._id}>
-                        <td>
+                        <td data-label="Stock">
                           <strong>{investment.planName}</strong>
                           <br />
                           <small className="text-muted">{investment.symbol}</small>
                         </td>
-                        <td>{(investment.quantity || 0).toLocaleString()}</td>
-                        <td>{formatMoney((investment.averagePrice || 0))}</td>
-                        <td>{formatMoney((investment.currentPrice || 0))}</td>
-                        <td>
+                        <td data-label="Quantity">{(investment.quantity || 0).toLocaleString()}</td>
+                        <td data-label="Avg Price">{formatMoney((investment.averagePrice || 0))}</td>
+                        <td data-label="Current Price">{formatMoney((investment.currentPrice || 0))}</td>
+                        <td data-label="Total Value">
                           <span className="fw-bold">
                             {formatMoney((investment.currentValue || 0))}
                           </span>
                         </td>
-                        <td>
+                        <td data-label="P&L">
                           <span className={`fw-bold ${getProfitColor(investment.profitLoss)}`}>
                             {formatMoney((investment.profitLoss || 0))}
                             {investment.profitLossPercent && (
@@ -489,7 +489,7 @@ const InvestmentPlans = () => {
                             )}
                           </span>
                         </td>
-                        <td>
+                        <td data-label="Actions">
                           <AppButton
                             size="sm"
                             backgroundColor="transparent"
@@ -669,7 +669,7 @@ const InvestmentPlans = () => {
               <div className="text-center py-4 text-muted">No investment history yet</div>
             ) : (
               <div className="table-responsive">
-                <Table hover className="mb-0">
+                <Table hover className="mb-0 table-mobile-cards">
                   <thead className="table-light">
                     <tr>
                       <th>Date</th>
@@ -682,11 +682,11 @@ const InvestmentPlans = () => {
                   <tbody>
                     {investmentHistory.map((item) => (
                       <tr key={item._id}>
-                        <td>{formatDate(item.purchaseDate || item.createdAt || Date.now())}</td>
-                        <td>{item.stockSymbol}</td>
-                        <td>{Number(item.quantity || 0).toLocaleString()}</td>
-                        <td>{formatMoney(Number(item.totalInvested || 0))}</td>
-                        <td>
+                        <td data-label="Date">{formatDate(item.purchaseDate || item.createdAt || Date.now())}</td>
+                        <td data-label="Stock">{item.stockSymbol}</td>
+                        <td data-label="Quantity">{Number(item.quantity || 0).toLocaleString()}</td>
+                        <td data-label="Total Invested">{formatMoney(Number(item.totalInvested || 0))}</td>
+                        <td data-label="Status">
                           <Badge bg={item.status === 'active' ? 'success' : 'secondary'}>
                             {item.status || 'unknown'}
                           </Badge>

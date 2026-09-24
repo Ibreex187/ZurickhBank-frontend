@@ -238,7 +238,7 @@ const Notifications = () => {
                 </div>
               ) : (
                 <div className="table-responsive">
-                  <Table hover className="mb-0">
+                  <Table hover className="mb-0 table-mobile-cards">
                     <thead className="table-light">
                       <tr>
                         <th>Title</th>
@@ -252,16 +252,16 @@ const Notifications = () => {
                     <tbody>
                       {notifications.map((notification) => (
                         <tr key={notification._id}>
-                          <td>{notification.title}</td>
-                          <td>
+                          <td data-label="Title">{notification.title}</td>
+                          <td data-label="Category">
                             <Badge bg={CATEGORY_BADGE_VARIANT[notification.category] || 'secondary'}>
                               {String(notification.category || '').toUpperCase()}
                             </Badge>
                           </td>
-                          <td>{notification.message}</td>
-                          <td>{notification.isRead ? 'Read' : 'Unread'}</td>
-                          <td>{formatDateTime(notification.createdAt)}</td>
-                          <td>
+                          <td data-label="Message">{notification.message}</td>
+                          <td data-label="Status">{notification.isRead ? 'Read' : 'Unread'}</td>
+                          <td data-label="Created">{formatDateTime(notification.createdAt)}</td>
+                          <td data-label="Action">
                             {!notification.isRead ? (
                               <Button
                                 type="button"

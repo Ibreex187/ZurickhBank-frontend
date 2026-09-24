@@ -257,7 +257,7 @@ const Ledger = () => {
             <>
               {loadingHistory && <div className="px-3 pt-3"><RefreshingBadge /></div>}
               <div className="table-responsive">
-                <Table hover className="mb-0">
+                <Table hover className="mb-0 table-mobile-cards">
                   <thead className="table-light">
                     <tr>
                       <th>Description</th>
@@ -276,12 +276,12 @@ const Ledger = () => {
                     ) : (
                       entries.map((entry) => (
                         <tr key={entry._id}>
-                          <td>{entry.description || '-'}</td>
-                          <td>{entry.referenceType}</td>
-                          <td>{entry.accountType}</td>
-                          <td>{formatCurrency(entry.debit)}</td>
-                          <td>{formatCurrency(entry.credit)}</td>
-                          <td>{formatDateTime(entry.createdAt)}</td>
+                          <td data-label="Description">{entry.description || '-'}</td>
+                          <td data-label="Reference">{entry.referenceType}</td>
+                          <td data-label="Account">{entry.accountType}</td>
+                          <td data-label="Debit">{formatCurrency(entry.debit)}</td>
+                          <td data-label="Credit">{formatCurrency(entry.credit)}</td>
+                          <td data-label="Date">{formatDateTime(entry.createdAt)}</td>
                         </tr>
                       ))
                     )}

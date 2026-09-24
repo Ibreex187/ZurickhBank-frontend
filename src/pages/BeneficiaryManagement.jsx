@@ -332,7 +332,7 @@ const BeneficiaryManagement = () => {
             ) : (
               <div className="table-responsive">
                 {beneficiariesLoading && <div className="px-3 pt-3"><RefreshingBadge /></div>}
-                <Table hover className="mb-0">
+                <Table hover className="mb-0 table-mobile-cards">
                   <thead className="table-light">
                     <tr>
                       <th>Name</th>
@@ -344,12 +344,12 @@ const BeneficiaryManagement = () => {
                   <tbody>
                     {beneficiaries.map((beneficiary) => (
                       <tr key={beneficiary._id}>
-                        <td>
+                        <td data-label="Name">
                           <strong>{beneficiary.firstName} {beneficiary.lastName}</strong>
                         </td>
-                        <td>{beneficiary.userName}</td>
-                        <td className="font-monospace">{beneficiary.accountNumber}</td>
-                        <td>
+                        <td data-label="Username">{beneficiary.userName}</td>
+                        <td data-label="Account Number" className="font-monospace">{beneficiary.accountNumber}</td>
+                        <td data-label="Actions">
                           <Button
                             variant="outline-primary"
                             size="sm"

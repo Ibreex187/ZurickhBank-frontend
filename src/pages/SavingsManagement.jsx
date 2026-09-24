@@ -437,7 +437,7 @@ const SavingsManagement = () => {
               <>
               {dataLoading && <div className="px-3 pt-3"><RefreshingBadge /></div>}
               <div className="table-responsive">
-                <Table hover className="mb-0">
+                <Table hover className="mb-0 table-mobile-cards">
                   <thead className="table-light">
                     <tr>
                       <th>Date</th>
@@ -450,15 +450,15 @@ const SavingsManagement = () => {
                   <tbody>
                     {transactions.map((transaction) => (
                       <tr key={transaction._id || transaction.transactionId}>
-                        <td>{formatDate(transaction.createdAt)}</td>
-                        <td>
+                        <td data-label="Date">{formatDate(transaction.createdAt)}</td>
+                        <td data-label="Type">
                           <Badge bg={transaction.type === 'deposit' ? 'success' : 'warning'}>
                             {transaction.type}
                           </Badge>
                         </td>
-                        <td>{formatMoney(transaction.amount)}</td>
-                        <td>{transaction.description}</td>
-                        <td>
+                        <td data-label="Amount">{formatMoney(transaction.amount)}</td>
+                        <td data-label="Description">{transaction.description}</td>
+                        <td data-label="Status">
                           <Badge bg={transaction.status === 'completed' ? 'success' : 'secondary'}>
                             {transaction.status}
                           </Badge>

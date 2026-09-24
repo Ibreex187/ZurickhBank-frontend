@@ -40,3 +40,64 @@ canvas {
 * {
   min-width: 0;
 }
+
+/* Phase 8.1: reflow a <Table className="table-mobile-cards"> into a stack of cards below ~768px
+   instead of Bootstrap's default .table-responsive sideways scroll, which works but is clumsy to
+   read on a phone. Pure CSS display-role reflow - no JS breakpoint logic, no second copy of the
+   row's markup (so every existing test keeps working unchanged), same technique the app already
+   used before the react-bootstrap migration. Each <td> needs data-label="<column header>" so its
+   ::before can show which field it is once the header row is hidden. */
+@media (max-width: 767.98px) {
+  .table-mobile-cards,
+  .table-mobile-cards tbody,
+  .table-mobile-cards tr,
+  .table-mobile-cards td {
+    display: block;
+    width: 100%;
+  }
+
+  .table-mobile-cards thead {
+    display: none;
+  }
+
+  .table-mobile-cards tbody tr {
+    margin-bottom: 0.75rem;
+    border: 1px solid var(--border-light, #e5e7eb);
+    border-radius: 0.5rem;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .table-mobile-cards tbody tr:last-child {
+    margin-bottom: 0;
+  }
+
+  /* A row with no data cells (an empty-state message spanning every column) reflows to plain text */
+  .table-mobile-cards td[colspan] {
+    text-align: center;
+  }
+
+  .table-mobile-cards td:not([colspan]) {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.4rem 0;
+    border: none;
+    border-bottom: 1px solid var(--border-light, #e5e7eb);
+    text-align: right;
+    white-space: normal;
+  }
+
+  .table-mobile-cards td:not([colspan]):last-child {
+    border-bottom: none;
+  }
+
+  .table-mobile-cards td[data-label]::before {
+    content: attr(data-label);
+    font-weight: 600;
+    font-size: 0.8rem;
+    color: var(--text-muted, #6c757d);
+    text-align: left;
+    flex-shrink: 0;
+  }
+}
