@@ -187,7 +187,7 @@ h5,
 }
 
 .preview-balance-amount {
-  font-size: 2.2rem;
+  font-size: clamp(1.6rem, 7vw, 2.2rem);
   font-weight: 800;
   color: var(--navy);
   margin-bottom: 12px;
@@ -753,9 +753,12 @@ h5,
 
   .feature-card {
     padding: 32px 24px !important;
+  }
 }
 
-/* Professional touch for the brand text globally */
+/* Professional touch for the brand text globally (this was accidentally nested inside the
+   max-width: 767px media query above - a missing closing brace - so it only ever applied on
+   mobile; desktop and tablet were silently missing the intended brand font/weight/spacing) */
 .brand-text {
   font-family: 'Syne', sans-serif !important;
   font-weight: 800;

@@ -24,3 +24,19 @@ video,
 canvas {
   max-width: 100%;
 }
+
+/* Flex/grid ITEMS default to `min-width: auto`, which resolves to their content's intrinsic
+   width - so one unbreakable string (an email, a long account holder name, a stock symbol) can
+   silently force its whole row (and everything up the tree) wider than the viewport, with
+   nothing to show for it but clipped content (see UX_CHECKLIST.md Phase 8 for how this was
+   found - it happened three different ways: a `.d-flex` utility row, Bootstrap's `.row`/`.col`
+   grid, and a legacy `.card-header { display: flex }` rule, none of which are exhaustive to
+   chase one class name at a time). `min-width: auto` only ever has this special "floor at
+   content size" behaviour for children of a flex/grid container; for every other element it is
+   already equivalent to 0, so applying it universally is a no-op there and the real fix wherever
+   it's needed - this does not truncate or resize anything by itself, existing width/white-space/
+   flex-shrink rules and .text-truncate still apply on top of it, it just stops them being
+   overridden by the default "never shrink below content" floor. */
+* {
+  min-width: 0;
+}

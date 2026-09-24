@@ -156,19 +156,23 @@ const Ledger = () => {
 
             <Col sm={8} md={4}>
               <Form.Label>Date Range</Form.Label>
-              <div className="d-flex align-items-center gap-2">
+              {/* flex-wrap: native date inputs have their own minimum rendered width that doesn't
+                  shrink, so two of them plus the "to" label don't fit on one line on narrow phones */}
+              <div className="d-flex flex-wrap align-items-center gap-2">
                 <Form.Control
                   type="date"
                   aria-label="Start date"
                   value={filters.startDate}
                   onChange={(event) => handleFilterChange('startDate', event.target.value)}
+                  style={{ flex: '1 1 140px' }}
                 />
-                <span className="text-muted">to</span>
+                <span className="text-muted flex-shrink-0">to</span>
                 <Form.Control
                   type="date"
                   aria-label="End date"
                   value={filters.endDate}
                   onChange={(event) => handleFilterChange('endDate', event.target.value)}
+                  style={{ flex: '1 1 140px' }}
                 />
               </div>
             </Col>

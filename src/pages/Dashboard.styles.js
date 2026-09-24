@@ -449,6 +449,9 @@ body {
   align-items: center;
   gap: var(--space-md);
   margin-bottom: calc(var(--space-md) + 2px);
+  min-width: 0; /* this legacy rule is unscoped and also applies to every react-bootstrap
+    Card.Header now; without this, it's a flex item that refuses to shrink below its content's
+    width, so it silently pushes cards (and the whole page) wider than the viewport on mobile */
 }
 
 .card-title {
@@ -1873,10 +1876,16 @@ body {
     .dashboard-container { padding: var(--space-md); }
     .dashboard-grid { gap: var(--space-md); }
     .main-header, .balance-section, .quick-actions, .transaction-form-section, .transactions-section { padding-left: var(--space-md); padding-right: var(--space-md); }
-    .main-header { flex-direction: column; align-items: flex-start; gap: var(--space-sm); }
+    /* align-items: stretch (not flex-start) so .header-right is actually forced to the row's real
+       width instead of sizing to its own content - otherwise a long user name has nothing to be
+       truncated against and just pushes the header wider than the screen (see Phase 8 in the
+       checklist for how this was found: it silently cut off both the user name and a header button). */
+    .main-header { flex-direction: column; align-items: stretch; gap: var(--space-sm); }
     .header-left, .user-profile, .user-info { min-width: 0; max-width: 100%; }
+    .header-right { width: 100%; min-width: 0; }
+    .notifications-btn, .user-avatar { flex-shrink: 0; }
     .page-title { font-size: 20px; line-height: 1.25; overflow-wrap: anywhere; }
-    .user-name, .user-role { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-name, .user-role { display: block; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .balance-amount .currency { font-size: 18px; }
     .balance-amount .amount { font-size: clamp(20px, 8vw, 28px); }
     .mobile-menu-btn { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: var(--radius-sm); border: 1px solid var(--border-rich); background: var(--white); color: var(--navy); margin-right: var(--space-md); cursor: pointer; }

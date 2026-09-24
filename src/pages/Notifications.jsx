@@ -211,7 +211,7 @@ const Notifications = () => {
       </Card>
 
       <Card className="shadow-sm">
-        <Card.Header className="bg-white border-bottom d-flex justify-content-between align-items-center">
+        <Card.Header className="bg-white border-bottom d-flex flex-column flex-sm-row justify-content-sm-between align-items-sm-center gap-1">
           <h5 className="mb-0">Inbox</h5>
           <span className={hasUnreadNotifications ? 'text-primary fw-semibold small' : 'text-muted small'}>
             {hasUnreadNotifications ? `${unreadCount} unread` : 'All caught up'}

@@ -263,7 +263,7 @@ const BeneficiaryManagement = () => {
         {/* Header Section */}
         <Row className="mb-4">
           <Col>
-            <div className="d-flex justify-content-between align-items-center">
+            <div className="d-flex flex-column flex-sm-row justify-content-sm-between align-items-sm-center gap-2">
               <h2 className="mb-0">Beneficiary Management</h2>
               <Button
                 variant="primary"

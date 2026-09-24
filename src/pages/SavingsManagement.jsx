@@ -251,12 +251,12 @@ const SavingsManagement = () => {
         {/* Header Section */}
         <Row className="mb-4">
           <Col>
-            <div className="d-flex justify-content-between align-items-center">
+            <div className="d-flex flex-column flex-sm-row justify-content-sm-between align-items-sm-center gap-2">
               <div>
                 <h2 className="mb-1">Savings Management</h2>
                 <p className="text-muted mb-0">Build your financial future with smart savings</p>
               </div>
-              <div className="d-flex gap-2">
+              <div className="d-flex flex-wrap gap-2">
                 <Button
                   variant="success"
                   onClick={() => openSavingsAction(setShowDepositModal)}
@@ -349,7 +349,7 @@ const SavingsManagement = () => {
           <Col md={6}>
             <Card className="shadow-sm h-100">
               <Card.Header>
-                <div className="d-flex justify-content-between align-items-center">
+                <div className="d-flex flex-column flex-sm-row justify-content-sm-between align-items-sm-center gap-1">
                   <h5 className="mb-0">Savings Statistics</h5>
                   <small className="text-muted">
                     Last updated: {statsLastUpdated ? formatTime(statsLastUpdated) : '—'}

@@ -431,7 +431,7 @@ const InvestmentPlans = () => {
         {investments.length > 0 && (
           <Card className="shadow-sm mb-4">
             <Card.Header className="bg-white border-bottom">
-              <div className="d-flex justify-content-between align-items-center">
+              <div className="d-flex flex-column flex-sm-row justify-content-sm-between align-items-sm-center gap-1">
                 <h5 className="mb-0">My Stock Portfolio</h5>
                 <AppButton
                   size="sm"
@@ -548,13 +548,18 @@ const InvestmentPlans = () => {
                 <Col lg={4} md={6} key={stock.id}>
                   <Card className="h-100 shadow-sm">
                     <Card.Header>
-                      <div className="d-flex justify-content-between align-items-center">
-                        <h5 className="mb-0">{stock.name}</h5>
-                        <Badge bg={getRiskBadgeColor(stock.risk)} className="text-dark">
-                          {stock.risk} Risk
-                        </Badge>
+                      {/* Card.Header itself is a legacy flex row (see Dashboard.styles.js), so this
+                          needs to be its only direct child - otherwise the symbol below ends up
+                          squeezed into its own flex column next to the title instead of stacking under it */}
+                      <div>
+                        <div className="d-flex justify-content-between align-items-center gap-2">
+                          <h5 className="mb-0 text-truncate" title={stock.name}>{stock.name}</h5>
+                          <Badge bg={getRiskBadgeColor(stock.risk)} className="text-dark flex-shrink-0">
+                            {stock.risk} Risk
+                          </Badge>
+                        </div>
+                        <small>{stock.symbol}</small>
                       </div>
-                      <small>{stock.symbol}</small>
                     </Card.Header>
                     <Card.Body className="d-flex flex-column">
                       <p className="text-muted mb-3">{stock.description}</p>
@@ -644,7 +649,7 @@ const InvestmentPlans = () => {
         )}
 
         <Card className="shadow-sm mt-4 mb-4">
-          <Card.Header className="bg-white border-bottom d-flex justify-content-between align-items-center">
+          <Card.Header className="bg-white border-bottom d-flex flex-column flex-sm-row justify-content-sm-between align-items-sm-center gap-1">
             <h5 className="mb-0">Investment History</h5>
             <AppButton
               size="sm"
