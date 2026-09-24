@@ -324,6 +324,12 @@ export const getTransactionById = async (transactionId) => {
   }
 };
 
+// Mirrors Banknode/validators/validation.rules.js's MAX_TRANSACTION_AMOUNT. This didn't exist
+// on either side until a real deposit through this form produced a multi-quintillion-naira
+// balance (nothing here, or on the backend, had ever capped the top end - only the minimum).
+// Checking it here too just means the mistake gets caught before a round trip to the server.
+const MAX_TRANSACTION_AMOUNT = 50000000;
+
 /**
  * Validate transaction amount (matches backend validation)
  */
@@ -331,17 +337,21 @@ export const validateTransactionAmount = (amount) => {
   if (!amount) {
     return 'Amount is required';
   }
-  
+
   const numAmount = parseFloat(amount);
-  
+
   if (!Number.isFinite(numAmount)) {
     return 'Amount must be a valid number';
   }
-  
+
   if (numAmount < 0.01) {
     return 'Amount must be greater than 0.01'; // Match backend minimum
   }
-  
+
+  if (numAmount > MAX_TRANSACTION_AMOUNT) {
+    return `Amount cannot exceed ${MAX_TRANSACTION_AMOUNT.toLocaleString()}`; // Match backend maximum
+  }
+
   return null;
 };
 

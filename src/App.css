@@ -86,6 +86,11 @@ canvas {
     border-bottom: 1px solid var(--border-light, #e5e7eb);
     text-align: right;
     white-space: normal;
+    /* white-space: normal alone isn't enough insurance - a run of digits broken only by commas
+       isn't guaranteed to wrap at those commas in every browser (this is what still let an
+       unusually large amount overflow its card here, even after the same fix was applied to the
+       Transaction Details modal elsewhere). overflow-wrap: anywhere forces a break regardless. */
+    overflow-wrap: anywhere;
   }
 
   .table-mobile-cards td:not([colspan]):last-child {
