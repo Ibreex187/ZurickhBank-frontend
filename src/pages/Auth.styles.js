@@ -204,6 +204,14 @@ export const AUTH_STYLES = `
 .auth-form-wrapper {
   width: 100%;
   max-width: 480px;
+  /* .auth-right centers this via flexbox (display:flex; justify-content:center) when it renders
+     inline in the two-column desktop layout - but below the lg breakpoint the whole form moves
+     into a bottom-sheet Offcanvas, which React Bootstrap portals out of .auth-right's DOM subtree
+     entirely, so that centering never reaches it there. Centering it here too, directly, means it
+     works regardless of which parent it actually ends up under - otherwise the sheet renders full
+     width but the form sits pinned to the left edge with a large empty gap beside it. */
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .auth-form-header {
@@ -469,6 +477,12 @@ export const AUTH_STYLES = `
   .auth-right {
     padding: 32px 20px !important;
     background: transparent !important;
+    /* .auth-right's own 100vh floor only makes sense side-by-side with .auth-left (desktop);
+       once the form moves into the fixed-position Offcanvas below this breakpoint, .auth-right
+       itself is left holding almost no visible content, so forcing it to a full extra viewport
+       tall just adds a large empty gap to scroll through before reaching the (already fixed,
+       already overlaying the screen when open) form sheet. */
+    min-height: auto !important;
   }
 }
 
